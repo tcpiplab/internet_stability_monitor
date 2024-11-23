@@ -1,0 +1,6 @@
+dnspython==2.7.0
+ntplib==0.4.0
+Requests==2.32.3
+selenium==4.26.1
+urllib3==2.2.3
+websocket_client==1.8.0
