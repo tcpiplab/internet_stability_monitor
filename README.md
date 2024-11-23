@@ -61,3 +61,23 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Acknowledgements
 
 Special thanks to all contributors and the open-source community for their valuable resources and tools.
+
+## Installing Ollama and the Mistral Model on macOS
+
+To use the local LLM summary feature, you'll need to install Ollama on your macOS system and download the `mistral` model. Follow these steps:
+
+1. **Install Ollama**:
+   
+   Visit the [Ollama website](https://ollama.com/) and follow the instructions to download and install the Ollama software on your macOS.
+
+2. **Download the Mistral Model**:
+
+   Once you have Ollama installed, you can download the `mistral` model by running the following command:
+
+   ```bash
+   ollama pull mistral
+   ```
+
+   Ensure that the paths and necessary configurations are correctly set up so the `process_logs.py` script can interact with Ollama to generate summaries.
+
+These steps will enable the project to utilize local LLM capabilities for summarizing log files and integrating with the overall workflow.
