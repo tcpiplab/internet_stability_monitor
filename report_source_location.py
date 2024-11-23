@@ -21,6 +21,7 @@ def main():
     # Get ISP and location information
     ip_data = get_isp_and_location(public_ip)
     isp = ip_data.get("org", "Unknown ISP")
+    isp = f"B.G.P Autonomous System Number {isp}"
     city = ip_data.get("city", "Unknown city")
     region = ip_data.get("region", "Unknown region")
     country = ip_data.get("country", "Unknown country")

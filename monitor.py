@@ -57,8 +57,10 @@ def run_script(script_name):
 
 def main():
     scripts = [
+        "check_local_os.py",
         "check_unifi_api.py",
         "mac_speed_test.py",
+        "resolver_check.py",
         "whois_check.py",
         "dns_check.py",
         "ntp_check.py",
@@ -69,7 +71,6 @@ def main():
         "tls_ca_check.py",
         "cdn_check.py",
         # "bgp_ripe_ris_check.py", (removed because still too verbose)
-        "resolver_check.py",
         "ixp_check.py",
     ]
 

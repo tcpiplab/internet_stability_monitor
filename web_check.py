@@ -106,7 +106,7 @@ if __name__ == "__main__":
         print(f"- {url}: Response Time: {response_time:.6f} seconds")
     
     if len(unreachable) == 0:
-        print("\nAll websites are reachable.")
+        print("\nSummary of reachability of major tech and friendly government websites: All websites are reachable.")
     
     else:
         print("\nUnreachable Websites:")

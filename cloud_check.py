@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
 
     if len(reachable_providers) == len(cloud_status_pages):
-        print("All cloud providers are reachable.")
+        print("Cloud provider reachability summary: All cloud providers are reachable.")
 
     print("Cloud Providers with No Issues:")
     for provider in reachable_providers:

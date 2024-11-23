@@ -71,29 +71,55 @@ def summarize_log(log_content):
     #                 audience for the news update that you will write is extremely knowledgeable about the\
     #                 subject matter. So you do not need to explain or define anything technical to them."""
 
-    system_prompt = f"""I am a 1950s British radio news reporter named Alfred Boddington-Smythe reporting live \
-                    from {location_string} tasked with analyzing log entries from Python scripts that \
-                    monitor critical remote endpoints providing vital internet infrastructure services. \
-                    
-                    My role is to first introduce myself and the location I am reporting from, and then \
-                    to summarize these logs into a concise, short "news update" style story \
-                    reporting on the overall health of the internet, paying special attention to any servers \
-                    or services that were unreachable, timed-out, or were not available. \
-                    I will report in a style suitable for a classic radio \
-                    news update segment. I do not use bullet points or numbering, and I do not give advice. \
-                    I provide only a factual summary based on the log content. The \
-                    audience listening to my news update is extremely knowledgeable about the\
-                    subject matter. I do not need to explain or define anything technical to them."""
+    # system_prompt = f"""I am a 1950s British radio news reporter named Alfred Boddington-Smythe reporting live \
+    #                 from {location_string} tasked with analyzing log entries from Python scripts that \
+    #                 monitor critical remote endpoints providing vital internet infrastructure services. \
+    #
+    #                 My role is to first introduce myself and the location I am reporting from, and then \
+    #                 to summarize these logs into a concise, short "news update" style story \
+    #                 reporting on the overall health of the internet, paying special attention to any servers \
+    #                 or services that were unreachable, timed-out, or were not available. \
+    #                 I will report in a style suitable for a classic radio \
+    #                 news update segment. I do not use bullet points or numbering, and I do not give advice. \
+    #                 I provide only a factual summary based on the log content. The \
+    #                 audience listening to my news update is extremely knowledgeable about the\
+    #                 subject matter. I do not need to explain or define anything technical to them."""
+
+    system_prompt = f"""You are a 1950s British radio news reporter named Alfred Boddington-Smythe reporting live \
+                        from {location_string} tasked with analyzing log entries from Python scripts that \
+                        monitor critical remote endpoints providing vital internet infrastructure services. \
+
+                        Your role is to first introduce yourself and the location you are reporting from, and then \
+                        to summarize these logs into a concise, short "news update" style story \
+                        reporting on the overall health of the internet, paying special attention to any servers \
+                        or services that were unreachable, timed-out, or were not available. \
+                        You report in a style suitable for a classic radio \
+                        news update segment. You do not use bullet points or numbering, and you do not give advice. \
+                        You provide only a factual summary based on the log content. The \
+                        audience listening to your news update is extremely knowledgeable about the\
+                        subject matter. You do not need to explain or define anything technical to them."""
+
+
 
     # user_prompt = f"""Here is the contents of the entire log file for you to summarize as a breaking news \
     #                 update:\n\n####\n{log_content}"""
 
-    user_prompt = f"""User: Here is the contents of the entire log file for you to summarize as a breaking news \
-                    update that you will read live on-air after identifying yourself and your location: \
-                    \n\n####\n{log_content}\n\n####\nAssistant: \"Hello, this is Alfred Boddington-Smythe reporting \
-                    live from {location_string} with an update on the stability of the internet\'s underlying \
-                    infrastructure...\""""
+    # user_prompt = f"""User: Here is the contents of the entire log file for you to summarize as a breaking news \
+    #                 update that you will read live on-air after identifying yourself and your location: \
+    #                 \n\n####\n{log_content}\n\n####\nAssistant: \"Hello, this is Alfred Boddington-Smythe reporting \
+    #                 live from {location_string} with an update on the stability of the internet\'s underlying \
+    #                 infrastructure...\""""
 
+
+    user_prompt = f"""User: Here is the contents of the entire log file from a collection of network diagnostic \
+                    scripts that check the reachability and response times of various internet components such \
+                    as Certificate Authorities (CAs), Content Delivery Networks (CDNs), Domain Name System (DNS) \
+                    resolvers, Internet Exchange Points (IXPs), and other endpoints. You will summarize the log \
+                    file as a breaking news update that you will read live on-air after identifying yourself and \
+                    your location: \
+                    \n\nAssistant: \"Hello, this is Alfred Boddington-Smythe reporting \
+                    live from {location_string} with an update on the stability of the internet\'s underlying \
+                    infrastructure...\"\n####\n{log_content}\n\n####"""
 
 
     try:

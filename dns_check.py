@@ -68,7 +68,7 @@ if __name__ == "__main__":
         print(f"- {server}")
     
     if len(unreachable) == 0:
-        print("\nAll DNS Root Servers are reachable.")
+        print("\nDNS Root Servers reachability summary: All DNS Root Servers are reachable.")
 
     else:
         print("\nUnreachable DNS Root Servers:")

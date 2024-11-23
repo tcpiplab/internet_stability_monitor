@@ -49,7 +49,7 @@ def monitor_cdns():
                 time.sleep(2)  # Sleep for 2 seconds before retrying
 
     if len(reachable_cdns) == len(cdn_endpoints):
-        print("All CDNs are reachable.")
+        print("CDN reachability summary: All CDNs are reachable.")
 
     # Output results
     print("Reachable CDNs:")
@@ -57,10 +57,10 @@ def monitor_cdns():
         print(f"- {cdn_info}")
 
     if len(reachable_cdns) == 0:
-        print("All CDNs are unreachable!")
+        print("CDN reachability summary: All CDNs are unreachable!")
 
     if len(unreachable_cdns) == 0:
-        print("All CDNs are reachable!")
+        print("CDN reachability summary: All CDNs are reachable!")
 
 
     if len(unreachable_cdns) > 0:
@@ -69,5 +69,5 @@ def monitor_cdns():
             print(f"- {cdn_info}")
 
 if __name__ == "__main__":
-    print(f"Starting CDN monitoring at {datetime.now()}\n")
+    print(f"Starting report on CDN reachability monitoring at {datetime.now()}\n")
     monitor_cdns()

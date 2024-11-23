@@ -1390,3 +1390,5 @@
 /ai_check.py
 /ai_check2.py
 /bgp_ripe_ris_check.py
+/venv/
+__pycache__/
