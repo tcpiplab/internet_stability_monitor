@@ -19,8 +19,7 @@ def init_headless_browser():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("window-size=1920,1080")
     
-    # Path to ChromeDriver executable
-    chrome_service = Service('/Users/lukesheppard/Downloads/chromedriver-mac-arm64/chromedriver')
+    chrome_service = Service('./drivers/chromedriver')
     
     # Return a new browser session
     return webdriver.Chrome(service=chrome_service, options=chrome_options)
