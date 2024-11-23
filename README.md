@@ -81,3 +81,31 @@ To use the local LLM summary feature, you'll need to install Ollama on your macO
    Ensure that the paths and necessary configurations are correctly set up so the `process_logs.py` script can interact with Ollama to generate summaries.
 
 These steps will enable the project to utilize local LLM capabilities for summarizing log files and integrating with the overall workflow.
+
+## Setting Up ChromeDriver
+
+To run Selenium tests, you need to have the correct version of `chromedriver` installed. Follow these steps to download and set up `chromedriver`:
+
+1. **Check Your Chrome Version**:
+
+   Open Chrome and navigate to `chrome://settings/help` to find your Chrome browser version.
+
+2. **Download ChromeDriver**:
+
+   Visit the [ChromeDriver download page](https://googlechromelabs.github.io/chrome-for-testing/) and download the version that matches your Chrome browser.
+
+3. **Save ChromeDriver**:
+
+   After downloading the `chromedriver`, unzip the file and save the `chromedriver` executable to the `./drivers` directory in your project root.
+
+4. **Verify Path**:
+
+   Ensure that the `./drivers` directory contains the `chromedriver` file. The structure should look like this:
+   ```text
+   internet_stability_monitor/
+   ├── drivers/
+   │   └── chromedriver
+   └── README.md
+   ```
+
+   By following these steps, you ensure that Selenium has the appropriate WebDriver to interact with Chrome for your test automation.
