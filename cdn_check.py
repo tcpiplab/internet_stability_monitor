@@ -2,6 +2,8 @@ import requests
 from datetime import datetime
 import time
 
+import subprocess
+
 # List of CDNs and their respective endpoints to monitor
 cdn_endpoints = {
     "Cloudflare": "https://www.cloudflare.com/robots.txt",
@@ -70,4 +72,7 @@ def monitor_cdns():
 
 if __name__ == "__main__":
     print(f"Starting report on CDN reachability monitoring at {datetime.now()}\n")
+    subprocess.run(["say", f"Starting report on CDN reachability monitoring at {datetime.now()}."])
+    subprocess.run(["say", "This will check the reachability of several of the largest content delivery \
+    networks around the world."])
     monitor_cdns()

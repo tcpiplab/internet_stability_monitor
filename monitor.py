@@ -75,16 +75,21 @@ def main():
     ]
 
     print("Starting report on critical internet infrastructure...")
+    subprocess.run(["say", f"Starting report on critical internet infrastructure."])
     print(f"Tests were started at {datetime.now().isoformat()}")
+    subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
 
     for script in scripts:
 
         print(f"Running {script}...")
+        subprocess.run(["say", f"Running the {script} script."])
         run_script(script)
         print(f"{script} completed.")
+        subprocess.run(["say", f"The {script} script has completed."])
         
         # Sleep 5 seconds between scripts to be polite        
         print("Sleeping for 5 seconds before next script...")
+        subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
         subprocess.run(["sleep", "5"])
 
 if __name__ == "__main__":

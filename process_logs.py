@@ -162,6 +162,7 @@ def summarize_log(log_content):
         if not summary:
             raise Exception("Summary was empty")
 
+        subprocess.run(["say", "Preparing the summary of the testing outcomes. This will take a moment."])
         return summary
 
     except Exception as e:

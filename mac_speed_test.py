@@ -47,6 +47,7 @@ def run_network_quality_test():
             sys.exit(1)
 
         # Run the networkQuality command
+        subprocess.run(["say", f"Please wait while the network speed and quality test is running."])
         process = subprocess.run(
             ["networkQuality", "-p", "-s"],
             capture_output=True,

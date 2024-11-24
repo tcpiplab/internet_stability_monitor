@@ -2,6 +2,8 @@ import requests
 from datetime import datetime
 import time
 
+import subprocess
+
 # List of IXPs and their public-facing websites (updated Equinix URL)
 ixp_endpoints = {
     "DE-CIX (Frankfurt)": "https://www.de-cix.net/",
@@ -9,7 +11,7 @@ ixp_endpoints = {
     "AMS-IX (Amsterdam)": "https://www.ams-ix.net/",
     "NYIIX (New York)": "https://www.nyiix.net/",
     "HKIX (Hong Kong)": "https://www.hkix.net/",
-    "Equinix IX (Global)": "https://status.equinix.com/"  # Updated URL
+    "Equinix-IX (Global)": "https://status.equinix.com/"  # Updated URL
 }
 
 # Function to monitor IXPs
@@ -59,4 +61,6 @@ def monitor_ixps():
 
 if __name__ == "__main__":
     print(f"Starting IXP monitoring at {datetime.now()}\n")
+    subprocess.run(["say", f"Starting IXP monitoring at {datetime.now()}."])
+    subprocess.run(["say", "This will check the reachability of several internet exchange points around the world."])
     monitor_ixps()
