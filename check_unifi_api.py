@@ -24,8 +24,12 @@ data = response.json()
 # Extract the IP address
 ip_address = data['data'][0]['ipAddress']
 
+current_ip_pronouncable = ip_address.replace('.', ' dot ')
+
+# previous_ip = None
+
 print(f"Our external broadband IP Address is currently {ip_address}")
-subprocess.run(["say", f"Our external broadband IP Address is currently {ip_address}"])
+subprocess.run(["say", f"Our external broadband IP Address is currently {current_ip_pronouncable}"])
 
 # Check if the file exists from the previous run and compare the IP address
 if os.path.exists('/tmp/ip_address.txt'):
@@ -34,10 +38,13 @@ if os.path.exists('/tmp/ip_address.txt'):
 
     if ip_address != previous_ip:
         print(f"IP address has changed from {previous_ip} to {ip_address}")
-        subprocess.run(["say", f"IP address has changed from {previous_ip} to {ip_address}"])
+
+        previous_ip_pronouncable = previous_ip.replace('.', ' dot ')
+
+        subprocess.run(["say", f"IP address has changed from {previous_ip_pronouncable} to {current_ip_pronouncable}"])
     else:
         print("IP address has not changed.")
-        subprocess.run(["say", "Our external broadband IP address has not changed."])
+        subprocess.run(["say", "Our IP address has not changed."])
 
 # Save the IP address to a file with today's date and time, separated by a comma
 today_date_and_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
