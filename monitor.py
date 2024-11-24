@@ -58,7 +58,7 @@ def run_script(script_name):
 def main():
     scripts = [
         "check_local_os.py",
-        "check_unifi_api.py",
+        "check_external_ip.py",
         "mac_speed_test.py",
         "resolver_check.py",
         "whois_check.py",
