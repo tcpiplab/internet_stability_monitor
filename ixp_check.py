@@ -61,6 +61,6 @@ def monitor_ixps():
 
 if __name__ == "__main__":
     print(f"Starting IXP monitoring at {datetime.now()}\n")
-    subprocess.run(["say", f"Starting IXP monitoring at {datetime.now()}."])
+    subprocess.run(["say", f"Starting IXP monitoring."])
     subprocess.run(["say", "This will check the reachability of several internet exchange points around the world."])
     monitor_ixps()

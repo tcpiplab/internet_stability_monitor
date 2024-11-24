@@ -72,7 +72,7 @@ def monitor_cdns():
 
 if __name__ == "__main__":
     print(f"Starting report on CDN reachability monitoring at {datetime.now()}\n")
-    subprocess.run(["say", f"Starting report on CDN reachability monitoring at {datetime.now()}."])
+    subprocess.run(["say", f"Starting report on CDN reachability monitoring."])
     subprocess.run(["say", "This will check the reachability of several of the largest content delivery \
     networks around the world."])
     monitor_cdns()
