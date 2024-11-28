@@ -4,6 +4,7 @@ import subprocess
 import logging
 from datetime import datetime
 
+import argparse
 # Set up the logging directory under /tmp
 log_directory = "/tmp/internet_stability_monitor_logs"
 if not os.path.exists(log_directory):
@@ -55,7 +56,7 @@ def run_script(script_name):
         print(error_output, file=sys.stderr)
 
 
-def main():
+def main(silent):
     scripts = [
         "check_local_os.py",
         "check_external_ip.py",
@@ -75,22 +76,31 @@ def main():
     ]
 
     print("Starting report on critical internet infrastructure...")
-    subprocess.run(["say", f"Starting report on critical internet infrastructure."])
+    if not silent:
+        subprocess.run(["say", f"Starting report on critical internet infrastructure."])
     print(f"Tests were started at {datetime.now().isoformat()}")
-    subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
-
+    print(f"Tests were started at {datetime.now().isoformat()}")
+    if not silent:
+        subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
     for script in scripts:
 
         print(f"Running {script}...")
-        subprocess.run(["say", f"Running the {script} script."])
+        if not silent:
+            subprocess.run(["say", f"Running the {script} script."])
         run_script(script)
         print(f"{script} completed.")
-        subprocess.run(["say", f"The {script} script has completed."])
+        if not silent:
+            subprocess.run(["say", f"The {script} script has completed."])
         
         # Sleep 5 seconds between scripts to be polite        
         print("Sleeping for 5 seconds before next script...")
-        subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
+        if not silent:
+            subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
+
         subprocess.run(["sleep", "5"])
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Internet Stability Monitor")
+    parser.add_argument('--silent', action='store_true', help="Run without vocal announcements")
+    args = parser.parse_args()
+    main(args.silent)
