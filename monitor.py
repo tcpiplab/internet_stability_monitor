@@ -4,6 +4,7 @@ import subprocess
 import logging
 from datetime import datetime
 
+import argparse
 # Set up the logging directory under /tmp
 log_directory = "/tmp/internet_stability_monitor_logs"
 if not os.path.exists(log_directory):
@@ -21,41 +22,65 @@ logging.basicConfig(
 )
 
 # Function to run each script and log output
-def run_script(script_name):
+def run_script(script_name, silent):
 
     separator = "=" * 80
 
-    try:
-        result = subprocess.run(
-            ["python3", script_name],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+    if silent is True:
+        try:
+            result = subprocess.run(
+                ["python3", script_name, "--silent"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
-    #     logging.info(f"Output of {script_name}:\n{result.stdout}\n{separator}\n")
-    # except subprocess.CalledProcessError as e:
-    #     logging.error(f"Error running {script_name}:\n{e.stderr}\n{separator}\n")
+            output = f"Output of {script_name}:\n{result.stdout}\n{separator}\n"
 
-        output = f"Output of {script_name}:\n{result.stdout}\n{separator}\n"
-            
-        # Log to file
-        logging.info(output)
-        
-        # Print to STDOUT
-        print(output, file=sys.stdout)
+            # Log to file
+            logging.info(output)
 
-    except subprocess.CalledProcessError as e:
-        error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
-        
-        # Log error to file
-        logging.error(error_output)
-        
-        # Print error to STDOUT
-        print(error_output, file=sys.stderr)
+            # Print to STDOUT
+            print(output, file=sys.stdout)
+
+        except subprocess.CalledProcessError as e:
+            error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
+
+            # Log error to file
+            logging.error(error_output)
+
+            # Print error to STDOUT
+            print(error_output, file=sys.stderr)
+
+    else:
+
+        try:
+            result = subprocess.run(
+                ["python3", script_name],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            output = f"Output of {script_name}:\n{result.stdout}\n{separator}\n"
+
+            # Log to file
+            logging.info(output)
+
+            # Print to STDOUT
+            print(output, file=sys.stdout)
+
+        except subprocess.CalledProcessError as e:
+            error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
+
+            # Log error to file
+            logging.error(error_output)
+
+            # Print error to STDOUT
+            print(error_output, file=sys.stderr)
 
 
-def main():
+def main(silent):
     scripts = [
         "check_local_os.py",
         "check_external_ip.py",
@@ -75,22 +100,31 @@ def main():
     ]
 
     print("Starting report on critical internet infrastructure...")
-    subprocess.run(["say", f"Starting report on critical internet infrastructure."])
+    if not silent:
+        subprocess.run(["say", f"Starting report on critical internet infrastructure."])
     print(f"Tests were started at {datetime.now().isoformat()}")
-    subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
-
+    print(f"Tests were started at {datetime.now().isoformat()}")
+    if not silent:
+        subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
     for script in scripts:
 
         print(f"Running {script}...")
-        subprocess.run(["say", f"Running the {script} script."])
-        run_script(script)
+        if not silent:
+            subprocess.run(["say", f"Running the {script} script."])
+        run_script(script, silent)
         print(f"{script} completed.")
-        subprocess.run(["say", f"The {script} script has completed."])
+        if not silent:
+            subprocess.run(["say", f"The {script} script has completed."])
         
         # Sleep 5 seconds between scripts to be polite        
         print("Sleeping for 5 seconds before next script...")
-        subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
+        if not silent:
+            subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
+
         subprocess.run(["sleep", "5"])
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Internet Stability Monitor")
+    parser.add_argument('--silent', action='store_true', help="Run without vocal announcements")
+    args = parser.parse_args()
+    main(args.silent)

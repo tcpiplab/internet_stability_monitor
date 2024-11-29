@@ -1,7 +1,8 @@
+
 import requests
 from datetime import datetime
 import time
-
+import argparse
 import subprocess
 
 # List of IXPs and their public-facing websites (updated Equinix URL)
@@ -60,7 +61,12 @@ def monitor_ixps():
             print(f"- {ixp_info}")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Monitor IXPs.")
+    parser.add_argument("--silent", action="store_true", help="Run without announcements.")
+    args = parser.parse_args()
+
     print(f"Starting IXP monitoring at {datetime.now()}\n")
-    subprocess.run(["say", f"Starting IXP monitoring."])
-    subprocess.run(["say", "This will check the reachability of several internet exchange points around the world."])
+    if not args.silent:
+        subprocess.run(["say", f"Starting IXP monitoring."])
+        subprocess.run(["say", "This will check the reachability of several internet exchange points around the world."])
     monitor_ixps()

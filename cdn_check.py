@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
 import time
-
+import argparse
 import subprocess
 
 # List of CDNs and their respective endpoints to monitor
@@ -70,9 +70,19 @@ def monitor_cdns():
         for cdn_info in unreachable_cdns:
             print(f"- {cdn_info}")
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser(description='Monitor CDN reachability.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
     print(f"Starting report on CDN reachability monitoring at {datetime.now()}\n")
-    subprocess.run(["say", f"Starting report on CDN reachability monitoring."])
-    subprocess.run(["say", "This will check the reachability of several of the largest content delivery \
+    if not args.silent:
+        subprocess.run(["say", f"Starting report on CDN reachability monitoring."])
+        subprocess.run(["say", "This will check the reachability of several of the largest content delivery \
     networks around the world."])
     monitor_cdns()
+
+if __name__ == "__main__":
+    main()
+
+

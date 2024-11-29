@@ -1,7 +1,7 @@
 import subprocess
 import sys
 
-
+import argparse
 def parse_network_quality_output(output):
     lines = output.splitlines()
     summary = {}
@@ -39,7 +39,7 @@ def generate_summary_text(summary):
     )
 
 
-def run_network_quality_test():
+def run_network_quality_test(silent):
     try:
         # Check if running on macOS
         if sys.platform != "darwin":
@@ -47,7 +47,8 @@ def run_network_quality_test():
             sys.exit(1)
 
         # Run the networkQuality command
-        subprocess.run(["say", f"Please wait while the network speed and quality test is running."])
+        if not silent:
+            subprocess.run(["say", f"Please wait while the network speed and quality test is running."])
         process = subprocess.run(
             ["networkQuality", "-p", "-s"],
             capture_output=True,
@@ -60,7 +61,8 @@ def run_network_quality_test():
             summary_text = generate_summary_text(summary)
             print(summary_text)
             # Speak the summary_text
-            subprocess.run(["say", summary_text])
+            if not silent:
+                subprocess.run(["say", summary_text])
 
         # Print any errors
         if process.stderr:
@@ -117,4 +119,7 @@ def compare_speed_to_telecom(speed_mbps: float) -> str:
 
 
 if __name__ == "__main__":
-    run_network_quality_test()
+    parser = argparse.ArgumentParser(description="Run network quality test.")
+    parser.add_argument("--silent", action="store_true", help="Run without audio feedback.")
+    args = parser.parse_args()
+    run_network_quality_test(args.silent)
