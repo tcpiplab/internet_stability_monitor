@@ -12,12 +12,17 @@ def run_script(script_name, args=None):
 
 if __name__ == "__main__":
     silent_mode = '--silent' in sys.argv
-    script_args = ['--silent'] if silent_mode else []
+    polite_mode = '--polite' in sys.argv
+    script_args = []
+    if silent_mode:
+        script_args.append('--silent')
+    if polite_mode:
+        script_args.append('--polite')
 
-    print("Starting monitor.py...")
+    print("Starting monitor.py with options:", script_args)
     run_script("monitor.py", script_args)
 
-    print("monitor.py completed. Starting process_logs.py...")
+    print("monitor.py completed. Starting process_logs.py with options:", script_args)
     run_script("process_logs.py", script_args)
 
     print("All scripts completed successfully.")
