@@ -22,38 +22,62 @@ logging.basicConfig(
 )
 
 # Function to run each script and log output
-def run_script(script_name):
+def run_script(script_name, silent):
 
     separator = "=" * 80
 
-    try:
-        result = subprocess.run(
-            ["python3", script_name],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+    if silent is True:
+        try:
+            result = subprocess.run(
+                ["python3", script_name, "--silent"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
-    #     logging.info(f"Output of {script_name}:\n{result.stdout}\n{separator}\n")
-    # except subprocess.CalledProcessError as e:
-    #     logging.error(f"Error running {script_name}:\n{e.stderr}\n{separator}\n")
+            output = f"Output of {script_name}:\n{result.stdout}\n{separator}\n"
 
-        output = f"Output of {script_name}:\n{result.stdout}\n{separator}\n"
-            
-        # Log to file
-        logging.info(output)
-        
-        # Print to STDOUT
-        print(output, file=sys.stdout)
+            # Log to file
+            logging.info(output)
 
-    except subprocess.CalledProcessError as e:
-        error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
-        
-        # Log error to file
-        logging.error(error_output)
-        
-        # Print error to STDOUT
-        print(error_output, file=sys.stderr)
+            # Print to STDOUT
+            print(output, file=sys.stdout)
+
+        except subprocess.CalledProcessError as e:
+            error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
+
+            # Log error to file
+            logging.error(error_output)
+
+            # Print error to STDOUT
+            print(error_output, file=sys.stderr)
+
+    else:
+
+        try:
+            result = subprocess.run(
+                ["python3", script_name],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            output = f"Output of {script_name}:\n{result.stdout}\n{separator}\n"
+
+            # Log to file
+            logging.info(output)
+
+            # Print to STDOUT
+            print(output, file=sys.stdout)
+
+        except subprocess.CalledProcessError as e:
+            error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
+
+            # Log error to file
+            logging.error(error_output)
+
+            # Print error to STDOUT
+            print(error_output, file=sys.stderr)
 
 
 def main(silent):
@@ -87,7 +111,7 @@ def main(silent):
         print(f"Running {script}...")
         if not silent:
             subprocess.run(["say", f"Running the {script} script."])
-        run_script(script)
+        run_script(script, silent)
         print(f"{script} completed.")
         if not silent:
             subprocess.run(["say", f"The {script} script has completed."])
