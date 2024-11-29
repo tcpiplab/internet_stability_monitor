@@ -80,7 +80,7 @@ def run_script(script_name, silent):
             print(error_output, file=sys.stderr)
 
 
-def main(silent):
+def main(silent, polite):
     scripts = [
         "check_local_os.py",
         "check_external_ip.py",
@@ -108,6 +108,8 @@ def main(silent):
         subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
     for script in scripts:
 
+        politeness_gap = polite
+
         print(f"Running {script}...")
         if not silent:
             subprocess.run(["say", f"Running the {script} script."])
@@ -116,15 +118,17 @@ def main(silent):
         if not silent:
             subprocess.run(["say", f"The {script} script has completed."])
         
-        # Sleep 5 seconds between scripts to be polite        
-        print("Sleeping for 5 seconds before next script...")
-        if not silent:
-            subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
+        if politeness_gap:
+            # Sleep 5 seconds between scripts to be polite
+            print("Sleeping for 5 seconds before next script...")
+            if not silent:
+                subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
 
-        subprocess.run(["sleep", "5"])
+            subprocess.run(["sleep", "5"])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Internet Stability Monitor")
     parser.add_argument('--silent', action='store_true', help="Run without vocal announcements")
+    parser.add_argument('--polite', action='store_true', help="Introduce delay between script executions")
     args = parser.parse_args()
-    main(args.silent)
+    main(args.silent, args.polite)
