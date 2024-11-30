@@ -3,6 +3,7 @@ from datetime import datetime
 import time
 import argparse
 import subprocess
+from service_check_summarizer import summarize_service_check_output
 
 # List of CDNs and their respective endpoints to monitor
 cdn_endpoints = {
@@ -70,6 +71,8 @@ def monitor_cdns():
         for cdn_info in unreachable_cdns:
             print(f"- {cdn_info}")
 
+    return ''.join([str(x) for x in reachable_cdns]) + '\n' + ''.join([str(x) for x in unreachable_cdns])
+
 def main():
     parser = argparse.ArgumentParser(description='Monitor CDN reachability.')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
@@ -80,7 +83,15 @@ def main():
         subprocess.run(["say", f"Starting report on CDN reachability monitoring."])
         subprocess.run(["say", "This will check the reachability of several of the largest content delivery \
     networks around the world."])
-    monitor_cdns()
+
+    cdn_results = monitor_cdns()
+
+    output_summary = summarize_service_check_output(cdn_results)
+    print(output_summary)
+
+    if not args.silent:
+        subprocess.run(["say", "The CDN monitoring report is as follows:"])
+        subprocess.run(["say", output_summary])
 
 if __name__ == "__main__":
     main()
