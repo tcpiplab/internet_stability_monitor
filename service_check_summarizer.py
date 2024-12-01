@@ -18,8 +18,15 @@ def summarize_service_check_output(output_text):
     payload = {
         "model": "mistral",
         "prompt": output_text,
-        "system": "Summarize the result of the monitoring and highlight any issues",
+        # "system": "Summarize the result of the monitoring and highlight any issues",
+        "system": "Summarize the result of the monitoring and highlight any issues. "
+                  "Summarize only based on the provided monitoring report. "
+                  "Do not include assumptions or information that was not explicitly stated in the original report. "
+                  "Your summary must only be in the form of sentences and paragraphs. "
+                  "Do not use bullets or numbering.",
         "stream": False,
+        "max_tokens": 20,
+        "temperature": 0.2,
     }
     headers = {'Content-Type': 'application/json'}
 

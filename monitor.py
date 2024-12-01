@@ -3,8 +3,8 @@ import sys
 import subprocess
 import logging
 from datetime import datetime
-
 import argparse
+
 # Set up the logging directory under /tmp
 log_directory = "/tmp/internet_stability_monitor_logs"
 if not os.path.exists(log_directory):
