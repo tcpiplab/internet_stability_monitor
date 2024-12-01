@@ -166,8 +166,21 @@ def summarize_log(log_content):
         return summary
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return ""
+
+        # If "[Errno 61] Connection refused" is in the error message, it's a connection issue
+        if "Connection refused" in str(e):
+            print("The connection to the local Ollama API was refused. You probably just need to start it.")
+            return (f"There was an error while trying to get the local Ollama API to create a summary. "
+                    f"Please check the logs for more information.")
+
+        else:
+            # For other types of errors, print the error message
+            print(f"An error occurred when trying to get Ollama to create a summary: {e}")
+
+
+
+        return (f"There was an error while trying to get the local Ollama API to create a summary. "
+                f"Please check the logs for more information.")
 
 
 def read_summary_with_tts(summary_file, location_string):

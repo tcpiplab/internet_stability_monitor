@@ -103,7 +103,7 @@ def main(silent, polite):
     if not silent:
         subprocess.run(["say", f"Starting report on critical internet infrastructure."])
     print(f"Tests were started at {datetime.now().isoformat()}")
-    print(f"Tests were started at {datetime.now().isoformat()}")
+
     if not silent:
         subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
     for script in scripts:

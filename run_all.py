@@ -5,9 +5,12 @@ import sys
 def run_script(script_name, args=None):
     try:
         subprocess.run([sys.executable, script_name] + args, check=True)
+        return True
     except subprocess.CalledProcessError as e:
+
         print(f"An error occurred while running {script_name}: {e}")
-        sys.exit(1)
+        return False
+        # sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -18,6 +21,11 @@ if __name__ == "__main__":
         script_args.append('--silent')
     if polite_mode:
         script_args.append('--polite')
+
+    # Check if Ollama is running and reachable
+    if not run_script("check_ollama_status.py", script_args):
+        print("Ollama is not running or not reachable. Exiting.")
+        sys.exit(1)
 
     print("Starting monitor.py with options:", script_args)
     run_script("monitor.py", script_args)

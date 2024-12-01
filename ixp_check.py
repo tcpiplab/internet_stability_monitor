@@ -1,9 +1,11 @@
 
 import requests
+import json
 from datetime import datetime
 import time
 import argparse
 import subprocess
+from io import StringIO
 
 # List of IXPs and their public-facing websites (updated Equinix URL)
 ixp_endpoints = {
@@ -16,7 +18,7 @@ ixp_endpoints = {
 }
 
 # Function to monitor IXPs
-def monitor_ixps():
+def monitor_ixps() -> str:
     reachable_ixps = []
     unreachable_ixps = []
 
@@ -46,19 +48,25 @@ def monitor_ixps():
                 if attempt == retry_attempts - 1:
                     unreachable_ixps.append(f"{ixp}: unreachable: {str(e)}")
                 time.sleep(2)  # Sleep for 2 seconds before retrying
+    output_buffer = StringIO()
 
     # Output results
     print("Reachable IXPs:")
     for ixp_info in reachable_ixps:
+        output_buffer.write(f"- {ixp_info}\n")
         print(f"- {ixp_info}")
 
     if len(unreachable_ixps) == 0:
+        output_buffer.write("\nAll IXPs are reachable.\n")
         print("\nAll IXPs are reachable.")
 
     else:
         print("\nUnreachable IXPs:")
         for ixp_info in unreachable_ixps:
+            output_buffer.write(f"- {ixp_info}\n")
             print(f"- {ixp_info}")
+
+    return output_buffer.getvalue()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Monitor IXPs.")
@@ -69,4 +77,41 @@ if __name__ == "__main__":
     if not args.silent:
         subprocess.run(["say", f"Starting IXP monitoring."])
         subprocess.run(["say", "This will check the reachability of several internet exchange points around the world."])
-    monitor_ixps()
+    output = monitor_ixps()
+    payload = {
+        "model": "mistral",
+        "prompt": output,
+        "system": "Summarize the result of the monitoring and highlight any issues",
+                "stream": False,
+    }
+    headers = {'Content-Type': 'application/json'}
+
+    print(f"Sending the following payload to Ollama API:\n---\n{json.dumps(payload)}\n---\n")
+
+    # print(f"The output from the monitoring is:\n---\n{output}\n---\n")
+
+    try:
+        response = requests.post('http://localhost:11434/api/generate', headers=headers, data=json.dumps(payload))
+        response.raise_for_status()
+        # print("\nFull API Response:")
+        # print(response.text)
+
+        try:
+
+            summary = response.json().get('response', 'No summary available.')
+
+        except json.JSONDecodeError:
+
+            print("Failed to parse the JSON response. Please check the response format.")
+            summary = "No summary available due to parsing error."
+
+        print("\nSummary of the IXP monitoring:")
+
+        print(summary)
+
+        if not args.silent:
+            subprocess.run(["say", "The summary of the IXP monitoring is as follows."])
+
+    except requests.RequestException as e:
+
+        print(f"Failed to get summary from Ollama API: {e}")
