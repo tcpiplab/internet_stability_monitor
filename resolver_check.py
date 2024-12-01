@@ -2,6 +2,9 @@ import dns.resolver
 import time
 from datetime import datetime
 from service_check_summarizer import summarize_service_check_output
+import argparse
+
+import subprocess
 
 # List of DNS resolvers and their IP addresses
 dns_resolvers = {
@@ -69,8 +72,21 @@ def monitor_dns_resolvers():
 
 
 if __name__ == "__main__":
+    # Accept arguments from the command line, such as --silent
+    parser = argparse.ArgumentParser(description='Monitor DNS resolvers.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
     print(f"Starting DNS Resolver monitoring at {datetime.now()}\n")
     resolver_check_results = monitor_dns_resolvers()
 
+    if not args.silent:
+        subprocess.run(["say", f"Starting DNS Resolver monitoring."])
+        subprocess.run(["say", "This will check the reachability of several of the most popular DNS resolvers."])
+
     resolver_output_summary = summarize_service_check_output(resolver_check_results)
     print(resolver_output_summary)
+
+    if not args.silent:
+        subprocess.run(["say", "The DNS resolver monitoring report is as follows:"])
+        subprocess.run(["say", resolver_output_summary])
