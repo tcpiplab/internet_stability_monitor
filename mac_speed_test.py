@@ -59,6 +59,10 @@ def run_network_quality_test(silent):
         if process.stdout:
             summary = parse_network_quality_output(process.stdout)
             summary_text = generate_summary_text(summary)
+
+            # Replace "RPM" with "roundtrips completed per minute" in the summary_text string.
+            summary_text = summary_text.replace("RPM", "roundtrips completed per minute")  # type: ignore
+
             print(summary_text)
             # Speak the summary_text
             if not silent:
