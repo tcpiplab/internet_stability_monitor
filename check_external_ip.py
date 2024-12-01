@@ -4,6 +4,7 @@ import requests
 import json
 from datetime import datetime
 from abuse_check import check_ip_reputation, analyze_ip_reputation
+from service_check_summarizer import summarize_service_check_output
 
 import argparse
 def get_current_external_ip(silent):
@@ -49,6 +50,7 @@ def get_current_external_ip(silent):
 
     return ip_address
 def main():
+    global ip_reputation_output
     parser = argparse.ArgumentParser(description="Fetch and report external IP address.")
     parser.add_argument('--silent', action='store_true', help="Run without voice announcements")
     args = parser.parse_args()
@@ -60,9 +62,30 @@ def main():
     # Check reputation of the external IP
     reputation_data = check_ip_reputation(external_ip, AbuseIPDB_API_KEY)
 
+    # print("Reputation data:", reputation_data)
+
     # Analyze and display the results
     if reputation_data:
-        analyze_ip_reputation(reputation_data)
+
+        try:
+            ip_reputation_output = analyze_ip_reputation(reputation_data)
+            # print("IP Reputation Analysis Output:", ip_reputation_output)
+
+        except Exception as e:
+            print("Failed to analyze IP reputation data.")
+            print(e)
+
+        try:
+            # print(f"\n\nSummarizing service check output for the following data:\n---\n{ip_reputation_output}\n---\n")
+            ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
+            print(f"Received AI reputation summary: {ip_reputation_summary}")
+            if not args.silent:
+                subprocess.run(["say", ip_reputation_summary])
+        except Exception as e:
+            print("Failed to summarize service check output.")
+            print(e)
+
+
     else:
         print("Failed to retrieve reputation data from Abuse IPDB API.")
 
