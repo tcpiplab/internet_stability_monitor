@@ -1,6 +1,10 @@
 import dns.resolver
 import time
 from datetime import datetime
+from service_check_summarizer import summarize_service_check_output
+import argparse
+
+import subprocess
 
 # List of DNS resolvers and their IP addresses
 dns_resolvers = {
@@ -16,10 +20,14 @@ dns_resolvers = {
     "Comodo Secure DNS - Secondary": "8.20.247.20"
 }
 
+
 # Function to monitor DNS resolvers
 def monitor_dns_resolvers():
     reachable_resolvers = []
     unreachable_resolvers = []
+    results = ""
+    results +=  f"Starting DNS Resolver monitoring report at: {datetime.now()}\n"
+    results += "This will check the reachability of several of the most popular DNS resolvers.\n"
 
     for resolver_name, resolver_ip in dns_resolvers.items():
         retry_attempts = 3
@@ -40,25 +48,45 @@ def monitor_dns_resolvers():
                 # If we get an answer, consider the resolver reachable
                 if answer:
                     reachable_resolvers.append(f"{resolver_name}: Response Time: {response_time:.3f} seconds")
-                    break
-            except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.Timeout, dns.exception.DNSException) as e:
+                else:
+                    unreachable_resolvers.append(f"{resolver_name}: unreachable")
+                break
+            except (
+            dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.Timeout, dns.exception.DNSException) as e:
                 if attempt == retry_attempts - 1:
                     unreachable_resolvers.append(f"{resolver_name}: unreachable: {str(e)}")
                 time.sleep(2)  # Sleep for 2 seconds before retrying
 
-    # Output results
-    print("Reachable DNS Resolvers:")
+    results += "Reachable DNS Resolvers:\n"
     for resolver_info in reachable_resolvers:
-        print(f"- {resolver_info}")
+        results += f"- {resolver_info}\n"
 
     if len(unreachable_resolvers) == 0:
-        print("\nAll DNS resolvers are reachable.")
-
+        results += "\nAll DNS resolvers are reachable.\n"
     else:
-        print("\nUnreachable DNS Resolvers:")
+        results += "\nUnreachable DNS Resolvers:\n"
         for resolver_info in unreachable_resolvers:
-            print(f"- {resolver_info}")
+            results += f"- {resolver_info}\n"
+
+    return results
+
 
 if __name__ == "__main__":
+    # Accept arguments from the command line, such as --silent
+    parser = argparse.ArgumentParser(description='Monitor DNS resolvers.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
     print(f"Starting DNS Resolver monitoring at {datetime.now()}\n")
-    monitor_dns_resolvers()
+    resolver_check_results = monitor_dns_resolvers()
+
+    if not args.silent:
+        subprocess.run(["say", f"Starting DNS Resolver monitoring."])
+        subprocess.run(["say", "This will check the reachability of several of the most popular DNS resolvers."])
+
+    resolver_output_summary = summarize_service_check_output(resolver_check_results)
+    print(resolver_output_summary)
+
+    if not args.silent:
+        subprocess.run(["say", "The DNS resolver monitoring report is as follows:"])
+        subprocess.run(["say", resolver_output_summary])

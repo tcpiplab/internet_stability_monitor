@@ -1,5 +1,8 @@
 import dns.resolver
 import time
+import sys
+import subprocess
+from service_check_summarizer import summarize_service_check_output
 
 # List of DNS root servers
 dns_root_servers = {
@@ -18,19 +21,16 @@ dns_root_servers = {
     "M": "202.12.27.33"
 }
 
-def check_dns_server(ip, query_name="example.com"):
-    """Send a DNS query to the root server."""
+def check_dns_server(name, ip, query_name="example.com"):
     try:
         resolver = dns.resolver.Resolver()
         resolver.timeout = 5
         resolver.lifetime = 5
         resolver.nameservers = [ip]
-
-        # Perform an A record query
-        answer = resolver.resolve(query_name, "A")
-        return "reachable", None
+        resolver.resolve(query_name, "A")
+        return f"- {name} ({ip})"
     except Exception as e:
-        return "unreachable", str(e)
+        return f"- {name} ({ip}) - Error: {str(e)}"
 
 def check_dns_root_servers(servers):
     reachable_servers = []
@@ -38,39 +38,63 @@ def check_dns_root_servers(servers):
 
     # First round of checks
     for name, ip in servers.items():
-        status, error = check_dns_server(ip)
-        if status == "reachable":
-            reachable_servers.append(name)
+        result = check_dns_server(name, ip)
+        if "Error:" in result:
+            unreachable_servers.append(result)
         else:
-            unreachable_servers.append((name, error))
+            reachable_servers.append(result)
 
-    # Retry unreachable servers after a delay
+    # Retry unreachable servers after a delay, if desired
     if unreachable_servers:
-        print("\nRetrying unreachable servers...\n")
-        time.sleep(5)  # Wait 5 seconds before retrying
-
-        remaining_unreachable = []
-        for name, error in unreachable_servers:
-            status, retry_error = check_dns_server(dns_root_servers[name])
-            if status == "reachable":
-                reachable_servers.append(name)
+        time.sleep(5)
+        new_unreachable = []
+        for entry in unreachable_servers:
+            ip_part = entry.split('(')[1].split(')')[0]
+            name_part = entry.split('- ')[1].split(' (')[0]
+            retry_result = check_dns_server(name_part, ip_part)
+            if "Error:" in retry_result:
+                new_unreachable.append(retry_result)
             else:
-                remaining_unreachable.append((name, retry_error))
-
-        unreachable_servers = remaining_unreachable  # Update unreachable after retry
+                reachable_servers.append(retry_result)
+        unreachable_servers = new_unreachable
 
     return reachable_servers, unreachable_servers
 
 if __name__ == "__main__":
-    reachable, unreachable = check_dns_root_servers(dns_root_servers)
-    print("Reachable DNS Root Servers:")
-    for server in reachable:
-        print(f"- {server}")
-    
-    if len(unreachable) == 0:
-        print("\nDNS Root Servers reachability summary: All DNS Root Servers are reachable.")
+    silent = "--silent" in sys.argv
 
+    report = ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
+              "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "
+              "servers, which in turn provide the IP addresses of individual domain names. If DNS Root Servers are "
+              "unreachable, it can cause widespread internet outages and disruptions.\n\n")
+
+    reachable, unreachable = check_dns_root_servers(dns_root_servers)
+
+    if reachable:
+        report += "Reachable DNS Root Servers:\n"
+        for server in reachable:
+            report += server + "\n"
+
+    if unreachable:
+        report += "\nUnreachable DNS Root Servers:\n"
+        for server in unreachable:
+            report += server + "\n"
+
+    if not unreachable:
+        report += "\nDNS Root Servers reachability summary: All DNS Root Servers are reachable.\n"
     else:
-        print("\nUnreachable DNS Root Servers:")
-        for server, error in unreachable:
-            print(f"- {server}: {error}")
+        report += "\nDNS Root Servers reachability summary: Some DNS Root Servers are unreachable.\n"
+
+    summary = summarize_service_check_output(report)
+
+    # Print the final report and summary
+    print(report)
+    print("----- AI-Generated Summary -----")
+    print(summary)
+
+    # If not silent, use the 'say' command to speak the intro and summary
+    if not silent:
+        intro_lines = ("This script checks the reachability of DNS Root Servers, "
+                       "which are crucial to the functioning of the internet.")
+        subprocess.run(["say", intro_lines])
+        subprocess.run(["say", summary])

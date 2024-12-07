@@ -1,6 +1,10 @@
+import argparse
+
 import ntplib
 import time
 from datetime import datetime, timezone
+import subprocess
+from service_check_summarizer import summarize_service_check_output
 
 # List of well-known NTP servers
 ntp_servers = [
@@ -35,12 +39,12 @@ def check_ntp_servers(servers):
     unreachable_servers = []
 
     # First round of checks
-    for server in servers:
-        status, result = check_ntp_server(server)
+    for ntp_server in servers:
+        status, result = check_ntp_server(ntp_server)
         if status == "reachable":
-            reachable_servers.append((server, result))
+            reachable_servers.append((ntp_server, result))
         else:
-            unreachable_servers.append((server, result))
+            unreachable_servers.append((ntp_server, result))
 
     # Retry unreachable servers after a delay
     if unreachable_servers:
@@ -48,28 +52,63 @@ def check_ntp_servers(servers):
         time.sleep(5)  # Wait 5 seconds before retrying
 
         remaining_unreachable = []
-        for server, error in unreachable_servers:
-            status, retry_result = check_ntp_server(server)
+        for ntp_server, error in unreachable_servers:
+            status, retry_result = check_ntp_server(ntp_server)
             if status == "reachable":
-                reachable_servers.append((server, retry_result))
+                reachable_servers.append((ntp_server, retry_result))
             else:
-                remaining_unreachable.append((server, retry_result))
+                remaining_unreachable.append((ntp_server, retry_result))
 
         unreachable_servers = remaining_unreachable  # Update unreachable after retry
 
     return reachable_servers, unreachable_servers
 
 if __name__ == "__main__":
+    # Accept arguments from the command line, such as --silent
+    parser = argparse.ArgumentParser(description='Monitor NTP servers.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
+    if not args.silent:
+        subprocess.run(["say", "Starting NTP server monitoring."])
+
+    print(f"This script will check the reachability of several of the most commonly used NTP servers around the "
+          f"western world.\n")
+
+    ntp_check_results = ("NTP servers function as authoritative time sources, employing a hierarchical system of "
+                         "stratum layers and precision algorithms to ensure synchronized time across distributed "
+                         "computing systems. Their importance lies in the strict temporal alignment they provide, "
+                         "enabling coordinated actions, event correlation, and the prevention of cascading errors in "
+                         "networked environments.\n\n")
+
+
+
     reachable, unreachable = check_ntp_servers(ntp_servers)
     
     print("Reachable NTP Servers:")
+    ntp_check_results += "Reachable NTP Servers:\n"
+
     for server, server_time in reachable:
         print(f"- {server}: Server Time: {server_time}")
+        ntp_check_results += f"- {server}: Server Time: {server_time}\n"
     
     if len(unreachable) == 0:
         print("\nAll NTP servers are reachable.")
+        ntp_check_results += "\nAll NTP servers are reachable.\n"
 
     else:
         print("\nUnreachable NTP Servers:")
+        ntp_check_results += "\nUnreachable NTP Servers:\n"
+
         for server, error in unreachable:
             print(f"- {server}: {error}")
+            ntp_check_results += f"- {server}: {error}\n"
+
+    # print(ntp_check_results)
+
+    ntp_summary = summarize_service_check_output(ntp_check_results)
+
+    print(ntp_summary)
+    if not args.silent:
+        subprocess.run(["say", "The NTP server monitoring report is as follows:"])
+        subprocess.run(["say", ntp_summary])

@@ -1,4 +1,7 @@
+import argparse
 import socket
+from service_check_summarizer import summarize_service_check_output
+import subprocess
 
 # IMAP servers to monitor
 imap_servers = {
@@ -26,8 +29,27 @@ def check_imap_server(name, server_info):
         return f"unreachable: {e}"
 
 if __name__ == "__main__":
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--silent", help="Silent mode", action="store_true")
+    args = parser.parse_args()
+
+    # Create a couple of lists to store reachable and unreachable servers
     reachable_servers = []
     unreachable_servers = []
+
+    print("Checking IMAP server availability...")
+    if not args.silent:
+        subprocess.run(["say", "Checking IMAP server availability."])
+
+    print(f"This script checks the availability of {len(imap_servers)} of the most common IMAP servers.")
+    if not args.silent:
+        subprocess.run(["say", f"This script checks the availability of {len(imap_servers)} of the most common IMAP servers."])
+
+    print(f"IMAP is a protocol used to retrieve email messages from an email server.")
+
+    if not args.silent:
+        subprocess.run(["say", "IMAP is a protocol used to retrieve email messages from an email server."])
 
     # Check each IMAP server
     for name, server_info in imap_servers.items():
@@ -37,15 +59,32 @@ if __name__ == "__main__":
         else:
             unreachable_servers.append((name, status))
 
+    imap_check_results = f"Report on Reachable and Unreachable IMAP Servers:\n"
+
     # Report results
     print("\nReachable IMAP Servers:")
+    imap_check_results += "Reachable IMAP Servers:\n"
     for server in reachable_servers:
         print(f"- {server}")
+        imap_check_results += ''.join([str(x) for x in reachable_servers])
 
     if len(unreachable_servers) == 0:
         print("\nAll IMAP servers are reachable")
-        
+        imap_check_results += "\nAll IMAP servers are reachable\n"
+
     else:
         print("\nUnreachable IMAP Servers:")
+        imap_check_results += "\nUnreachable IMAP Servers:\n"
         for server, error in unreachable_servers:
             print(f"- {server}: {error}")
+            imap_check_results += ''.join([str(x) for x in unreachable_servers])
+
+            # imap_check_results = f"Report on Reachable and Unreachable IMAP Servers:\n"
+    # imap_check_results += ''.join([str(x) for x in reachable_servers]) + '\n' + ''.join([str(x) for x in unreachable_servers])
+
+    imap_output_summary = summarize_service_check_output(imap_check_results)
+    print(imap_output_summary)
+
+    if not args.silent:
+        subprocess.run(["say", "The IMAP monitoring report is as follows:"])
+        subprocess.run(["say", imap_output_summary])
