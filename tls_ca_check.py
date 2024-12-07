@@ -1,5 +1,10 @@
 import requests
 import urllib3
+import argparse
+import subprocess
+from service_check_summarizer import summarize_service_check_output
+
+# Disable SSL warnings because we're only checking reachability, not certificate validity
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Updated OCSP and CRL URLs of major CAs to monitor
@@ -26,20 +31,49 @@ def check_ca_endpoint(name, url):
         
         if response.status_code == 200:
             print(f"Successfully reached {name} at {url}")
+            if not args.silent:
+                subprocess.run(["say", f"Successfully reached {name}."])
             return "reachable"
         elif 300 <= response.status_code < 400:
             print(f"{name} at {url} returned status code {response.status_code} (redirect)")
+            if not args.silent:
+                subprocess.run(["say", f"{name} and it returned status code {response.status_code} (redirect)."])
             return "reachable (redirected)"
         else:
             print(f"{name} at {url} returned status code {response.status_code}")
+            if not args.silent:
+                subprocess.run(["say", f"The {name} server returned status code {response.status_code}. So we're "
+                                       f"marking it as unreachable."])
             return "unreachable"
     except requests.RequestException as e:
         print(f"Failed to reach {name} at {url}: {e}")
+        if not args.silent:
+            subprocess.run(["say", f"Failed to reach {name} and got some kind of error. So we're marking it as "
+                                   f"unreachable. The error was: {e}"])
         return f"unreachable: {e}"
 
 if __name__ == "__main__":
+    # Accept arguments from the command line, such as --silent
+    parser = argparse.ArgumentParser(description='Monitor important TLS CA servers.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
+    intro_statement = (
+        "Verifying the operational status of major TLS certificate authority OCSP servers, "
+        "ensuring that each is reachable and not presenting indicators of revocation status failures. "
+        "Should any server prove unreachable, it might suggest trust chain verification difficulties "
+        "or a greater issue affecting the secure operation of the TLS Certificate Authority infrastructure. "
+        "This examination shall proceed silently and may consume up to one minute. Stand by..."
+    )
+
+    print(intro_statement)
+    if not args.silent:
+        subprocess.run(["say", intro_statement])
+
     reachable_endpoints = []
     unreachable_endpoints = []
+
+    report_on_TLS_CA_servers = ""
 
     # Check each CA endpoint
     for name, url in ca_endpoints.items():
@@ -51,13 +85,27 @@ if __name__ == "__main__":
 
     # Report results
     print("\nReachable CA Endpoints:")
+    report_on_TLS_CA_servers +=  "Reachable CA Endpoints:\n"
+
     for endpoint, status in reachable_endpoints:
         print(f"- {endpoint} ({status})")
+        report_on_TLS_CA_servers += f"- {endpoint} ({status})\n"
 
     if len(unreachable_endpoints) == 0:
         print("\nAll CA Endpoints are reachable.")
+        report_on_TLS_CA_servers += "\nAll CA Endpoints are reachable.\n"
 
     else:
         print("\nUnreachable CA Endpoints:")
+        report_on_TLS_CA_servers += "\nUnreachable CA Endpoints:\n"
+
         for endpoint, error in unreachable_endpoints:
             print(f"- {endpoint}: {error}")
+            report_on_TLS_CA_servers += f"- {endpoint}: {error}\n"
+
+
+    tls_ca_checks_summary = summarize_service_check_output(report_on_TLS_CA_servers)
+    print(tls_ca_checks_summary)
+    if not args.silent:
+        subprocess.run(["say", "The summary of checking TLS CA servers is as follows:"])
+        subprocess.run(["say", tls_ca_checks_summary])
