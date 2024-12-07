@@ -1,6 +1,8 @@
 import ntplib
 import time
 from datetime import datetime, timezone
+import subprocess
+from service_check_summarizer import summarize_service_check_output
 
 # List of well-known NTP servers
 ntp_servers = [
@@ -91,3 +93,10 @@ if __name__ == "__main__":
             print(f"- {server}: {error}")
             ntp_check_results += f"- {server}: {error}\n"
 
+    # print(ntp_check_results)
+
+    ntp_summary = summarize_service_check_output(ntp_check_results)
+
+    print(ntp_summary)
+    subprocess.run(["say", "The NTP server monitoring report is as follows:"])
+    subprocess.run(["say", ntp_summary])

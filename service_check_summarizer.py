@@ -19,11 +19,13 @@ def summarize_service_check_output(output_text):
         "model": "mistral",
         "prompt": output_text,
         # "system": "Summarize the result of the monitoring and highlight any issues",
-        "system": "Summarize the result of the monitoring and highlight any issues. "
-                  "Summarize only based on the provided monitoring report. "
+        "system": "Summarize the result of the monitoring and highlight any problems or anomalies. "
+                  "Summarize only based on the provided monitoring report. But also provide a brief "
+                  "technical explanation of the service or protocol that was monitored in the report that you are "
+                  "going to summarize."
                   "Do not include assumptions or information that was not explicitly stated in the original report. "
                   "Your summary must only be in the form of sentences and paragraphs. "
-                  "Do not use bullets or numbering. Do not give every specific detail unless there were problems found.",
+                  "Do not use bullets or numbering. Do not list every specific server unless there were problems found.",
         "stream": False,
         "max_tokens": 20,
         "temperature": 0.2,
