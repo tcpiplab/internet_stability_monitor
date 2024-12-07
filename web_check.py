@@ -85,9 +85,11 @@ def check_significant_websites(websites):
         else:
             unreachable_websites.append((url, result))
 
-    # Retry unreachable list_of_significant_websites after a delay
+    # Retry unreachable websites after a delay
     if unreachable_websites:
-        print("\nRetrying unreachable list_of_significant_websites...\n")
+        print("\nRetrying unreachable websites...\n")
+        if not args.silent:
+            subprocess.run(["say", "Retrying unreachable websites..."])
         time.sleep(5)  # Wait 5 seconds before retrying
 
         remaining_unreachable = []
@@ -143,3 +145,10 @@ if __name__ == "__main__":
         for url, error in unreachable:
             print(f"- {url}: {error}")
             report_on_significant_websites += f"- {url}: {error}"
+
+    significant_website_checks_summary = summarize_service_check_output(report_on_significant_websites)
+
+    print(significant_website_checks_summary)
+    if not args.silent:
+        subprocess.run(["say", "The summary of checking significant websites is as follows:"])
+        subprocess.run(["say", significant_website_checks_summary])
