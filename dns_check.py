@@ -1,5 +1,7 @@
 import dns.resolver
 import time
+import sys
+import subprocess
 from service_check_summarizer import summarize_service_check_output
 
 # List of DNS root servers
@@ -44,7 +46,6 @@ def check_dns_root_servers(servers):
 
     # Retry unreachable servers after a delay, if desired
     if unreachable_servers:
-        # We won't print here; just return data and let caller handle output
         time.sleep(5)
         new_unreachable = []
         for entry in unreachable_servers:
@@ -60,14 +61,12 @@ def check_dns_root_servers(servers):
     return reachable_servers, unreachable_servers
 
 if __name__ == "__main__":
-    # Instead of printing directly, accumulate all output in a string
-    report = ""
+    silent = "--silent" in sys.argv
 
-    # Add explanatory message
-    report += ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
-               "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "
-               "servers, which in turn provide the IP addresses of individual domain names. If DNS Root Servers are "
-               "unreachable, it can cause widespread internet outages and disruptions.\n\n")
+    report = ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
+              "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "
+              "servers, which in turn provide the IP addresses of individual domain names. If DNS Root Servers are "
+              "unreachable, it can cause widespread internet outages and disruptions.\n\n")
 
     reachable, unreachable = check_dns_root_servers(dns_root_servers)
 
@@ -86,10 +85,16 @@ if __name__ == "__main__":
     else:
         report += "\nDNS Root Servers reachability summary: Some DNS Root Servers are unreachable.\n"
 
-    # Now pass the entire report string to the summarizer
     summary = summarize_service_check_output(report)
 
-    # Optionally print the final report and the summary
+    # Print the final report and summary
     print(report)
     print("----- AI-Generated Summary -----")
     print(summary)
+
+    # If not silent, use the 'say' command to speak the intro and summary
+    if not silent:
+        intro_lines = ("This script checks the reachability of DNS Root Servers, "
+                       "which are crucial to the functioning of the internet.")
+        subprocess.run(["say", intro_lines])
+        subprocess.run(["say", summary])
