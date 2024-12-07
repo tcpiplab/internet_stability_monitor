@@ -25,7 +25,6 @@ def check_dns_server(name, ip, query_name="example.com"):
         resolver.timeout = 5
         resolver.lifetime = 5
         resolver.nameservers = [ip]
-
         resolver.resolve(query_name, "A")
         return f"- {name} ({ip})"
     except Exception as e:
@@ -44,14 +43,11 @@ def check_dns_root_servers(servers):
             reachable_servers.append(result)
 
     # Retry unreachable servers after a delay, if desired
-    # (Adjust or remove this block as needed)
     if unreachable_servers:
-        print("\nRetrying unreachable servers...\n")
+        # We won't print here; just return data and let caller handle output
         time.sleep(5)
         new_unreachable = []
         for entry in unreachable_servers:
-            # Extract IP from the string
-            # Format: "- A (198.41.0.4) - Error: ..."
             ip_part = entry.split('(')[1].split(')')[0]
             name_part = entry.split('- ')[1].split(' (')[0]
             retry_result = check_dns_server(name_part, ip_part)
@@ -64,25 +60,36 @@ def check_dns_root_servers(servers):
     return reachable_servers, unreachable_servers
 
 if __name__ == "__main__":
-    # Print a message explaining the purpose of the script and what DNS root servers do and why they are crucial to the internet
-    print("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
-          "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "
-          "servers, which in turn provide the IP addresses of individual domain names. If DNS Root Servers are "
-          "unreachable, it can cause widespread internet outages and disruptions.\n")
+    # Instead of printing directly, accumulate all output in a string
+    report = ""
+
+    # Add explanatory message
+    report += ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
+               "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "
+               "servers, which in turn provide the IP addresses of individual domain names. If DNS Root Servers are "
+               "unreachable, it can cause widespread internet outages and disruptions.\n\n")
 
     reachable, unreachable = check_dns_root_servers(dns_root_servers)
 
     if reachable:
-        print("Reachable DNS Root Servers:")
+        report += "Reachable DNS Root Servers:\n"
         for server in reachable:
-            print(server)
+            report += server + "\n"
 
     if unreachable:
-        print("\nUnreachable DNS Root Servers:")
+        report += "\nUnreachable DNS Root Servers:\n"
         for server in unreachable:
-            print(server)
+            report += server + "\n"
 
     if not unreachable:
-        print("\nDNS Root Servers reachability summary: All DNS Root Servers are reachable.")
+        report += "\nDNS Root Servers reachability summary: All DNS Root Servers are reachable.\n"
     else:
-        print("\nDNS Root Servers reachability summary: Some DNS Root Servers are unreachable.")
+        report += "\nDNS Root Servers reachability summary: Some DNS Root Servers are unreachable.\n"
+
+    # Now pass the entire report string to the summarizer
+    summary = summarize_service_check_output(report)
+
+    # Optionally print the final report and the summary
+    print(report)
+    print("----- AI-Generated Summary -----")
+    print(summary)
