@@ -10,8 +10,8 @@ from service_check_summarizer import summarize_service_check_output
 # Suppress SSL warnings for unverified requests (since we're only testing reachability)
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
-# List of websites to check
-websites = [
+# list_of_significant_websites to check
+list_of_significant_websites = [
     "https://www.google.com",
     "https://www.amazon.com",
     "https://www.facebook.com",
@@ -22,7 +22,7 @@ websites = [
     "https://www.netflix.com",
     "https://www.bbc.com",
     "https://www.nytimes.com",
-    # Government websites
+    # Government list_of_significant_websites
     "https://www.usa.gov",           # US
     "https://www.canada.ca",         # Canada
     "https://www.gob.mx",            # Mexico
@@ -73,7 +73,7 @@ def check_website(url):
         return "unreachable", str(e)
 
 
-def check_websites(websites):
+def check_significant_websites(websites):
     reachable_websites = []
     unreachable_websites = []
 
@@ -85,9 +85,9 @@ def check_websites(websites):
         else:
             unreachable_websites.append((url, result))
 
-    # Retry unreachable websites after a delay
+    # Retry unreachable list_of_significant_websites after a delay
     if unreachable_websites:
-        print("\nRetrying unreachable websites...\n")
+        print("\nRetrying unreachable list_of_significant_websites...\n")
         time.sleep(5)  # Wait 5 seconds before retrying
 
         remaining_unreachable = []
@@ -109,16 +109,37 @@ if __name__ == "__main__":
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
     args = parser.parse_args()
 
-    reachable, unreachable = check_websites(websites)
-    
+    intro_statement = (
+        "Initiating connectivity checks on several major technology provider websites and selected government websites, "
+        "verifying their current reachability. Should one of these significant sites be fully unreachable, "
+        "it may suggest a broader infrastructural fault or a critical disruption in global online communications."
+    )
+
+    print(intro_statement)
+    if not args.silent:
+        subprocess.run(["say", intro_statement])
+
+    reachable, unreachable = check_significant_websites(list_of_significant_websites)
+
+    report_on_significant_websites = ""
+
     print("Reachable Websites:")
+    report_on_significant_websites += "Reachable Websites:\n"
+
     for url, response_time in reachable:
         print(f"- {url}: Response Time: {response_time:.6f} seconds")
+        report_on_significant_websites += f"- {url}: Response Time: {response_time:.6f} seconds"
     
     if len(unreachable) == 0:
-        print("\nSummary of reachability of major tech and friendly government websites: All websites are reachable.")
+        all_reachable_statement = ("\nSummary of reachability of major tech and government websites:\nAll websites are "
+                                   "reachable.")
+        print(all_reachable_statement)
+        report_on_significant_websites += all_reachable_statement
     
     else:
         print("\nUnreachable Websites:")
+        report_on_significant_websites += "\nUnreachable Websites:\n"
+
         for url, error in unreachable:
             print(f"- {url}: {error}")
+            report_on_significant_websites += f"- {url}: {error}"
