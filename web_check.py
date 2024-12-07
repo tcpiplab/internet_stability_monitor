@@ -1,9 +1,8 @@
-import argparse
-
 import requests
 import time
 import warnings
 from urllib.parse import urljoin, urlparse
+import argparse
 import subprocess
 from service_check_summarizer import summarize_service_check_output
 
