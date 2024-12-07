@@ -1,7 +1,11 @@
+import argparse
+
 import requests
 import time
 import warnings
 from urllib.parse import urljoin, urlparse
+import subprocess
+from service_check_summarizer import summarize_service_check_output
 
 # Suppress SSL warnings for unverified requests (since we're only testing reachability)
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
@@ -99,6 +103,12 @@ def check_websites(websites):
     return reachable_websites, unreachable_websites
 
 if __name__ == "__main__":
+    # Parse for the command line argument "--silent"
+    # Accept arguments from the command line, such as --silent
+    parser = argparse.ArgumentParser(description='Monitor important web servers.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
     reachable, unreachable = check_websites(websites)
     
     print("Reachable Websites:")
