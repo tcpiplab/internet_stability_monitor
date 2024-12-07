@@ -1,3 +1,5 @@
+import argparse
+
 import ntplib
 import time
 from datetime import datetime, timezone
@@ -62,6 +64,13 @@ def check_ntp_servers(servers):
     return reachable_servers, unreachable_servers
 
 if __name__ == "__main__":
+    # Accept arguments from the command line, such as --silent
+    parser = argparse.ArgumentParser(description='Monitor NTP servers.')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
+    args = parser.parse_args()
+
+    if not args.silent:
+        subprocess.run(["say", "Starting NTP server monitoring."])
 
     print(f"This script will check the reachability of several of the most commonly used NTP servers around the "
           f"western world.\n")
@@ -71,6 +80,8 @@ if __name__ == "__main__":
                          "computing systems. Their importance lies in the strict temporal alignment they provide, "
                          "enabling coordinated actions, event correlation, and the prevention of cascading errors in "
                          "networked environments.\n\n")
+
+
 
     reachable, unreachable = check_ntp_servers(ntp_servers)
     
@@ -98,5 +109,6 @@ if __name__ == "__main__":
     ntp_summary = summarize_service_check_output(ntp_check_results)
 
     print(ntp_summary)
-    subprocess.run(["say", "The NTP server monitoring report is as follows:"])
-    subprocess.run(["say", ntp_summary])
+    if not args.silent:
+        subprocess.run(["say", "The NTP server monitoring report is as follows:"])
+        subprocess.run(["say", ntp_summary])
