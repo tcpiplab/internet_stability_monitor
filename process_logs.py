@@ -24,131 +24,45 @@ def get_latest_log_file(log_dir):
 
 # Function to send the log content to the Ollama model
 def summarize_log(log_content):
-    # prompt = f"Please read the following internet stability log and summarize it in the style of a concise news radio update: {log_content}"
-
-    # prompt = f"""You will be provided with log entries at the end of these instructions. \
-    #             The logs are the result of several Python scripts running checks against critical, \
-    #             remote endpoints that are providing vital internet infrastructure services. \
-    #             Your job is to write a very, very concise and short "news update" style news story \
-    #             reporting on the overall health of the internet based on what you see in those logs. \
-    #             The style of what you write will be a short paragraph that could be read on the air \
-    #             during a radio news update segment. Do not use bullet points or numbering. Do not use \
-    #             Markdown. Just summarize the overall status of the internet infrastructure based soley \
-    #             on the logs provided at the end of these instructions. Focus only on the key outcomes \
-    #             of the tests, indicating whether the services tested are operational or are experiencing \
-    #             issues. Avoid mentioning the names of the scripts, redundant descriptions, or any \
-    #             superfluous details. For each category (IMAP, SMTP, CA Endpoints, CDNs, DNS Resolvers, \
-    #             IXPs, etc.), if there appears to have been any connectivity problems or errors, then \
-    #             you should provide a very concise status that is one, or at most two, sentences for \
-    #             that entire category, followed by a brief \
-    #             list of the affected hostnames. If a service category seems to be 100% reachable and \
-    #             online, then do not bother to report on that service. The summary should focus on \
-    #             problems and errors. Keep the news story direct, concise, and \
-    #             high-level, emphasizing overall internet infrastructure stability. The tone and style \
-    #             should be in the style of a concise news radio update. Do not talk about the log \
-    #             entries themselves or what context or source you think they may have come from \
-    #             originally. Just report on the percentage of reachable/online/normal checks you \
-    #             read about in the logs. Here is the contents of the \
-    #             entire log file for you to summarize: \n```\n{log_content}\n```\n"""
-
-    # prompt = f"""You will be provided with log entries at the end of these instructions. \
-    #             The logs are the result of several Python scripts running checks against critical, \
-    #             remote endpoints that are providing vital internet infrastructure services. \
-    #             Your job is to write a very, very concise and short "news update" style news story \
-    #             reporting on the overall health of the internet based on what you see in those logs. \
-    #             The style of what you write will be a short paragraph that could be read on the air \
-    #             during a radio news update segment. Do not use bullet points or numbering. Do not give advice. Here is the contents of the \
-    #             entire log file for you to summarize as a breaking news update: \n```\n{log_content}\n```\n"""
 
     location_string = report_source_location.main()
 
-    # system_prompt = f"""You are a news writer reporting from {location_string} tasked with analyzing log entries from Python scripts that \
-    #                 monitor critical remote endpoints providing vital internet infrastructure services. \
-    #                 Your role is to summarize these logs into a concise, short "news update" style story \
-    #                 reporting on the overall health of the internet. Write in a style suitable for a radio \
-    #                 news update segment. Do not use bullet points or numbering, and do not give advice. \
-    #                 Provide only a factual summary based on the log content. And remember that the \
-    #                 audience for the news update that you will write is extremely knowledgeable about the\
-    #                 subject matter. So you do not need to explain or define anything technical to them."""
-
-    # system_prompt = f"""I am a 1950s British radio news reporter named Alfred Boddington-Smythe reporting live \
-    #                 from {location_string} tasked with analyzing log entries from Python scripts that \
-    #                 monitor critical remote endpoints providing vital internet infrastructure services. \
-    #
-    #                 My role is to first introduce myself and the location I am reporting from, and then \
-    #                 to summarize these logs into a concise, short "news update" style story \
-    #                 reporting on the overall health of the internet, paying special attention to any servers \
-    #                 or services that were unreachable, timed-out, or were not available. \
-    #                 I will report in a style suitable for a classic radio \
-    #                 news update segment. I do not use bullet points or numbering, and I do not give advice. \
-    #                 I provide only a factual summary based on the log content. The \
-    #                 audience listening to my news update is extremely knowledgeable about the\
-    #                 subject matter. I do not need to explain or define anything technical to them."""
-
-    system_prompt = f"""You are a 1950s British radio news reporter named Alfred Boddington-Smythe reporting live \
-                        from {location_string} tasked with analyzing log entries from Python scripts that \
-                        monitor critical remote endpoints providing vital internet infrastructure services. \
-
-                        Your role is to first introduce yourself and the location you are reporting from, and then \
-                        to summarize these logs into a concise, short "news update" style story \
-                        reporting on the overall health of the internet, paying special attention to any servers \
-                        or services that were unreachable, timed-out, or were not available. \
-                        You report in a style suitable for a classic radio \
-                        news update segment. You do not use bullet points or numbering, and you do not give advice. \
-                        You provide only a factual summary based on the log content. The \
-                        audience listening to your news update is extremely knowledgeable about the\
+    system_prompt = f"""You are a 1950s British radio news reporter named Alfred Boddington-Smythe reporting live 
+                        from {location_string} tasked with analyzing log entries from Python scripts that 
+                        monitor critical remote endpoints providing vital internet infrastructure services. 
+                        Your role is to first introduce yourself and the location you are reporting from, and then 
+                        to summarize these logs into a concise, short news-update style story,  
+                        reporting on the overall health of the internet, paying special attention to any servers 
+                        or services that were unreachable, timed-out, or were not available. 
+                        You report in a style suitable for a classic radio 
+                        news update segment. You do not use bullet points or numbering, and you do not give advice. 
+                        You provide only a factual summary based on the log content. The 
+                        audience listening to your news update is extremely knowledgeable about the
                         subject matter. You do not need to explain or define anything technical to them."""
 
-
-
-    # user_prompt = f"""Here is the contents of the entire log file for you to summarize as a breaking news \
-    #                 update:\n\n####\n{log_content}"""
-
-    # user_prompt = f"""User: Here is the contents of the entire log file for you to summarize as a breaking news \
-    #                 update that you will read live on-air after identifying yourself and your location: \
-    #                 \n\n####\n{log_content}\n\n####\nAssistant: \"Hello, this is Alfred Boddington-Smythe reporting \
-    #                 live from {location_string} with an update on the stability of the internet\'s underlying \
-    #                 infrastructure...\""""
-
-
-    user_prompt = f"""User: Here is the contents of the entire log file from a collection of network diagnostic \
-                    scripts that check the reachability and response times of various internet components such \
-                    as Certificate Authorities (CAs), Content Delivery Networks (CDNs), Domain Name System (DNS) \
-                    resolvers, Internet Exchange Points (IXPs), and other endpoints. You will summarize the log \
-                    file as a breaking news update that you will read live on-air after identifying yourself and \
-                    your location: \
-                    \n\nAssistant: \"Hello, this is Alfred Boddington-Smythe reporting \
-                    live from {location_string} with an update on the stability of the internet\'s underlying \
+    user_prompt = f"""User: Here is the contents of the entire log file from a collection of network diagnostic 
+                    scripts that check the reachability and response times of various internet services. 
+                    You will summarize the log file but you MUST NOT hallucinate or make up any facts or you 
+                    will be penalized. You will then read your summary 
+                    as a breaking news update that you will read live on-air after identifying yourself and 
+                    your location: 
+                    \n\nAssistant: \"Hello, this is Alfred Boddington-Smythe reporting 
+                    live from {location_string} with an update on the stability of the internet's underlying 
                     infrastructure...\"\n####\n{log_content}\n\n####"""
-
 
     try:
         response = requests.post(
             "http://localhost:11434/api/generate",
             headers={"Content-Type": "application/json"},
             data=json.dumps({
-                # "model": "mistrallite",
                 "model": "mistral",
-                # "model": "llama3.1:latest",
-                # "model": "alfred",
-                # "model": "qwen2.5",
                 "prompt": user_prompt,
                 "system": system_prompt,
                 "stream": False,
+                "max_tokens": 70,
+                "temperature": 0.2,
             }),
         )
-
-
-    # try:
-    #     response = requests.post(
-    #         "http://localhost:11434/api/generate",
-    #         headers={"Content-Type": "application/json"},
-    #         data=json.dumps({
-    #             "model": "mistrallite",  # Specify the model here
-    #             "prompt": prompt,
-    #             "stream": False,
-    #         }),
-    #     )
 
         if response.status_code != 200:
             print(f"Failed to get summary: {response.status_code} - {response.text}")
