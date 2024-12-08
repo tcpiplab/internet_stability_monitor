@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from abuse_check import check_ip_reputation, analyze_ip_reputation
 from service_check_summarizer import summarize_service_check_output
+from report_source_location import get_public_ip
 
 import argparse
 def get_current_external_ip(silent):
@@ -57,7 +58,8 @@ def main():
 
     AbuseIPDB_API_KEY = subprocess.check_output(["/opt/homebrew/bin/op", "read", "op://Private/AbuseIPDB/AbuseIPDB_API_KEY"]).decode('utf-8').strip()
 
-    external_ip = get_current_external_ip(args.silent)  # Get the current external IP
+    # external_ip = get_current_external_ip(args.silent)  # Get the current external IP
+    external_ip = get_public_ip()
 
     # Check reputation of the external IP
     reputation_data = check_ip_reputation(external_ip, AbuseIPDB_API_KEY)
