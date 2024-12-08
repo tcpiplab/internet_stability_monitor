@@ -76,7 +76,6 @@ def main():
             print(e)
 
         try:
-            # print(f"\n\nSummarizing service check output for the following data:\n---\n{ip_reputation_output}\n---\n")
             ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
             print(f"Received AI reputation summary: {ip_reputation_summary}")
             if not args.silent:

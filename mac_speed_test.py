@@ -1,7 +1,9 @@
 import subprocess
 import sys
-
 import argparse
+from service_check_summarizer import summarize_service_check_output
+
+
 def parse_network_quality_output(output):
     lines = output.splitlines()
     summary = {}
@@ -21,7 +23,7 @@ def parse_network_quality_output(output):
     return summary
 
 
-def generate_summary_text(summary):
+def generate_summary_text_manually(summary):
 
     uplink_mbps = float(summary['uplink_capacity'].split(' ')[0])
     downlink_mbps = float(summary['downlink_capacity'].split(' ')[0])
@@ -57,16 +59,26 @@ def run_network_quality_test(silent):
 
         # Parse the output and generate summary
         if process.stdout:
-            summary = parse_network_quality_output(process.stdout)
-            summary_text = generate_summary_text(summary)
+            network_quality_report = parse_network_quality_output(process.stdout)
+            network_quality_report_manual_summary = generate_summary_text_manually(network_quality_report)
 
             # Replace "RPM" with "roundtrips completed per minute" in the summary_text string.
-            summary_text = summary_text.replace("RPM", "roundtrips completed per minute")  # type: ignore
+            network_quality_report_manual_summary = network_quality_report_manual_summary.replace("RPM", "roundtrips completed per minute")  # type: ignore
 
-            print(summary_text)
-            # Speak the summary_text
-            if not silent:
-                subprocess.run(["say", summary_text])
+            # print(network_quality_report_manual_summary)
+            # # Speak the summary_text
+            # if not silent:
+            #     subprocess.run(["say", network_quality_report_manual_summary])
+
+        try:
+            network_quality_ai_summary = summarize_service_check_output(network_quality_report_manual_summary)
+            print(f"Received AI network quality summary: {network_quality_ai_summary}")
+            if not args.silent:
+                subprocess.run(["say", network_quality_ai_summary])
+        except Exception as e:
+            print("Failed to summarize service check output.")
+            print(e)
+
 
         # Print any errors
         if process.stderr:
