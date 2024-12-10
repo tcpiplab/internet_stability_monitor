@@ -1392,3 +1392,4 @@
 /bgp_ripe_ris_check.py
 /venv/
 __pycache__/
+/check_router_external_ip.py
