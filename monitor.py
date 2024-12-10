@@ -4,6 +4,8 @@ import subprocess
 import logging
 from datetime import datetime
 import argparse
+from os_utils import get_os_type
+from tts_utils import speak_text
 
 # Set up the logging directory under /tmp
 log_directory = "/tmp/internet_stability_monitor_logs"
@@ -82,7 +84,7 @@ def run_script(script_name, silent):
 
 def main(silent, polite):
     scripts = [
-        "check_local_os.py",
+        # "os_utils.py",
         "check_external_ip.py",
         "mac_speed_test.py",
         "resolver_check.py",
@@ -99,30 +101,35 @@ def main(silent, polite):
         "ixp_check.py",
     ]
 
+    os_type = get_os_type()
+    print(f"The internet infrastructure monitoring scripts are running on: {os_type}")
+    if not silent:
+        speak_text(f"The internet infrastructure monitoring scripts are running on {os_type}.")
+
     print("Starting report on critical internet infrastructure...")
     if not silent:
-        subprocess.run(["say", f"Starting report on critical internet infrastructure."])
-    print(f"Tests were started at {datetime.now().isoformat()}")
+        speak_text(f"Starting report on critical internet infrastructure.")
+    print(f"Tests were started at {datetime.now().strftime('%I:%M %p on %B %d, %Y')}")
 
     if not silent:
-        subprocess.run(["say", f"Tests were started at {datetime.now().isoformat()}."])
+        speak_text(f"Tests were started at {datetime.now().strftime('%I:%M %p on %B %d, %Y')}.")
     for script in scripts:
 
         politeness_gap = polite
 
         print(f"Running {script}...")
         if not silent:
-            subprocess.run(["say", f"Running the {script} script."])
+            speak_text(f"Running the {script} script.")
         run_script(script, silent)
         print(f"{script} completed.")
         if not silent:
-            subprocess.run(["say", f"The {script} script has completed."])
+            speak_text(f"The {script} script has completed.")
         
         if politeness_gap:
             # Sleep 5 seconds between scripts to be polite
             print("Sleeping for 5 seconds before next script...")
             if not silent:
-                subprocess.run(["say", "Just to be polite, we're sleeping for 5 seconds before we run the next script."])
+                speak_text("Just to be polite, we're sleeping for 5 seconds before we run the next script.")
 
             subprocess.run(["sleep", "5"])
 
