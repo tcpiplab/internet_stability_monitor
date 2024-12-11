@@ -4,6 +4,7 @@ import time
 import argparse
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # List of CDNs and their respective endpoints to monitor
 cdn_endpoints = {
@@ -80,9 +81,9 @@ def main():
 
     print(f"Starting report on CDN reachability monitoring at {datetime.now()}\n")
     if not args.silent:
-        subprocess.run(["say", f"Starting report on CDN reachability monitoring."])
-        subprocess.run(["say", "This will check the reachability of several of the largest content delivery \
-    networks around the world."])
+        speak_text( f"Starting report on CDN reachability monitoring.")
+        speak_text( "This will check the reachability of several of the largest content delivery \
+    networks around the world.")
 
     cdn_results = monitor_cdns()
 
@@ -90,8 +91,8 @@ def main():
     print(output_summary)
 
     if not args.silent:
-        subprocess.run(["say", "The CDN monitoring report is as follows:"])
-        subprocess.run(["say", output_summary])
+        speak_text( "The CDN monitoring report is as follows:")
+        speak_text( output_summary)
 
 if __name__ == "__main__":
     main()

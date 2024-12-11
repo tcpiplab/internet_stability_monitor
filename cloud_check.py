@@ -6,6 +6,7 @@ import time
 import argparse
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # Cloud provider status page URLs
 cloud_status_pages = {
@@ -89,7 +90,7 @@ if __name__ == "__main__":
 
     print(intro_statement)
     if not args.silent:
-        subprocess.run(["say", intro_statement])
+        speak_text( intro_statement)
 
     # Start the browser in headless mode
     browser = init_headless_browser()
@@ -163,5 +164,5 @@ if __name__ == "__main__":
     cloud_platforms_summary = summarize_service_check_output(report_on_cloud_platforms)
     print(cloud_platforms_summary)
     if not args.silent:
-        subprocess.run(["say", "The cloud platform monitoring report is as follows:"])
-        subprocess.run(["say", cloud_platforms_summary])
+        speak_text( "The cloud platform monitoring report is as follows:")
+        speak_text( cloud_platforms_summary)

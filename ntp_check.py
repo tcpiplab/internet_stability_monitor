@@ -1,10 +1,10 @@
 import argparse
-
 import ntplib
 import time
 from datetime import datetime, timezone
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # List of well-known NTP servers
 ntp_servers = [
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.silent:
-        subprocess.run(["say", "Starting NTP server monitoring."])
+        speak_text( "Starting NTP server monitoring.")
 
     print(f"This script will check the reachability of several of the most commonly used NTP servers around the "
           f"western world.\n")
@@ -110,5 +110,5 @@ if __name__ == "__main__":
 
     print(ntp_summary)
     if not args.silent:
-        subprocess.run(["say", "The NTP server monitoring report is as follows:"])
-        subprocess.run(["say", ntp_summary])
+        speak_text( "The NTP server monitoring report is as follows:")
+        speak_text( ntp_summary)

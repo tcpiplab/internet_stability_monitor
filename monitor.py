@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import logging
+import time
 from datetime import datetime
 import argparse
 from os_utils import get_os_type
@@ -131,7 +132,8 @@ def main(silent, polite):
             if not silent:
                 speak_text("Just to be polite, we're sleeping for 5 seconds before we run the next script.")
 
-            subprocess.run(["sleep", "5"])
+            # Sleep for 5 seconds
+            time.sleep(5)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Internet Stability Monitor")

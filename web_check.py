@@ -5,6 +5,7 @@ from urllib.parse import urljoin, urlparse
 import argparse
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # Suppress SSL warnings for unverified requests (since we're only testing reachability)
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
@@ -88,7 +89,7 @@ def check_significant_websites(websites):
     if unreachable_websites:
         print("\nRetrying unreachable websites...\n")
         if not args.silent:
-            subprocess.run(["say", "Retrying unreachable websites..."])
+            speak_text( "Retrying unreachable websites...")
         time.sleep(5)  # Wait 5 seconds before retrying
 
         remaining_unreachable = []
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 
     print(intro_statement)
     if not args.silent:
-        subprocess.run(["say", intro_statement])
+        speak_text( intro_statement)
 
     reachable, unreachable = check_significant_websites(list_of_significant_websites)
 
@@ -149,5 +150,5 @@ if __name__ == "__main__":
 
     print(significant_website_checks_summary)
     if not args.silent:
-        subprocess.run(["say", "The summary of checking significant websites is as follows:"])
-        subprocess.run(["say", significant_website_checks_summary])
+        speak_text( "The summary of checking significant websites is as follows:")
+        speak_text( significant_website_checks_summary)

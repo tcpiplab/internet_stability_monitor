@@ -6,6 +6,7 @@ import time
 import argparse
 import subprocess
 from io import StringIO
+from tts_utils import speak_text
 
 # List of IXPs and their public-facing websites (updated Equinix URL)
 ixp_endpoints = {
@@ -75,8 +76,8 @@ if __name__ == "__main__":
 
     print(f"Starting IXP monitoring at {datetime.now()}\n")
     if not args.silent:
-        subprocess.run(["say", f"Starting IXP monitoring."])
-        subprocess.run(["say", "This will check the reachability of several internet exchange points around the world."])
+        speak_text( f"Starting IXP monitoring.")
+        speak_text( "This will check the reachability of several internet exchange points around the world.")
     output = monitor_ixps()
     payload = {
         "model": "mistral",
@@ -110,7 +111,7 @@ if __name__ == "__main__":
         print(summary)
 
         if not args.silent:
-            subprocess.run(["say", "The summary of the IXP monitoring is as follows."])
+            speak_text( "The summary of the IXP monitoring is as follows.")
 
     except requests.RequestException as e:
 

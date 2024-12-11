@@ -2,6 +2,7 @@ import socket
 import argparse
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # SMTP servers to monitor
 smtp_servers = {
@@ -24,12 +25,12 @@ def check_smtp_server(name, server_info):
         with socket.create_connection((host, port), timeout=10) as sock:
             print(f"Successfully connected to {name} at {host}:{port}")
             if not args.silent:
-                subprocess.run(["say", f"Successfully connected to {name}."])
+                speak_text( f"Successfully connected to {name}.")
             return "reachable"
     except Exception as e:
         print(f"Failed to connect to {name} at {host}:{port}: {e}")
         if not args.silent:
-            subprocess.run(["say", f"Failed to connect to {name} server: The error was: {e}"])
+            speak_text( f"Failed to connect to {name} server: The error was: {e}")
         return f"unreachable: {e}"
 
 if __name__ == "__main__":
@@ -47,7 +48,7 @@ if __name__ == "__main__":
 
     print(intro_statement)
     if not args.silent:
-        subprocess.run(["say", intro_statement])
+        speak_text( intro_statement)
 
     reachable_servers = []
     unreachable_servers = []
@@ -86,5 +87,5 @@ if __name__ == "__main__":
 
     print(smtp_server_checks_summary)
     if not args.silent:
-        subprocess.run(["say", "The summary of checking important SMTP servers is as follows:"])
-        subprocess.run(["say", smtp_server_checks_summary])
+        speak_text( "The summary of checking important SMTP servers is as follows:")
+        speak_text( smtp_server_checks_summary)

@@ -3,6 +3,7 @@ import time
 import sys
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # List of DNS root servers
 dns_root_servers = {
@@ -92,9 +93,9 @@ if __name__ == "__main__":
     print("----- AI-Generated Summary -----")
     print(summary)
 
-    # If not silent, use the 'say' command to speak the intro and summary
+    # If not silent, use TTS to speak the intro and summary
     if not silent:
         intro_lines = ("This script checks the reachability of DNS Root Servers, "
                        "which are crucial to the functioning of the internet.")
-        subprocess.run(["say", intro_lines])
-        subprocess.run(["say", summary])
+        speak_text( intro_lines)
+        speak_text( summary)
