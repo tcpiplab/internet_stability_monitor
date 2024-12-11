@@ -3,6 +3,7 @@ from abuse_check import check_ip_reputation, analyze_ip_reputation
 from service_check_summarizer import summarize_service_check_output
 from report_source_location import get_public_ip
 import argparse
+from tts_utils import speak_text
 
 
 def main():
@@ -36,7 +37,7 @@ def main():
             ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
             print(f"Received AI reputation summary: {ip_reputation_summary}")
             if not args.silent:
-                subprocess.run(["say", ip_reputation_summary])
+                speak_text(ip_reputation_summary)
         except Exception as e:
             print("Failed to summarize service check output.")
             print(e)

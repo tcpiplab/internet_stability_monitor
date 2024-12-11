@@ -3,8 +3,8 @@ import time
 from datetime import datetime
 from service_check_summarizer import summarize_service_check_output
 import argparse
+from tts_utils import speak_text
 
-import subprocess
 
 # List of DNS resolvers and their IP addresses
 dns_resolvers = {
@@ -81,12 +81,12 @@ if __name__ == "__main__":
     resolver_check_results = monitor_dns_resolvers()
 
     if not args.silent:
-        subprocess.run(["say", f"Starting DNS Resolver monitoring."])
-        subprocess.run(["say", "This will check the reachability of several of the most popular DNS resolvers."])
+        speak_text( f"Starting DNS Resolver monitoring.")
+        speak_text( "This will check the reachability of several of the most popular DNS resolvers.")
 
     resolver_output_summary = summarize_service_check_output(resolver_check_results)
     print(resolver_output_summary)
 
     if not args.silent:
-        subprocess.run(["say", "The DNS resolver monitoring report is as follows:"])
-        subprocess.run(["say", resolver_output_summary])
+        speak_text( "The DNS resolver monitoring report is as follows:")
+        speak_text( resolver_output_summary)
