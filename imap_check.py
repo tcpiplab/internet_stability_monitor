@@ -1,6 +1,7 @@
 import argparse
 import socket
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 import subprocess
 
 # IMAP servers to monitor
@@ -40,16 +41,16 @@ if __name__ == "__main__":
 
     print("Checking IMAP server availability...")
     if not args.silent:
-        subprocess.run(["say", "Checking IMAP server availability."])
+        speak_text( "Checking IMAP server availability.")
 
     print(f"This script checks the availability of {len(imap_servers)} of the most common IMAP servers.")
     if not args.silent:
-        subprocess.run(["say", f"This script checks the availability of {len(imap_servers)} of the most common IMAP servers."])
+        speak_text( f"This script checks the availability of {len(imap_servers)} of the most common IMAP servers.")
 
     print(f"IMAP is a protocol used to retrieve email messages from an email server.")
 
     if not args.silent:
-        subprocess.run(["say", "IMAP is a protocol used to retrieve email messages from an email server."])
+        speak_text( "IMAP is a protocol used to retrieve email messages from an email server.")
 
     # Check each IMAP server
     for name, server_info in imap_servers.items():
@@ -86,5 +87,5 @@ if __name__ == "__main__":
     print(imap_output_summary)
 
     if not args.silent:
-        subprocess.run(["say", "The IMAP monitoring report is as follows:"])
-        subprocess.run(["say", imap_output_summary])
+        speak_text( "The IMAP monitoring report is as follows:")
+        speak_text( imap_output_summary)
