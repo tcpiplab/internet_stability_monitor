@@ -21,7 +21,23 @@ def get_latest_log_file(log_dir):
     
     # Print the name of the latest file we found
     print(f"Latest log file: {max(list_of_files, key=os.path.getctime)}")
-    return max(list_of_files, key=os.path.getctime)
+
+    # If the latest log file is 0 bytes, delete it and return None
+    if  os.path.getsize(max(list_of_files, key=os.path.getctime)) == 0:
+
+        print("Latest log file is empty, deleting and returning None.")
+        speak_text("Latest log file is empty, deleting and returning None.")
+
+        print("Otherwise it would cause me to hallucinate extensively when reading out my summary report.")
+        speak_text("Otherwise it would cause me to hallucinate extensively when reading out my summary report.")
+
+        os.remove(max(list_of_files, key=os.path.getctime))
+
+        return None
+
+    else:
+        return max(list_of_files, key=os.path.getctime)
+
 
 # Function to send the log content to the Ollama model
 def summarize_log(log_content):
@@ -99,29 +115,19 @@ def summarize_log(log_content):
 
 
 def read_summary_with_tts(summary_file, location_string):
-    # Construct the macos_tts_command as a list of arguments
-    macos_tts_introduction = [
-        "/usr/bin/say",
-        "--voice", "Jamie",
-        "--quality", "127",
-        f"Hello, this is Alfred Boddington-Smythe reporting live from {location_string}"
-    ]
 
-    macos_tts_command = [
-        "/usr/bin/say",
-        "--voice", "Jamie",
-        "--quality", "127",
-        "--input-file", summary_file
-    ]
+    #  Read the content of the summary file
+    with open(summary_file, "r") as file:
+        summary_text = file.read()
+
+    # Use speak_text instead of /usr/bin/say on Windows and Linux
     try:
-        subprocess.run(macos_tts_introduction, check=True)
-        # Run the macos_tts_command
-        subprocess.run(macos_tts_command, check=True)
+        speak_text(f"Hello, this is Alfred Boddington-Smythe reporting live from {location_string}")
+        speak_text(summary_text)
         print(f"Successfully read the content of {summary_file}")
-    except subprocess.CalledProcessError as e:
-        print(f"An error occurred while running the macos_tts_command: {e}")
-    except FileNotFoundError:
-        print("The 'say' macos_tts_command was not found. Make sure you're running this on macOS.")
+    except Exception as e:
+        print(f"An error occurred while running the speak_text command: {e}")
+
 
 
 
