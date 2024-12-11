@@ -2,6 +2,7 @@ import subprocess
 import time
 import argparse
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 whois_servers = {
     "whois.apnic.net": ("APNIC WHOIS server for IP address and AS number allocation in Asia-Pacific region", "202.12.29.140"),
@@ -93,8 +94,6 @@ def check_whois_servers(servers):
     return whois_results
 
 
-import argparse
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Monitor WHOIS servers.')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
@@ -103,8 +102,8 @@ if __name__ == "__main__":
     output = ""
     print(f"Starting WHOIS server monitoring at {time.ctime()}\n")
     if not args.silent:
-        subprocess.run(["say", "Starting WHOIS server monitoring."])
-        subprocess.run(["say", "This will check the reachability of several WHOIS servers."])
+        speak_text( "Starting WHOIS server monitoring.")
+        speak_text( "This will check the reachability of several WHOIS servers.")
 
 
     results = check_whois_servers(whois_servers)
@@ -112,7 +111,7 @@ if __name__ == "__main__":
     output += f"Starting WHOIS server monitoring at {time.ctime()}\n"
     print(results)
     # if not args.silent:
-    #     subprocess.run(["say", results])
+    #     speak_text( results])
 
    # Send the results to service_check_summary.py and ask for a summary
     summary_output = summarize_service_check_output(results)
@@ -122,5 +121,5 @@ if __name__ == "__main__":
     print(summary_output)
 
     if not args.silent:
-        subprocess.run(["say", "The WHOIS server monitoring report is as follows:"])
-        subprocess.run(["say", summary_output])
+        speak_text( "The WHOIS server monitoring report is as follows:")
+        speak_text( summary_output)
