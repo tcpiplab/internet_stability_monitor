@@ -3,6 +3,7 @@ import urllib3
 import argparse
 import subprocess
 from service_check_summarizer import summarize_service_check_output
+from tts_utils import speak_text
 
 # Disable SSL warnings because we're only checking reachability, not certificate validity
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -32,24 +33,24 @@ def check_ca_endpoint(name, url):
         if response.status_code == 200:
             print(f"Successfully reached {name} at {url}")
             if not args.silent:
-                subprocess.run(["say", f"Successfully reached {name}."])
+                speak_text( f"Successfully reached {name}.")
             return "reachable"
         elif 300 <= response.status_code < 400:
             print(f"{name} at {url} returned status code {response.status_code} (redirect)")
             if not args.silent:
-                subprocess.run(["say", f"{name} and it returned status code {response.status_code} (redirect)."])
+                speak_text( f"{name} and it returned status code {response.status_code} (redirect).")
             return "reachable (redirected)"
         else:
             print(f"{name} at {url} returned status code {response.status_code}")
             if not args.silent:
-                subprocess.run(["say", f"The {name} server returned status code {response.status_code}. So we're "
-                                       f"marking it as unreachable."])
+                speak_text( f"The {name} server returned status code {response.status_code}. So we're "
+                                       f"marking it as unreachable.")
             return "unreachable"
     except requests.RequestException as e:
         print(f"Failed to reach {name} at {url}: {e}")
         if not args.silent:
-            subprocess.run(["say", f"Failed to reach {name} and got some kind of error. So we're marking it as "
-                                   f"unreachable. The error was: {e}"])
+            speak_text( f"Failed to reach {name} and got some kind of error. So we're marking it as "
+                                   f"unreachable. The error was: {e}")
         return f"unreachable: {e}"
 
 if __name__ == "__main__":
@@ -68,7 +69,7 @@ if __name__ == "__main__":
 
     print(intro_statement)
     if not args.silent:
-        subprocess.run(["say", intro_statement])
+        speak_text( intro_statement)
 
     reachable_endpoints = []
     unreachable_endpoints = []
@@ -107,5 +108,5 @@ if __name__ == "__main__":
     tls_ca_checks_summary = summarize_service_check_output(report_on_TLS_CA_servers)
     print(tls_ca_checks_summary)
     if not args.silent:
-        subprocess.run(["say", "The summary of checking TLS CA servers is as follows:"])
-        subprocess.run(["say", tls_ca_checks_summary])
+        speak_text( "The summary of checking TLS CA servers is as follows:")
+        speak_text( tls_ca_checks_summary)
