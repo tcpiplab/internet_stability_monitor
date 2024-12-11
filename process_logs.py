@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 import report_source_location
 import subprocess
+from tts_utils import speak_text
 
 # Ensure the logging directory exists
 os.makedirs("/tmp/internet_stability_monitor_logs", exist_ok=True)
@@ -76,7 +77,7 @@ def summarize_log(log_content):
         if not summary:
             raise Exception("Summary was empty")
 
-        subprocess.run(["say", "Preparing the summary of the testing outcomes. This will take a moment."])
+        speak_text( "Preparing the summary of the testing outcomes. This will take a moment.")
         return summary
 
     except Exception as e:
