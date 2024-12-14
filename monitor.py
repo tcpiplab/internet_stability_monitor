@@ -59,7 +59,7 @@ def run_script(script_name, silent):
 
         try:
             result = subprocess.run(
-                ["python3", script_name],
+                [sys.executable, script_name],
                 capture_output=True,
                 text=True,
                 check=True,
