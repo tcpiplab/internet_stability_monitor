@@ -25,7 +25,31 @@ whois_servers_dict = {
     "riswhois.ripe.net": ("RIPE RIS WHOIS server for BGP routing information and analysis", "193.0.19.33"),
     "whois.nic.mobi": ("Registry WHOIS server for dot MOBI top-level domain registrations", "194.169.218.57"),
     "whois.verisign-grs.com": ("Verisign Global Registry WHOIS server for looking up dot COM and dot NET domains", "199.7.59.74"),
-    "whois.nic.google": ("Google Registry WHOIS server for Google-operated TLD registrations", "216.239.32.10")
+    "whois.nic.google": ("Google Registry WHOIS server for Google-operated TLD registrations", "216.239.32.10"),
+    "whois.nic.io": ("Internet Computer Bureau WHOIS server for .io domain registrations", "193.223.78.42"),
+    "whois.nic.co": (".CO Internet S.A.S. WHOIS server for .co domain registrations", "156.154.100.224"),
+    "whois.nic.xyz": ("XYZ.COM LLC WHOIS server for .xyz domain registrations", "185.24.64.96"),
+    "whois.nic.club": (".CLUB Domains, LLC WHOIS server for .club domain registrations", "108.59.160.175"),
+    "whois.nic.info": ("Afilias WHOIS server for .info domain registrations", "199.19.56.1"),
+    "whois.nic.biz": ("Neustar WHOIS server for .biz domain registrations", "156.154.100.224"),
+    "whois.nic.us": ("NeuStar, Inc. WHOIS server for .us domain registrations", "156.154.100.224"),
+    "whois.nic.tv": ("Verisign WHOIS server for .tv domain registrations", "192.42.93.30"),
+    "whois.nic.asia": ("DotAsia WHOIS server for .asia domain registrations", "203.119.86.101"),
+    "whois.nic.me": ("doMEn WHOIS server for .me domain registrations", "185.24.64.96"),
+    "whois.nic.pro": ("RegistryPro WHOIS server for .pro domain registrations", "199.7.59.74"),
+    "whois.nic.jobs": ("Employ Media LLC WHOIS server for .jobs domain registrations", "192.42.93.30"),
+    "whois.nic.museum": ("Museum Domain Management Association WHOIS server for .museum domain registrations", "130.242.24.5"),
+    "whois.nic.ai": ("Government of Anguilla WHOIS server for .ai domain registrations", "209.59.119.34"),
+    "whois.nic.de": ("DENIC eG WHOIS server for .de domain registrations", "81.91.164.5"),
+    "whois.registry.in": ("National Internet Exchange of India WHOIS server for .in domain registrations for India", "103.132.247.21"),
+    "whois.jprs.jp": ("Japan Registry Services Co., Ltd. WHOIS server for .jp domain registrations for Japan", "117.104.133.169"),
+    "whois.nic.fr": ("AFNIC WHOIS server for .fr domain registrations for France", "192.134.5.73"),
+    "whois.registro.br": ("Comitê Gestor da Internet no Brasil WHOIS server for .br domain registrations for Brazil", "200.160.2.3"),
+    "whois.nic.uk": ("Nominet UK WHOIS server for .uk domain registrations for the UK", "213.248.242.79"),
+    "whois.auda.org.au": ("auDA WHOIS server for .au domain registrations for Australia", "199.15.80.233"),
+    "whois.nic.it": ("IIT - CNR WHOIS server for .it domain registrations for Italy", "192.12.192.242"),
+    "whois.cira.ca": ("Canadian Internet Registration Authority WHOIS server for .ca domain registrations", "192.228.29.2"),
+    "whois.kr": ("KISA WHOIS server for .kr domain registrations for South Korea", "49.8.14.101")
 }
 
 
@@ -111,7 +135,7 @@ def check_whois_servers(servers):
     # First round of checks
     for whois_server_name, (whois_server_description, ip) in servers.items():
 
-        speak_text(f"Checking {whois_server_name}, which is the {whois_server_description}.")
+        # speak_text(f"Checking {whois_server_name}, which is the {whois_server_description}.")
 
         status, error = run_whois_command(whois_server_name, ip)
         if status == "reachable":
@@ -164,10 +188,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     output = ""
+
+    # Count how many WHOIS servers are being monitored
+    num_servers = str(len(whois_servers_dict))
+
     print(f"Starting WHOIS server monitoring at {time.ctime()}\n")
     if not args.silent:
         speak_text("Starting WHOIS server monitoring.")
-        speak_text("This will check the reachability of several WHOIS servers.")
+        speak_text(f"This will check the reachability of {num_servers} WHOIS servers. So this could take several minutes.")
 
     results = check_whois_servers(whois_servers_dict)
 
