@@ -7,3 +7,4 @@ websocket_client==1.8.0
 psutil~=6.1.0
 colorama~=0.4.6
 websocket-client~=1.8.0
+python-whois~=0.9.5
