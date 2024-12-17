@@ -123,7 +123,7 @@ def read_summary_with_tts(summary_file, location_string):
     # Use speak_text instead of /usr/bin/say on Windows and Linux
     try:
         speak_text(f"Hello, this is Alfred Boddington-Smythe reporting live from {location_string}")
-        speak_text(summary_text)
+        speak_text(f"{summary_text}")
         print(f"Successfully read the content of {summary_file}")
     except Exception as e:
         print(f"An error occurred while running the speak_text command: {e}")

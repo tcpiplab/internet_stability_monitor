@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     ntp_summary = summarize_service_check_output(ntp_check_results)
 
-    print(ntp_summary)
+    print(f"{ntp_summary}")
     if not args.silent:
-        speak_text( "The NTP server monitoring report is as follows:")
-        speak_text( ntp_summary)
+        speak_text("The NTP server monitoring report is as follows:")
+        speak_text(f"{ntp_summary}")

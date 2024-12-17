@@ -89,13 +89,13 @@ if __name__ == "__main__":
     summary = summarize_service_check_output(report)
 
     # Print the final report and summary
-    print(report)
+    print(f"{report}")
     print("----- AI-Generated Summary -----")
-    print(summary)
+    print(f"{summary}")
 
     # If not silent, use TTS to speak the intro and summary
     if not silent:
         intro_lines = ("This script checks the reachability of DNS Root Servers, "
                        "which are crucial to the functioning of the internet.")
-        speak_text( intro_lines)
-        speak_text( summary)
+        speak_text(f"{intro_lines}")
+        speak_text(f"{summary}")

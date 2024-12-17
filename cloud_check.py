@@ -88,9 +88,9 @@ if __name__ == "__main__":
         "platform. This check will run silently and can take up to about one minute. Please stand by..."
     )
 
-    print(intro_statement)
+    print(f"{intro_statement}")
     if not args.silent:
-        speak_text( intro_statement)
+        speak_text(f"{intro_statement}")
 
     # Start the browser in headless mode
     browser = init_headless_browser()
@@ -162,7 +162,7 @@ if __name__ == "__main__":
             report_on_cloud_platforms += f"- {provider}: {error}\n"
 
     cloud_platforms_summary = summarize_service_check_output(report_on_cloud_platforms)
-    print(cloud_platforms_summary)
+    print(f"{cloud_platforms_summary}")
     if not args.silent:
-        speak_text( "The cloud platform monitoring report is as follows:")
-        speak_text( cloud_platforms_summary)
+        speak_text("The cloud platform monitoring report is as follows:")
+        speak_text(f"{cloud_platforms_summary}")

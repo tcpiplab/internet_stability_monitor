@@ -88,11 +88,11 @@ def main():
     cdn_results = monitor_cdns()
 
     output_summary = summarize_service_check_output(cdn_results)
-    print(output_summary)
+    print(f"{output_summary}")
 
     if not args.silent:
-        speak_text( "The CDN monitoring report is as follows:")
-        speak_text( output_summary)
+        speak_text("The CDN monitoring report is as follows:")
+        speak_text(f"{output_summary}")
 
 if __name__ == "__main__":
     main()

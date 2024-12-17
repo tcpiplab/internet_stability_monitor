@@ -44,7 +44,7 @@ def run_script(script_name, silent):
             logging.info(output)
 
             # Print to STDOUT
-            print(output, file=sys.stdout)
+            print(f"{output}", file=sys.stdout)
 
         except subprocess.CalledProcessError as e:
             error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
@@ -53,7 +53,7 @@ def run_script(script_name, silent):
             logging.error(error_output)
 
             # Print error to STDOUT
-            print(error_output, file=sys.stderr)
+            print(f"{error_output}", file=sys.stderr)
 
     else:
 
@@ -71,7 +71,7 @@ def run_script(script_name, silent):
             logging.info(output)
 
             # Print to STDOUT
-            print(output, file=sys.stdout)
+            print(f"{output}", file=sys.stdout)
 
         except subprocess.CalledProcessError as e:
             error_output = f"Error running {script_name}:\n{e.stderr}\n{separator}\n"
@@ -80,7 +80,7 @@ def run_script(script_name, silent):
             logging.error(error_output)
 
             # Print error to STDOUT
-            print(error_output, file=sys.stderr)
+            print(f"{error_output}", file=sys.stderr)
 
 
 def main(silent, polite):

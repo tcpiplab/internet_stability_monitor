@@ -200,7 +200,7 @@ if __name__ == "__main__":
     results = check_whois_servers(whois_servers_dict)
 
     output += f"Starting WHOIS server monitoring at {time.ctime()}\n"
-    print(results)
+    print(f"{results}")
     # if not args.silent:
     #     speak_text( results])
 
@@ -209,8 +209,8 @@ if __name__ == "__main__":
 
     # Print the summary received from service_check_summary.py
     output += f"\nSummary of WHOIS server monitoring: \n---\n{summary_output}\n---\n"
-    print(summary_output)
+    print(f"{summary_output}")
 
     if not args.silent:
         speak_text("The WHOIS server monitoring report is as follows:")
-        speak_text(summary_output)
+        speak_text(f"{summary_output}")

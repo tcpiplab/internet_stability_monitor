@@ -108,10 +108,10 @@ if __name__ == "__main__":
 
         print("\nSummary of the IXP monitoring:")
 
-        print(summary)
+        print(f"{summary}")
 
         if not args.silent:
-            speak_text( "The summary of the IXP monitoring is as follows.")
+            speak_text("The summary of the IXP monitoring is as follows.")
 
     except requests.RequestException as e:
 

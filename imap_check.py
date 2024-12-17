@@ -84,8 +84,8 @@ if __name__ == "__main__":
     # imap_check_results += ''.join([str(x) for x in reachable_servers]) + '\n' + ''.join([str(x) for x in unreachable_servers])
 
     imap_output_summary = summarize_service_check_output(imap_check_results)
-    print(imap_output_summary)
+    print(f"{imap_output_summary}")
 
     if not args.silent:
-        speak_text( "The IMAP monitoring report is as follows:")
-        speak_text( imap_output_summary)
+        speak_text("The IMAP monitoring report is as follows:")
+        speak_text(f"{imap_output_summary}")

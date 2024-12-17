@@ -77,13 +77,13 @@ def run_network_quality_test(silent):
                 subprocess.run(["say", network_quality_ai_summary])
         except Exception as e:
             print("Failed to summarize service check output.")
-            print(e)
+            print(f"{e}")
 
 
         # Print any errors
         if process.stderr:
             print("Errors:")
-            print(process.stderr)
+            print(f"{process.stderr}")
 
     except FileNotFoundError:
         print("Error: networkQuality command not found. This script requires macOS 12 (Monterey) or later.")

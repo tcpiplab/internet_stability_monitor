@@ -67,9 +67,9 @@ if __name__ == "__main__":
         "This examination shall proceed silently and may consume up to one minute. Stand by..."
     )
 
-    print(intro_statement)
+    print(f"{intro_statement}")
     if not args.silent:
-        speak_text( intro_statement)
+        speak_text(f"{intro_statement}")
 
     reachable_endpoints = []
     unreachable_endpoints = []
@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
 
     tls_ca_checks_summary = summarize_service_check_output(report_on_TLS_CA_servers)
-    print(tls_ca_checks_summary)
+    print(f"{tls_ca_checks_summary}")
     if not args.silent:
-        speak_text( "The summary of checking TLS CA servers is as follows:")
-        speak_text( tls_ca_checks_summary)
+        speak_text("The summary of checking TLS CA servers is as follows:")
+        speak_text(f"{tls_ca_checks_summary}")

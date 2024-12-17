@@ -36,4 +36,4 @@ if __name__ == "__main__":
 
     # Process and print the result
     processed_text = process_report(input_text)
-    print(processed_text)
+    print(f"{processed_text}")

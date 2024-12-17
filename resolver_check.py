@@ -85,8 +85,8 @@ if __name__ == "__main__":
         speak_text( "This will check the reachability of several of the most popular DNS resolvers.")
 
     resolver_output_summary = summarize_service_check_output(resolver_check_results)
-    print(resolver_output_summary)
+    print(f"{resolver_output_summary}")
 
     if not args.silent:
-        speak_text( "The DNS resolver monitoring report is as follows:")
-        speak_text( resolver_output_summary)
+        speak_text("The DNS resolver monitoring report is as follows:")
+        speak_text(f"{resolver_output_summary}")

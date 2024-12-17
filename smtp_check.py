@@ -46,9 +46,9 @@ if __name__ == "__main__":
         "This check runs silently and may consume up to a minute. Pray remain patient..."
     )
 
-    print(intro_statement)
+    print(f"{intro_statement}")
     if not args.silent:
-        speak_text( intro_statement)
+        speak_text(f"{intro_statement}")
 
     reachable_servers = []
     unreachable_servers = []
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     smtp_server_checks_summary = summarize_service_check_output(report_on_smtp_servers)
 
-    print(smtp_server_checks_summary)
+    print(f"{smtp_server_checks_summary}")
     if not args.silent:
-        speak_text( "The summary of checking important SMTP servers is as follows:")
-        speak_text( smtp_server_checks_summary)
+        speak_text(f"The summary of checking important SMTP servers is as follows:")
+        speak_text(f"{smtp_server_checks_summary}")

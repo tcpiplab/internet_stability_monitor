@@ -117,9 +117,9 @@ if __name__ == "__main__":
         "it may suggest a broader infrastructural fault or a critical disruption in global online communications."
     )
 
-    print(intro_statement)
+    print(f"{intro_statement}")
     if not args.silent:
-        speak_text( intro_statement)
+        speak_text(f"{intro_statement}")
 
     reachable, unreachable = check_significant_websites(list_of_significant_websites)
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     if len(unreachable) == 0:
         all_reachable_statement = ("\nSummary of reachability of major tech and government websites:\nAll websites are "
                                    "reachable.")
-        print(all_reachable_statement)
+        print(f"{all_reachable_statement}")
         report_on_significant_websites += all_reachable_statement
     
     else:
@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
     significant_website_checks_summary = summarize_service_check_output(report_on_significant_websites)
 
-    print(significant_website_checks_summary)
+    print(f"{significant_website_checks_summary}")
     if not args.silent:
         speak_text( "The summary of checking significant websites is as follows:")
-        speak_text( significant_website_checks_summary)
+        speak_text(f"{significant_website_checks_summary}")

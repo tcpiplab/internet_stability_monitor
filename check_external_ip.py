@@ -59,16 +59,16 @@ def main():
 
         except Exception as e:
             print("Failed to analyze IP reputation data.")
-            print(e)
+            print(f"{e}")
 
         try:
             ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
             print(f"Received AI reputation summary: {ip_reputation_summary}")
             if not args.silent:
-                speak_text(ip_reputation_summary)
+                speak_text(f"{ip_reputation_summary}")
         except Exception as e:
             print("Failed to summarize service check output.")
-            print(e)
+            print(f"{e}")
 
 
     else:
