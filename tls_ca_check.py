@@ -1,9 +1,9 @@
 import requests
 import urllib3
 import argparse
-import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # Disable SSL warnings because we're only checking reachability, not certificate validity
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -107,6 +107,10 @@ if __name__ == "__main__":
 
     tls_ca_checks_summary = summarize_service_check_output(report_on_TLS_CA_servers)
     print(f"{tls_ca_checks_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(tls_ca_checks_summary)
+
     if not args.silent:
         speak_text("The summary of checking TLS CA servers is as follows:")
         speak_text(f"{tls_ca_checks_summary}")

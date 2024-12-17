@@ -2,9 +2,9 @@ import requests
 from datetime import datetime
 import time
 import argparse
-import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # List of CDNs and their respective endpoints to monitor
 cdn_endpoints = {
@@ -89,6 +89,9 @@ def main():
 
     output_summary = summarize_service_check_output(cdn_results)
     print(f"{output_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(output_summary)
 
     if not args.silent:
         speak_text("The CDN monitoring report is as follows:")

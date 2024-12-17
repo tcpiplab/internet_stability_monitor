@@ -4,6 +4,7 @@ import sys
 import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # List of DNS root servers
 dns_root_servers = {
@@ -92,6 +93,9 @@ if __name__ == "__main__":
     print(f"{report}")
     print("----- AI-Generated Summary -----")
     print(f"{summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(summary)
 
     # If not silent, use TTS to speak the intro and summary
     if not silent:

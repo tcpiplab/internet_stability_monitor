@@ -7,6 +7,7 @@ from tts_utils import speak_text
 from os_utils import get_os_type
 import shutil
 import os
+from summary_utils import add_to_combined_summaries
 
 
 def main():
@@ -64,6 +65,10 @@ def main():
         try:
             ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
             print(f"Received AI reputation summary: {ip_reputation_summary}")
+
+            # Add the summary to the combined summaries
+            add_to_combined_summaries(ip_reputation_summary)
+
             if not args.silent:
                 speak_text(f"{ip_reputation_summary}")
         except Exception as e:

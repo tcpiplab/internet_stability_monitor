@@ -4,6 +4,7 @@ from datetime import datetime
 from service_check_summarizer import summarize_service_check_output
 import argparse
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 
 # List of DNS resolvers and their IP addresses
@@ -86,6 +87,9 @@ if __name__ == "__main__":
 
     resolver_output_summary = summarize_service_check_output(resolver_check_results)
     print(f"{resolver_output_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(resolver_output_summary)
 
     if not args.silent:
         speak_text("The DNS resolver monitoring report is as follows:")

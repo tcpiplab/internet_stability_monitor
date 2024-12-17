@@ -17,6 +17,11 @@ if not os.path.exists(log_directory):
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 log_file_path = os.path.join(log_directory, f"internet_stability_log_{timestamp}.txt")
 
+# Zero out the combined summaries file at the start of the run to avoid old data
+combined_summaries_file = os.path.join(log_directory, "combined_summaries.txt")
+with open(combined_summaries_file, "w") as file:
+    file.write("")
+
 # Configure logging
 logging.basicConfig(
     filename=log_file_path,

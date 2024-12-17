@@ -3,9 +3,9 @@ import time
 import warnings
 from urllib.parse import urljoin, urlparse
 import argparse
-import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # Suppress SSL warnings for unverified requests (since we're only testing reachability)
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
@@ -149,6 +149,10 @@ if __name__ == "__main__":
     significant_website_checks_summary = summarize_service_check_output(report_on_significant_websites)
 
     print(f"{significant_website_checks_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(significant_website_checks_summary)
+
     if not args.silent:
         speak_text( "The summary of checking significant websites is as follows:")
         speak_text(f"{significant_website_checks_summary}")

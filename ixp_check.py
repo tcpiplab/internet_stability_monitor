@@ -1,12 +1,11 @@
-
 import requests
 import json
 from datetime import datetime
 import time
 import argparse
-import subprocess
 from io import StringIO
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # List of IXPs and their public-facing websites (updated Equinix URL)
 ixp_endpoints = {
@@ -94,8 +93,6 @@ if __name__ == "__main__":
     try:
         response = requests.post('http://localhost:11434/api/generate', headers=headers, data=json.dumps(payload))
         response.raise_for_status()
-        # print("\nFull API Response:")
-        # print(response.text)
 
         try:
 
@@ -109,6 +106,9 @@ if __name__ == "__main__":
         print("\nSummary of the IXP monitoring:")
 
         print(f"{summary}")
+
+        # Add the summary to the combined summaries
+        add_to_combined_summaries(summary)
 
         if not args.silent:
             speak_text("The summary of the IXP monitoring is as follows.")

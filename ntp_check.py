@@ -2,9 +2,9 @@ import argparse
 import ntplib
 import time
 from datetime import datetime, timezone
-import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # List of well-known NTP servers
 ntp_servers = [
@@ -104,11 +104,13 @@ if __name__ == "__main__":
             print(f"- {server}: {error}")
             ntp_check_results += f"- {server}: {error}\n"
 
-    # print(ntp_check_results)
-
     ntp_summary = summarize_service_check_output(ntp_check_results)
 
     print(f"{ntp_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(ntp_summary)
+
     if not args.silent:
         speak_text("The NTP server monitoring report is as follows:")
         speak_text(f"{ntp_summary}")
