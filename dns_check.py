@@ -90,9 +90,9 @@ if __name__ == "__main__":
     summary = summarize_service_check_output(report)
 
     # Print the final report and summary
-    print(f"{report}")
+    print(f"'{report}'")
     print("----- AI-Generated Summary -----")
-    print(f"{summary}")
+    print(f"'{summary}'")
 
     # Add the summary to the combined summaries
     add_to_combined_summaries(summary)
