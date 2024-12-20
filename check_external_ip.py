@@ -41,7 +41,16 @@ def main():
         else:
             raise FileNotFoundError("The `op` command could not be found. Ensure it is installed and in your PATH.")
 
-    AbuseIPDB_API_KEY = subprocess.check_output([op_path, "read", "op://Private/AbuseIPDB/AbuseIPDB_API_KEY"]).decode('utf-8').strip()
+    try:
+        AbuseIPDB_API_KEY = subprocess.check_output([op_path, "read", "op://Private/AbuseIPDB/AbuseIPDB_API_KEY"]).decode('utf-8').strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to read the AbuseIPDB API key.")
+        print(f"Maybe 1Password is not running, not unlocked, or the item is missing.")
+        print(f"Error: {e}")
+
+        speak_text("Failed to read the AbuseIPDB API key. Please check the 1Password app.")
+        speak_text("Make sure it is running, unlocked, and the API key item is available.")
+        return
 
     # external_ip = get_current_external_ip(args.silent)  # Get the current external IP
     external_ip = get_public_ip()
@@ -64,7 +73,7 @@ def main():
 
         try:
             ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
-            print(f"Received AI reputation summary: {ip_reputation_summary}")
+            print(f"Received AI reputation summary: '{ip_reputation_summary}'")
 
             # Add the summary to the combined summaries
             add_to_combined_summaries(ip_reputation_summary)
