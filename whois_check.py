@@ -5,6 +5,7 @@ from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
 from os_utils import get_os_type
 import whois
+from summary_utils import add_to_combined_summaries
 
 # WHOIS servers and their IP addresses
 # The IP addresses are hardcoded here just in case DNS resolving is down,
@@ -210,6 +211,9 @@ if __name__ == "__main__":
     # Print the summary received from service_check_summary.py
     output += f"\nSummary of WHOIS server monitoring: \n---\n{summary_output}\n---\n"
     print(f"{summary_output}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(summary_output)
 
     if not args.silent:
         speak_text("The WHOIS server monitoring report is as follows:")

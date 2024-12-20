@@ -2,6 +2,7 @@ import subprocess
 import sys
 import argparse
 from service_check_summarizer import summarize_service_check_output
+from summary_utils import add_to_combined_summaries
 
 
 def parse_network_quality_output(output):
@@ -73,6 +74,10 @@ def run_network_quality_test(silent):
         try:
             network_quality_ai_summary = summarize_service_check_output(network_quality_report_manual_summary)
             print(f"Received AI network quality summary: {network_quality_ai_summary}")
+
+            # Add the summary to the combined summaries
+            add_to_combined_summaries(network_quality_ai_summary)
+
             if not args.silent:
                 subprocess.run(["say", network_quality_ai_summary])
         except Exception as e:

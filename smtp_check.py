@@ -1,8 +1,8 @@
 import socket
 import argparse
-import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
+from summary_utils import add_to_combined_summaries
 
 # SMTP servers to monitor
 smtp_servers = {
@@ -86,6 +86,10 @@ if __name__ == "__main__":
     smtp_server_checks_summary = summarize_service_check_output(report_on_smtp_servers)
 
     print(f"{smtp_server_checks_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(smtp_server_checks_summary)
+
     if not args.silent:
         speak_text(f"The summary of checking important SMTP servers is as follows:")
         speak_text(f"{smtp_server_checks_summary}")

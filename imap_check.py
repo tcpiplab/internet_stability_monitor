@@ -2,7 +2,7 @@ import argparse
 import socket
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
-import subprocess
+from summary_utils import add_to_combined_summaries
 
 # IMAP servers to monitor
 imap_servers = {
@@ -85,6 +85,9 @@ if __name__ == "__main__":
 
     imap_output_summary = summarize_service_check_output(imap_check_results)
     print(f"{imap_output_summary}")
+
+    # Add the summary to the combined summaries
+    add_to_combined_summaries(imap_output_summary)
 
     if not args.silent:
         speak_text("The IMAP monitoring report is as follows:")

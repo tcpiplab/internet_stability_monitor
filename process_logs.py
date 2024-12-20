@@ -4,8 +4,10 @@ import requests
 import json
 from datetime import datetime
 import report_source_location
-import subprocess
 from tts_utils import speak_text
+import argparse
+from service_check_summarizer import summarize_service_check_output
+
 
 # Ensure the logging directory exists
 os.makedirs("/tmp/internet_stability_monitor_logs", exist_ok=True)
@@ -14,7 +16,7 @@ os.makedirs("/tmp/internet_stability_monitor_logs", exist_ok=True)
 LOG_DIR = "/tmp/internet_stability_monitor_logs"
 
 # Function to find the most recent log file
-def get_latest_log_file(log_dir):
+def get_latest_log_file(args, log_dir):
     list_of_files = glob.glob(os.path.join(log_dir, "internet_stability_log_*"))
     if not list_of_files:
         return None
@@ -26,10 +28,12 @@ def get_latest_log_file(log_dir):
     if  os.path.getsize(max(list_of_files, key=os.path.getctime)) == 0:
 
         print("Latest log file is empty, deleting and returning None.")
-        speak_text("Latest log file is empty, deleting and returning None.")
+        if not args.silent:
+            speak_text("Latest log file is empty, deleting and returning None.")
 
         print("Otherwise it would cause me to hallucinate extensively when reading out my summary report.")
-        speak_text("Otherwise it would cause me to hallucinate extensively when reading out my summary report.")
+        if not args.silent:
+            speak_text("Otherwise it would cause me to hallucinate extensively when reading out my summary report.")
 
         os.remove(max(list_of_files, key=os.path.getctime))
 
@@ -114,27 +118,30 @@ def summarize_log(log_content):
                 f"Please check the logs for more information.")
 
 
-def read_summary_with_tts(summary_file, location_string):
+def read_summary_with_tts(args, summary_file, location_string):
 
     #  Read the content of the summary file
     with open(summary_file, "r") as file:
         summary_text = file.read()
 
-    # Use speak_text instead of /usr/bin/say on Windows and Linux
     try:
-        speak_text(f"Hello, this is Alfred Boddington-Smythe reporting live from {location_string}")
-        speak_text(f"{summary_text}")
+        # Read the summary using text-to-speech only if args.silent is not set
+        if not args.silent:
+            speak_text(f"Hello, this is Alfred Boddington-Smythe reporting live from {location_string}")
+            speak_text(f"{summary_text}")
         print(f"Successfully read the content of {summary_file}")
     except Exception as e:
         print(f"An error occurred while running the speak_text command: {e}")
 
 
-
-
 # Main function to process the log file
 def main():
+    parser = argparse.ArgumentParser(description="Process logs and summaries.")
+    parser.add_argument('--silent', action='store_true', help="Run without voice announcements")
+    args = parser.parse_args()
+
     # Get the latest log file
-    latest_log_file = get_latest_log_file(LOG_DIR)
+    latest_log_file = get_latest_log_file(args, LOG_DIR)
     if not latest_log_file:
         print("No log file found.")
         return
@@ -143,12 +150,24 @@ def main():
     with open(latest_log_file, "r") as file:
         log_content = file.read()
 
-    # Get the summary using Ollama
+    # Get the log summary using Ollama
     try:
         summary = summarize_log(log_content)
     except Exception as e:
-        print(f"Failed to get summary: {e}")
+        print(f"Failed to get summary of logs. The error was: {e}")
         return
+
+    # Get the summary of summaries using Ollama
+    try:
+        # First, open and read the contents of the combined summaries file into a string variable
+        with open("/tmp/internet_stability_monitor_logs/combined_summaries.txt", "r") as file:
+            combined_summaries = file.read()
+
+        summary_of_summaries = summarize_log(combined_summaries)
+    except Exception as e:
+        print(f"Failed to get summary of summaries. The error was: {e}")
+        return
+
 
     # Save the summary to a file
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -160,8 +179,8 @@ def main():
 
     location_string = report_source_location.main()
 
-    read_summary_with_tts(summary_file, location_string)
-
+    # read_summary_with_tts(args, summary_file, location_string)
+    speak_text(f"{summary_of_summaries}")
 
 if __name__ == "__main__":
     main()
