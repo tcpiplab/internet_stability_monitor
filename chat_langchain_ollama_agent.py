@@ -5,8 +5,16 @@ from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
 from report_source_location import get_public_ip, get_isp_and_location
 import socket
+import check_ollama_status
+
 
 # Define the tools. They will work better if they have good docstrings.
+@tool
+def check_ollama():
+    """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
+    return check_ollama_status.main()
+
+
 @tool
 def get_os():
     """Use this to get os information.
@@ -81,11 +89,11 @@ def check_layer_three_network():
 model = ChatOllama(
     model="llama3.1",
     temperature=0,
-).bind_tools([get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location])
+).bind_tools([check_ollama, get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location])
 
 
 
-tools = [get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location]
+tools = [check_ollama, get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location]
 
 
 # Define the graph
@@ -109,8 +117,15 @@ def print_stream(stream):
 if __name__ == "__main__":
 
     while True:
-        user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
+        # user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
 
-        inputs = {"messages": [("user", f"{user_input}")]}
+        if not check_ollama_status.is_ollama_process_running():
+            print("Ollama process is not running. Please start the Ollama service.")
+            check_ollama_status.find_ollama_executable()
+            break
+        else:
+            user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
 
-        print_stream(graph.stream(inputs, stream_mode="values"))
+            inputs = {"messages": [("user", f"{user_input}")]}
+
+            print_stream(graph.stream(inputs, stream_mode="values"))
