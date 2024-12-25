@@ -3,7 +3,7 @@ from typing import Literal
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
-from report_source_location import get_public_ip
+from report_source_location import get_public_ip, get_isp_and_location
 
 # First we initialize the model we want to use.
 # model = ChatOllama(model="llama3.1", temperature=0)
@@ -41,14 +41,25 @@ def get_external_ip():
     return our_external_ip
 
 
+@tool
+def get_isp_location():
+    """Use this to get our external ISP location data based on our external IP address.
+
+    Returns: str: JSON formatted ISP location data
+    """
+    our_external_ip = get_public_ip()
+    our_isp_json = get_isp_and_location(our_external_ip)
+
+    return our_isp_json
+
 model = ChatOllama(
     model="llama3.1",
     temperature=0,
-).bind_tools([get_weather, get_os, get_external_ip])
+).bind_tools([get_weather, get_os, get_external_ip, get_isp_location])
 
 
 
-tools = [get_weather, get_os, get_external_ip]
+tools = [get_weather, get_os, get_external_ip, get_isp_location]
 
 
 # Define the graph
@@ -72,5 +83,5 @@ def print_stream(stream):
 # inputs = {"messages": [("user", "who built you?")]}
 # print_stream(graph.stream(inputs, stream_mode="values"))
 
-inputs = {"messages": [("user", "What OS are we running on and also, what is our public IP address?")]}
+inputs = {"messages": [("user", "What OS are we running on and also, what is our public IP address, and what is our ISP or location?")]}
 print_stream(graph.stream(inputs, stream_mode="values"))
