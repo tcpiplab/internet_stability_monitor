@@ -4,31 +4,29 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
 from report_source_location import get_public_ip, get_isp_and_location
+import socket
 
-# First we initialize the model we want to use.
-# model = ChatOllama(model="llama3.1", temperature=0)
-
-
-
-# For this tutorial we will use custom tool that returns pre-defined values for weather in two cities (NYC & SF)
-
-
-
-
-@tool
-def get_weather(city: Literal["nyc", "sf"]):
-    """Use this to get weather information."""
-    if city == "nyc":
-        return "It might be cloudy in nyc"
-    elif city == "sf":
-        return "It's always sunny in sf"
-    else:
-        raise AssertionError("Unknown city")
-
+# Define the tools. They will work better if they have good docstrings.
 @tool
 def get_os():
-    """Use this to get os information."""
+    """Use this to get os information.
+
+    Returns: str: the os type
+    """
     return get_os_type()
+
+
+@tool
+def get_local_ip():
+    """Use this to get our local IP address that we're using for the local LAN, Ethernet, or WiFi network.
+
+    Returns: str: this computer's local ip address
+    """
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+
 
 @tool
 def get_external_ip():
@@ -45,21 +43,23 @@ def get_external_ip():
 def get_isp_location():
     """Use this to get our external ISP location data based on our external IP address.
 
-    Returns: str: JSON formatted ISP location data
+    Returns: str: JSON formatted ISP name and location data
     """
     our_external_ip = get_public_ip()
     our_isp_json = get_isp_and_location(our_external_ip)
 
     return our_isp_json
 
+
+# Initialize the model with the tools
 model = ChatOllama(
     model="llama3.1",
     temperature=0,
-).bind_tools([get_weather, get_os, get_external_ip, get_isp_location])
+).bind_tools([get_os, get_local_ip, get_external_ip, get_isp_location])
 
 
 
-tools = [get_weather, get_os, get_external_ip, get_isp_location]
+tools = [get_os, get_local_ip, get_external_ip, get_isp_location]
 
 
 # Define the graph
@@ -76,12 +76,15 @@ def print_stream(stream):
         else:
             message.pretty_print()
 
-# inputs = {"messages": [("user", "what is the weather in paris?")]}
+
+# inputs = {"messages": [("user", "What OS are we running on and also, what is our public IP address, and what is our ISP or location?")]}
 # print_stream(graph.stream(inputs, stream_mode="values"))
 
+if __name__ == "__main__":
 
-# inputs = {"messages": [("user", "who built you?")]}
-# print_stream(graph.stream(inputs, stream_mode="values"))
+    while True:
+        user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
 
-inputs = {"messages": [("user", "What OS are we running on and also, what is our public IP address, and what is our ISP or location?")]}
-print_stream(graph.stream(inputs, stream_mode="values"))
+        inputs = {"messages": [("user", f"{user_input}")]}
+
+        print_stream(graph.stream(inputs, stream_mode="values"))
