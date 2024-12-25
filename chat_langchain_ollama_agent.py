@@ -51,15 +51,41 @@ def get_isp_location():
     return our_isp_json
 
 
+@tool
+def check_internet_connection():
+    """Use this to check if we have a working internet broadband connection, including basic DNS lookup of www.google.com.
+
+    Returns: str: "connected" if we have an internet connection, "disconnected" if we don't
+    """
+    try:
+        socket.create_connection(("www.google.com", 80))
+        return "connected"
+    except OSError:
+        return "disconnected"
+
+
+@tool
+def check_layer_three_network():
+    """Use this to check if we have a working layer 3 internet broadband connection and can reach 8.8.8.8 on port 53.
+
+    Returns: str: "connected at layer 3" if we have an internet connection, "disconnected at layer 3" if we don't
+    """
+    try:
+        socket.create_connection(("8.8.8.8", 53))
+        return "connected at layer 3"
+    except OSError:
+        return "disconnected at layer 3"
+
+
 # Initialize the model with the tools
 model = ChatOllama(
     model="llama3.1",
     temperature=0,
-).bind_tools([get_os, get_local_ip, get_external_ip, get_isp_location])
+).bind_tools([get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location])
 
 
 
-tools = [get_os, get_local_ip, get_external_ip, get_isp_location]
+tools = [get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location]
 
 
 # Define the graph
