@@ -8,6 +8,7 @@ import socket
 import check_ollama_status
 from resolver_check import monitor_dns_resolvers
 from dns_check import check_dns_root_servers, dns_root_servers
+from check_layer_two_network import report_link_status_and_type
 
 
 # Define the tools. They will work better if they have good docstrings.
@@ -107,6 +108,19 @@ def check_dns_root_servers_reachability():
     return check_dns_root_servers(dns_root_servers)
 
 
+@tool
+def check_local_layer_two_network():
+    """Use this to check the local LAN OSI Layer 2 network link type, speed, and status.
+        For example, it will print the LAN network interfaces that are up,
+        and if they are up and have a speed greater than 0 Mbps, it will also print the link type and speed.
+        It will also try to guess if the network interface is Wi-Fi, Ethernet, Loopback, or Unknown.
+
+    Returns: str: for interfaces that are up, the link name, type guess, and speed
+    """
+
+    return report_link_status_and_type()
+
+
 # Define the tools
 tools = [check_ollama,
          get_os,
@@ -116,7 +130,8 @@ tools = [check_ollama,
          get_external_ip,
          get_isp_location,
          check_dns_resolvers,
-         check_dns_root_servers_reachability]
+         check_dns_root_servers_reachability,
+         check_local_layer_two_network]
 
 # Initialize the model with the tools
 model = ChatOllama(
