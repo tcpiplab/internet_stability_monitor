@@ -21,6 +21,17 @@ dns_resolvers = {
     "Comodo Secure DNS - Secondary": "8.20.247.20"
 }
 
+# Function to identify the local default DNS resolver IP address
+def get_local_default_dns_resolver():
+    """Get the IP address of the local default DNS resolver.
+    Returns: str: The IP address of the local default DNS resolver
+    """
+    # Create a resolver object instance
+    resolver = dns.resolver.Resolver()
+
+    # Get the IP address of the first nameserver in the resolver configuration
+    return resolver.nameservers[0]
+
 
 # Function to monitor DNS resolvers
 def monitor_dns_resolvers():
@@ -30,6 +41,11 @@ def monitor_dns_resolvers():
     results +=  f"Starting DNS Resolver monitoring report at: {datetime.now()}\n"
     results += "This will check the reachability of several of the most popular DNS resolvers.\n"
 
+    # Append the local default DNS resolver IP address to the list of resolvers
+    local_default_resolver_ip = get_local_default_dns_resolver()
+    dns_resolvers["Local Default DNS Resolver"] = local_default_resolver_ip
+
+    # Iterate through the list of DNS resolvers and check their reachability
     for resolver_name, resolver_ip in dns_resolvers.items():
         retry_attempts = 3
         for attempt in range(retry_attempts):

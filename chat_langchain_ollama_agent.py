@@ -6,6 +6,7 @@ from os_utils import get_os_type
 from report_source_location import get_public_ip, get_isp_and_location
 import socket
 import check_ollama_status
+from resolver_check import monitor_dns_resolvers
 
 
 # Define the tools. They will work better if they have good docstrings.
@@ -85,21 +86,33 @@ def check_layer_three_network():
         return "disconnected at layer 3"
 
 
+@tool
+def check_dns_resolvers():
+    """Use this to check the reachability of several of the most popular DNS resolvers.
+
+    Returns: str: the DNS resolver monitoring report
+    """
+    return monitor_dns_resolvers()
+
+
+# Define the tools
+tools = [check_ollama,
+         get_os,
+         get_local_ip,
+         check_internet_connection,
+         check_layer_three_network,
+         get_external_ip,
+         get_isp_location,
+         check_dns_resolvers]
+
 # Initialize the model with the tools
 model = ChatOllama(
     model="llama3.1",
     temperature=0,
-).bind_tools([check_ollama, get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location])
-
-
-
-tools = [check_ollama, get_os, get_local_ip, check_internet_connection, check_layer_three_network, get_external_ip, get_isp_location]
-
+).bind_tools(tools)
 
 # Define the graph
 graph = create_react_agent(model, tools=tools)
-
-# display(Image(graph.get_graph().draw_mermaid_png()))
 
 
 def print_stream(stream):
@@ -110,9 +123,6 @@ def print_stream(stream):
         else:
             message.pretty_print()
 
-
-# inputs = {"messages": [("user", "What OS are we running on and also, what is our public IP address, and what is our ISP or location?")]}
-# print_stream(graph.stream(inputs, stream_mode="values"))
 
 if __name__ == "__main__":
 
