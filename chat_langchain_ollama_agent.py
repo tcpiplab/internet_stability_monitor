@@ -7,6 +7,7 @@ from report_source_location import get_public_ip, get_isp_and_location
 import socket
 import check_ollama_status
 from resolver_check import monitor_dns_resolvers
+from dns_check import check_dns_root_servers, dns_root_servers
 
 
 # Define the tools. They will work better if they have good docstrings.
@@ -95,6 +96,17 @@ def check_dns_resolvers():
     return monitor_dns_resolvers()
 
 
+@tool
+def check_dns_root_servers_reachability():
+    """Use this to check the reachability of the DNS Root Servers.
+
+    Returns: str: the DNS root server monitoring report
+    """
+
+    # The mandatory argument dns_root_servers is defined in dns_check.py
+    return check_dns_root_servers(dns_root_servers)
+
+
 # Define the tools
 tools = [check_ollama,
          get_os,
@@ -103,7 +115,8 @@ tools = [check_ollama,
          check_layer_three_network,
          get_external_ip,
          get_isp_location,
-         check_dns_resolvers]
+         check_dns_resolvers,
+         check_dns_root_servers_reachability]
 
 # Initialize the model with the tools
 model = ChatOllama(
