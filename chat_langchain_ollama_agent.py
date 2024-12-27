@@ -1,3 +1,5 @@
+import datetime
+import readline  # Import readline for input history and completion
 from langchain_ollama import ChatOllama
 from typing import Literal
 from langchain_core.tools import tool
@@ -14,6 +16,9 @@ from colorama import init, Fore, Style
 # Initialize the colorama module with autoreset=True
 init(autoreset=True)
 
+# Set up readline to store input history
+readline.parse_and_bind("tab: complete")
+readline.parse_and_bind("set editing-mode emacs")
 
 # Define the tool functions. They will work better if they have good docstrings.
 @tool
@@ -134,6 +139,16 @@ def help_menu_and_list_tools():
     return "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description}" for tool_object in tools])
 
 
+@tool
+def get_local_date_time_and_timezone():
+    """Use this to get the local date, time, and timezone.
+
+    Returns: str: the local date, time, and timezone
+    """
+
+    return datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+
+
 # Define the tools
 tools = [check_ollama,
          get_os,
@@ -145,7 +160,8 @@ tools = [check_ollama,
          check_dns_resolvers,
          check_dns_root_servers_reachability,
          check_local_layer_two_network,
-         help_menu_and_list_tools]
+         help_menu_and_list_tools,
+         get_local_date_time_and_timezone]
 
 
 # Initialize the model with the tools
@@ -176,8 +192,11 @@ if __name__ == "__main__":
             check_ollama_status.find_ollama_executable()
             break
         else:
-            user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
-
-            inputs = {"messages": [("user", f"{user_input}")]}
-
-            print_stream(graph.stream(inputs, stream_mode="values"))
+            try:
+                user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
+                readline.add_history(user_input)  # Add user input to history
+                inputs = {"messages": [("user", f"{user_input}")]}
+                print_stream(graph.stream(inputs, stream_mode="values"))
+            except EOFError:
+                print("\nExiting...")
+                break
