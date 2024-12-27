@@ -170,10 +170,9 @@ def print_stream(stream):
 if __name__ == "__main__":
 
     while True:
-        # user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
 
         if not check_ollama_status.is_ollama_process_running():
-            print("Ollama process is not running. Please start the Ollama service.")
+            print(f"{Fore.RED}Ollama process is not running. Please start the Ollama service.{Style.RESET_ALL}")
             check_ollama_status.find_ollama_executable()
             break
         else:

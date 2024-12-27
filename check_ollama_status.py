@@ -3,19 +3,42 @@ import requests
 import psutil
 import shutil
 import os
+from colorama import init, Fore, Style
+
+# Initialize the colorama module with autoreset=True
+init(autoreset=True)
 
 
 def is_ollama_api_reachable():
+    """
+    This function will check if the Ollama API is reachable on your system.
+
+    Inputs: None
+
+    Returns: str: HTTP status code if the Ollama API is reachable, False if it is not.
+    """
+
     try:
+
         response = requests.get(
-            "http://localhost:11434/api/generate")  # Adjust the endpoint according to the actual status endpoint
+            "http://localhost:11434/api/generate")  # Adjust the endpoint according to the actual Ollama endpoint
+
         return response.status_code
+
     except requests.ConnectionError as e:
+
         print(f"Connection error: {e}")
+
         return False
 
 
 def is_ollama_process_running():
+    """This function will check if the Ollama process is running on your system.
+
+    Inputs: None
+
+    Returns: bool: True if the Ollama process is running, False if it is not.
+    """
     for proc in psutil.process_iter(attrs=['pid', 'name']):
         if "ollama" in proc.info['name']:
             return True
@@ -23,6 +46,13 @@ def is_ollama_process_running():
 
 
 def find_ollama_executable():
+    """This function will attempt to find the path to the ollama executable on your system, regardless of OS or CPU type.
+
+    Inputs: None
+
+    Returns: bool: False if the ollama executable is not found, True if it is found.
+    """
+
     ollama_path = shutil.which("ollama")
     # This will output the exact path to the ollama executable currently in use.
     # If it returns no output, the ollama command may not be installed properly or isn’t in your PATH.
@@ -49,29 +79,29 @@ def find_ollama_executable():
             break
 
     if ollama_path is not None:
-        print("To manually start the Ollama service, run the following command:")
-        print(f"{ollama_path} serve")
+        print(f"{Fore.RED}To manually start the Ollama service, run the following command in a separate terminal, then return here and try again:\n{Style.RESET_ALL}")
+        print(f"\t{Fore.GREEN}{ollama_path} serve\n{Style.RESET_ALL}")
         return False
 
     elif ollama_path is None:
-        print("Ollama executable not found. Please ensure it is installed and in your PATH.")
+        print(f"{Fore.RED}Ollama executable not found. Please ensure it is installed and in your {Style.BRIGHT}PATH{Style.NORMAL}.{Style.RESET_ALL}")
         return False
 
 
 def main():
     if not is_ollama_api_reachable():
-        print("The local Ollama API is not reachable.")
+        print(f"{Fore.RED}The local Ollama API is not reachable.{Style.RESET_ALL}")
 
         if not is_ollama_process_running():
-            print("The local Ollama process is not running.")
+            print(f"{Fore.RED}The local Ollama process is not running.{Style.RESET_ALL}")
             find_ollama_executable()
             return False
 
         else:
-            print("The local Ollama process is already running. But you may need to check its configuration.")
+            print(f"{Fore.RED}The local Ollama process is already running. But you may need to check its configuration.{Style.RESET_ALL}")
             return False
     else:
-        print("The local Ollama API is reachable.")
+        print(f"{Fore.GREEN}The local Ollama API is reachable.{Style.RESET_ALL}")
         return True
 
 
