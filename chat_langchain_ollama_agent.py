@@ -9,9 +9,13 @@ import check_ollama_status
 from resolver_check import monitor_dns_resolvers
 from dns_check import check_dns_root_servers, dns_root_servers
 from check_layer_two_network import report_link_status_and_type
+from colorama import init, Fore, Style
+
+# Initialize the colorama module with autoreset=True
+init(autoreset=True)
 
 
-# Define the tools. They will work better if they have good docstrings.
+# Define the tool functions. They will work better if they have good docstrings.
 @tool
 def check_ollama():
     """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
@@ -121,6 +125,15 @@ def check_local_layer_two_network():
     return report_link_status_and_type()
 
 
+@tool
+def help_menu_and_list_tools():
+    """Use this when the user inputs 'help' to guide them with a list the available tools and their descriptions.
+
+    Returns: str: a list of available tools and their descriptions
+    """
+    return "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description}" for tool_object in tools])
+
+
 # Define the tools
 tools = [check_ollama,
          get_os,
@@ -131,7 +144,9 @@ tools = [check_ollama,
          get_isp_location,
          check_dns_resolvers,
          check_dns_root_servers_reachability,
-         check_local_layer_two_network]
+         check_local_layer_two_network,
+         help_menu_and_list_tools]
+
 
 # Initialize the model with the tools
 model = ChatOllama(
