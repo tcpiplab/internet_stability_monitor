@@ -11,6 +11,7 @@ import check_ollama_status
 from resolver_check import monitor_dns_resolvers
 from dns_check import check_dns_root_servers, dns_root_servers
 from check_layer_two_network import report_link_status_and_type
+import subprocess
 from colorama import init, Fore, Style
 
 # Initialize the colorama module with autoreset=True
@@ -22,6 +23,31 @@ readline.parse_and_bind("set editing-mode emacs")
 
 # Define the tool functions. They will work better if they have good docstrings.
 @tool
+def ping_target(target: str):
+    """Use this to ping an IP address or hostname to determine the network latency.
+
+    Args:
+        target (str): The IP address or hostname to ping.
+
+    Returns: str: The average latency in milliseconds, or an error message if the ping fails.
+    """
+    try:
+        # Run the ping command
+        result = subprocess.run(
+            ["ping", "-c", "4", target],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        # Extract the average latency from the ping output
+        for line in result.stdout.splitlines():
+            if "avg" in line:
+                return line.split("/")[4] + " ms"
+        return "Ping completed, but average latency could not be determined."
+    except subprocess.CalledProcessError as e:
+        return f"Ping failed: {e}"
+    except Exception as e:
+        return f"An error occurred: {e}"
 def check_ollama():
     """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
     return check_ollama_status.main()
@@ -170,7 +196,8 @@ tools = [check_ollama,
          check_dns_root_servers_reachability,
          check_local_layer_two_network,
          help_menu_and_list_tools,
-         get_local_date_time_and_timezone]
+         get_local_date_time_and_timezone,
+         ping_target]
 
 
 # Initialize the model with the tools
