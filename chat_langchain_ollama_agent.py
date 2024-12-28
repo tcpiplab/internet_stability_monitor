@@ -143,10 +143,19 @@ def help_menu_and_list_tools():
 def get_local_date_time_and_timezone():
     """Use this to get the local date, time, and timezone.
 
-    Returns: str: the local date, time, and timezone
+    Returns: list: the local time in 24-hour format, the local date in the format YYYY-MM-DD, and the local timezone
     """
 
-    return datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+    # Return the local time in 24-hour format
+    local_time = datetime.datetime.now().strftime("%H:%M")
+
+    # Return the local date in the format YYYY-MM-DD
+    local_date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+    # Return the local timezone
+    local_timezone = datetime.datetime.now().astimezone().tzinfo
+
+    return [local_time, local_date, local_timezone]
 
 
 # Define the tools
@@ -166,7 +175,9 @@ tools = [check_ollama,
 
 # Initialize the model with the tools
 model = ChatOllama(
-    model="llama3.1",
+    # model="llama3.1",
+    model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
+    # model="llama3-groq-tool-use",
     temperature=0,
 ).bind_tools(tools)
 
