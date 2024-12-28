@@ -196,6 +196,8 @@ def print_stream(stream):
 
 if __name__ == "__main__":
 
+    conversation_history = []
+
     while True:
 
         if not check_ollama_status.is_ollama_process_running():
@@ -206,8 +208,15 @@ if __name__ == "__main__":
             try:
                 user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
                 readline.add_history(user_input)  # Add user input to history
-                inputs = {"messages": [("user", f"{user_input}")]}
+                # Append user input to conversation history
+                conversation_history.append(("user", user_input))
+
+                # Prepare inputs with conversation history
+                inputs = {"messages": conversation_history}
                 print_stream(graph.stream(inputs, stream_mode="values"))
+                # Append model's response to conversation history
+                conversation_history.append(("model", message))
+
             except EOFError:
                 print("\nExiting...")
                 break
