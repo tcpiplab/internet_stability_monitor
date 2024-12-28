@@ -213,9 +213,18 @@ if __name__ == "__main__":
 
                 # Prepare inputs with conversation history
                 inputs = {"messages": conversation_history}
-                print_stream(graph.stream(inputs, stream_mode="values"))
+                response_stream = graph.stream(inputs, stream_mode="values")
+                response_message = None
+                for s in response_stream:
+                    response_message = s["messages"][-1]
+                    if isinstance(response_message, tuple):
+                        print(response_message)
+                    else:
+                        response_message.pretty_print()
+                
                 # Append model's response to conversation history
-                conversation_history.append(("model", message))
+                if response_message:
+                    conversation_history.append(("model", response_message))
 
             except EOFError:
                 print("\nExiting...")
