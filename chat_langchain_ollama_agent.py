@@ -224,7 +224,7 @@ if __name__ == "__main__":
                 
                 # Append model's response to conversation history
                 if response_message:
-                    conversation_history.append(("model", response_message))
+                    conversation_history.append(("assistant", response_message))
 
             except EOFError:
                 print("\nExiting...")
