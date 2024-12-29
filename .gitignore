@@ -1387,9 +1387,10 @@
 /.idea/vcs.xml
 /internet_stability_report.aiff
 /pyvenv.cfg
-/ai_check.py
-/ai_check2.py
-/bgp_ripe_ris_check.py
+/Unused_Experiments/ai_check.py
+/Unused_Experiments/ai_check2.py
+/Unused_Experiments/bgp_ripe_ris_check.py
 /venv/
 __pycache__/
 /check_router_external_ip.py
+.aider*
