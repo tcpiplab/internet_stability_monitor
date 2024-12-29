@@ -2,7 +2,7 @@
 
 # Internet Stability Monitor
 
-This project is designed to monitor various aspects of internet stability including DNS checks, NTP synchronization, email alerts, website response, and WHOIS data checks. It is optimized for macOS and is intended to be run manually using the `run_all.py` script.
+This project is designed to monitor various aspects of internet stability including DNS checks, NTP synchronization, email alerts, website response, and WHOIS data checks. It is optimized for macOS and can be run using the `instability.py` script.
 
 ## Modes of Operation
 
