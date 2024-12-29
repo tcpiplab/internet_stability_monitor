@@ -13,13 +13,11 @@ def run_script(script_name, args=None):
         # sys.exit(1)
 
 
-if __name__ == "__main__":
-    silent_mode = '--silent' in sys.argv
-    polite_mode = '--polite' in sys.argv
+def main(silent, polite):
     script_args = []
-    if silent_mode:
+    if silent:
         script_args.append('--silent')
-    if polite_mode:
+    if polite:
         script_args.append('--polite')
 
     # Check if Ollama is running and reachable
@@ -34,3 +32,9 @@ if __name__ == "__main__":
     run_script("process_logs.py", script_args)
 
     print("All scripts completed successfully.")
+
+
+if __name__ == "__main__":
+    silent_mode = '--silent' in sys.argv
+    polite_mode = '--polite' in sys.argv
+    main(silent_mode, polite_mode)
