@@ -4,12 +4,20 @@
 
 This project is designed to monitor various aspects of internet stability including DNS checks, NTP synchronization, email alerts, website response, and WHOIS data checks. It is optimized for macOS and is intended to be run manually using the `run_all.py` script.
 
+## Modes of Operation
+
+The project can be run in several modes:
+
+1. **Run all scripts**: The `run_all.py` script is executed manually to run all checks and generate a report.
+2. **Run an individual script**: Any script can be run individually to verify specific aspects of internet stability.
+3. **Interactive chatbot**: The terminal based chatbot can call individual tools based on the user's requests and discuss results with the user.
+
+
 ## Directory Structure
 
 The project contains the following main files and modules:
 
 - `dns_check.py`: Handles DNS resolution checks.
-- `email_alert.py`: Sends email alerts based on monitoring results.
 - `monitor.py`: Core module to execute and log checks.
 - `ntp_check.py`: Checks NTP synchronization status.
 - `web_check.py`: Verifies website availability and response.
@@ -22,7 +30,6 @@ The project contains the following main files and modules:
 - `cloud_check.py`: Checks the status of various cloud services.
 - `cdn_check.py`: Verifies the status of Content Delivery Networks.
 - `imap_check.py`: Monitors IMAP email server status.
-- `ai_check.py`: Placeholder for AI-based checks.
 
 ## macOS Optimization
 
