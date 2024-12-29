@@ -221,12 +221,10 @@ def print_stream(stream):
             message.pretty_print()
 
 
-if __name__ == "__main__":
-
+def main():
     conversation_history = []
 
     while True:
-
         if not check_ollama_status.is_ollama_process_running():
             print(f"{Fore.RED}Ollama process is not running. Please start the Ollama service.{Style.RESET_ALL}")
             check_ollama_status.find_ollama_executable()
@@ -256,3 +254,7 @@ if __name__ == "__main__":
             except EOFError:
                 print("\nExiting...")
                 break
+
+
+if __name__ == "__main__":
+    main()
