@@ -8,9 +8,10 @@ This project is designed to monitor various aspects of internet stability includ
 
 The project can be run in several modes:
 
-1. **Run all scripts**: The `run_all.py` script is executed manually to run all checks and generate a report.
-2. **Run an individual script**: Any script can be run individually to verify specific aspects of internet stability.
-3. **Interactive chatbot**: The terminal based chatbot can call individual tools based on the user's requests and discuss results with the user.
+1. **Chatbot Mode**: Run the interactive chatbot using the command `python instability.py chatbot`.
+2. **Manual Mode**: Run all scripts manually using the command `python instability.py manual`.
+3. **Test Mode**: Run tests using the command `python instability.py test`.
+4. **Help**: Display help information using the command `python instability.py help`.
 
 
 ## Directory Structure
@@ -49,10 +50,10 @@ The project contains the following main files and modules:
 
 ## Usage
 
-To execute all checks manually, run the `run_all.py` script:
+To execute the tool, use the `instability.py` script with the desired mode:
 
 ```bash
-python run_all.py
+python instability.py <mode>
 ```
 
 This script will call the necessary modules and generate a report based on the results of the checks.
