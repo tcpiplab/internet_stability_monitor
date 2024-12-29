@@ -1,0 +1,52 @@
+import argparse
+import sys
+from chat_langchain_ollama_agent import main as chatbot_main
+from run_all import main as manual_main
+# Assuming you have a test module or function to call for test mode
+
+def run_chatbot_mode(silent, polite):
+    # Call the chatbot functionality
+    chatbot_main()
+
+def run_manual_mode(silent, polite):
+    # Call the manual script execution functionality
+    manual_main(silent, polite)
+
+def run_test_mode(silent, polite):
+    # Placeholder for test mode functionality
+    print("Running in test mode...")
+    # Here you would call the test functionality
+
+def show_help():
+    # Display help information
+    print("Usage: instability.py <mode> [options]")
+    print("Modes:")
+    print("  chatbot  - Run the interactive chatbot")
+    print("  manual   - Run all scripts manually")
+    print("  test     - Run tests")
+    print("  help     - Show this help message")
+    print("Options:")
+    print("  --silent - Run in silent mode")
+    print("  --polite - Run in polite mode")
+
+def main():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('mode', choices=['chatbot', 'manual', 'test', 'help'], help='Mode of operation')
+    parser.add_argument('--silent', action='store_true', help='Run in silent mode')
+    parser.add_argument('--polite', action='store_true', help='Run in polite mode')
+    args = parser.parse_args()
+
+    if args.mode == 'chatbot':
+        run_chatbot_mode(args.silent, args.polite)
+    elif args.mode == 'manual':
+        run_manual_mode(args.silent, args.polite)
+    elif args.mode == 'test':
+        run_test_mode(args.silent, args.polite)
+    elif args.mode == 'help':
+        show_help()
+    else:
+        print("Invalid mode. Use 'help' for usage information.")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
