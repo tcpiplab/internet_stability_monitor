@@ -80,4 +80,10 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ModuleNotFoundError as e:
+        print(f"{Fore.RED}Error: {e}{Fore.RESET}")
+        print("It seems like some required packages are missing.")
+        print("Please activate the correct virtual environment and run the following command:")
+        print("python -m pip install -r requirements.txt")
