@@ -34,6 +34,8 @@ def run_test_mode(silent, polite):
     if not check_python_dependencies():
         print("Please install the missing Python packages.")
         return
+
+    if check_ollama_status():
         print("Ollama is running correctly.")
     else:
         print("Ollama is not running. Please check the status.")
