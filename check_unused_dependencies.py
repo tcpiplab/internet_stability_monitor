@@ -4,7 +4,7 @@ import re
 def get_installed_packages():
     with open('requirements.txt', 'r') as file:
         packages = [line.split('==')[0].split('~')[0].strip() for line in file]
-    return packages
+    return [package.lower() for package in packages]
 
 def find_imports_in_file(file_path):
     with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
@@ -23,7 +23,7 @@ def find_unused_packages():
                 for imp in imports:
                     imported_packages.update(filter(None, imp))
 
-    unused_packages = set(installed_packages) - imported_packages
+    unused_packages = set(installed_packages) - {pkg.lower() for pkg in imported_packages}
     return unused_packages
 
 if __name__ == "__main__":
