@@ -7,7 +7,7 @@ def get_installed_packages():
     return packages
 
 def find_imports_in_file(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
         content = file.read()
     return re.findall(r'^\s*import (\S+)|^\s*from (\S+) import', content, re.MULTILINE)
 
