@@ -3,7 +3,7 @@ import sys
 from chat_langchain_ollama_agent import main as chatbot_main
 from run_all import main as manual_main
 from check_ollama_status import main as check_ollama_status
-# Assuming you have a test module or function to call for test mode
+from os_utils import OS_TYPE
 
 def run_chatbot_mode(silent, polite):
     # Call the chatbot functionality
@@ -15,6 +15,8 @@ def run_manual_mode(silent, polite):
 
 def run_test_mode(silent, polite):
     print("Running in test mode...")
+    print(f"Operating System: {OS_TYPE}")
+    
     if check_ollama_status():
         print("Ollama is running correctly.")
     else:
