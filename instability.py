@@ -3,7 +3,21 @@ import sys
 from chat_langchain_ollama_agent import main as chatbot_main
 from run_all import main as manual_main
 from check_ollama_status import main as check_ollama_status
+import importlib.util
 from os_utils import OS_TYPE
+
+def check_python_dependencies():
+    required_packages = ['requests', 'psutil', 'colorama']
+    missing_packages = []
+
+    for package in required_packages:
+        if importlib.util.find_spec(package) is None:
+            missing_packages.append(package)
+
+    if missing_packages:
+        print(f"Missing Python packages: {', '.join(missing_packages)}")
+        return False
+    return True
 
 def run_chatbot_mode(silent, polite):
     # Call the chatbot functionality
@@ -17,7 +31,9 @@ def run_test_mode(silent, polite):
     print("Running in test mode...")
     print(f"Operating System: {OS_TYPE}")
     
-    if check_ollama_status():
+    if not check_python_dependencies():
+        print("Please install the missing Python packages.")
+        return
         print("Ollama is running correctly.")
     else:
         print("Ollama is not running. Please check the status.")
