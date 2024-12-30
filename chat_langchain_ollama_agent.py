@@ -27,9 +27,6 @@ init(autoreset=True)
 if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
-else:
-    # On Windows, pyreadline3 does not support parse_and_bind
-    readline.set_completer(None)
 
 # Define the tool functions. They will work better if they have good docstrings.
 @tool
