@@ -2,15 +2,16 @@
 
 # Internet Stability Monitor
 
-This project is designed to monitor various aspects of internet stability including DNS checks, NTP synchronization, email alerts, website response, and WHOIS data checks. It is optimized for macOS and is intended to be run manually using the `run_all.py` script.
+This project is designed to monitor various aspects of internet stability including DNS checks, NTP synchronization, email alerts, website response, and WHOIS data checks. It is optimized for macOS and can be run using the `instability.py` script.
 
 ## Modes of Operation
 
 The project can be run in several modes:
 
-1. **Run all scripts**: The `run_all.py` script is executed manually to run all checks and generate a report.
-2. **Run an individual script**: Any script can be run individually to verify specific aspects of internet stability.
-3. **Interactive chatbot**: The terminal based chatbot can call individual tools based on the user's requests and discuss results with the user.
+1. **Chatbot Mode**: Run the interactive chatbot using the command `python instability.py chatbot`.
+2. **Manual Mode**: Run all scripts manually using the command `python instability.py manual`.
+3. **Test Mode**: Run tests using the command `python instability.py test`.
+4. **Help**: Display help information using the command `python instability.py help`.
 
 
 ## Directory Structure
@@ -39,9 +40,16 @@ The project contains the following main files and modules:
 
 ## Installation
 
-1. Ensure you have Python 3.12.7 installed on your macOS system.
+1. Ensure you have Python 3.12.7 installed on your macOS system. Note that Python 3.13.1 may not be compatible with all dependencies.
 2. Clone the repository to your local machine.
-3. Install the required packages using pip:
+3. Create a virtual environment and activate it:
+
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+4. Install the required packages using pip:
 
     ```bash
     pip install -r requirements.txt
@@ -49,10 +57,10 @@ The project contains the following main files and modules:
 
 ## Usage
 
-To execute all checks manually, run the `run_all.py` script:
+To execute the tool, use the `instability.py` script with the desired mode:
 
 ```bash
-python run_all.py
+python instability.py <mode>
 ```
 
 This script will call the necessary modules and generate a report based on the results of the checks.
