@@ -20,7 +20,8 @@ def check_python_dependencies():
                 missing_packages.append(package)
 
     if missing_packages:
-        print(f"Missing Python packages: {', '.join(missing_packages)}")
+        print(f"Missing Python packages: {', '.join(missing_packages)}. Please run the following command to install them:")
+        print("python -m pip install -r requirements.txt")
         return False
     return True
 
