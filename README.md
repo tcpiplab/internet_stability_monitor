@@ -42,7 +42,14 @@ The project contains the following main files and modules:
 
 1. Ensure you have Python 3.12.7 installed on your macOS system. Note that Python 3.13.1 may not be compatible with all dependencies.
 2. Clone the repository to your local machine.
-3. Install the required packages using pip:
+3. Create a virtual environment and activate it:
+
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+4. Install the required packages using pip:
 
     ```bash
     pip install -r requirements.txt
