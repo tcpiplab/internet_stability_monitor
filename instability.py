@@ -18,7 +18,7 @@ def check_python_dependencies():
             package = line.split('==')[0].split('~')[0].strip()
             # Map known package names to their import equivalents
             package_map = {
-                'langchain_ollama': 'langchain-ollama',
+                'langchain-ollama': 'langchain_ollama',
                 'dnspython': 'dns',
                 'python-whois': 'whois',
             }
