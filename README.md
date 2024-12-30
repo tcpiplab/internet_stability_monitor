@@ -40,7 +40,7 @@ The project contains the following main files and modules:
 
 ## Installation
 
-1. Ensure you have Python 3.12.7 installed on your macOS system.
+1. Ensure you have Python 3.12.7 installed on your macOS system. Note that Python 3.13.1 may not be compatible with all dependencies.
 2. Clone the repository to your local machine.
 3. Install the required packages using pip:
 
