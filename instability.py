@@ -44,7 +44,8 @@ def run_test_mode(silent, polite):
             print(f"{Fore.RED}Ollama is not running. Please check the status.{Fore.RESET}")
     except ModuleNotFoundError as e:
         print(f"{Fore.RED}Error: {e}{Fore.RESET}")
-        print("Please run the following command to install the required packages:")
+        print("It seems like some required packages are missing.")
+        print("Please activate the correct virtual environment and run the following command:")
         print("python -m pip install -r requirements.txt")
 
 def show_help():
