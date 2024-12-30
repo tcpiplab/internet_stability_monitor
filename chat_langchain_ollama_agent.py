@@ -239,7 +239,8 @@ def main():
         else:
             try:
                 user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
-                readline.add_history(user_input)  # Add user input to history
+                if hasattr(readline, 'add_history'):
+                    readline.add_history(user_input)  # Add user input to history
                 # Append user input to conversation history
                 conversation_history.append(("user", user_input))
 
