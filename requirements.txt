@@ -15,4 +15,4 @@ transformers~=4.47.1
 langgraph~=0.2.60
 langchain-openai~=0.2.14
 ipython~=8.12.3
-langchain_ollama
+langchain-ollama
