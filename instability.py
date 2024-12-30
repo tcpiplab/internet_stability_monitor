@@ -37,14 +37,15 @@ def run_test_mode(silent, polite):
     print(f"{Fore.YELLOW}Running in test mode...{Fore.RESET}")
     print(f"{Fore.YELLOW}Operating System: {OS_TYPE}{Fore.RESET}")
     
-    if not check_python_dependencies():
-        print(f"{Fore.RED}Please install the missing Python packages.{Fore.RESET}")
-        return
-
-    if check_ollama_status():
-        print(f"{Fore.GREEN}Ollama is running correctly.{Fore.RESET}")
-    else:
-        print(f"{Fore.RED}Ollama is not running. Please check the status.{Fore.RESET}")
+    try:
+        if check_ollama_status():
+            print(f"{Fore.GREEN}Ollama is running correctly.{Fore.RESET}")
+        else:
+            print(f"{Fore.RED}Ollama is not running. Please check the status.{Fore.RESET}")
+    except ModuleNotFoundError as e:
+        print(f"{Fore.RED}Error: {e}{Fore.RESET}")
+        print("Please run the following command to install the required packages:")
+        print("python -m pip install -r requirements.txt")
 
 def show_help():
     # Display help information
