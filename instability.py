@@ -15,7 +15,7 @@ def check_python_dependencies():
 
     with open('requirements.txt', 'r') as file:
         for line in file:
-            package = line.split('==')[0].strip()
+            package = line.split('==')[0].split('~')[0].strip()
             if importlib.util.find_spec(package) is None:
                 missing_packages.append(package)
 
