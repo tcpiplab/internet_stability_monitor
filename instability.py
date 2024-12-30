@@ -4,7 +4,11 @@ from chat_langchain_ollama_agent import main as chatbot_main
 from run_all import main as manual_main
 from check_ollama_status import main as check_ollama_status
 import importlib.util
+from colorama import init, Fore
 from os_utils import OS_TYPE
+
+# Initialize colorama
+init(autoreset=True)
 
 def check_python_dependencies():
     required_packages = ['requests', 'psutil', 'colorama']
@@ -28,17 +32,17 @@ def run_manual_mode(silent, polite):
     manual_main(silent, polite)
 
 def run_test_mode(silent, polite):
-    print("Running in test mode...")
-    print(f"Operating System: {OS_TYPE}")
+    print(f"{Fore.YELLOW}Running in test mode...{Fore.RESET}")
+    print(f"{Fore.YELLOW}Operating System: {OS_TYPE}{Fore.RESET}")
     
     if not check_python_dependencies():
-        print("Please install the missing Python packages.")
+        print(f"{Fore.RED}Please install the missing Python packages.{Fore.RESET}")
         return
 
     if check_ollama_status():
-        print("Ollama is running correctly.")
+        print(f"{Fore.GREEN}Ollama is running correctly.{Fore.RESET}")
     else:
-        print("Ollama is not running. Please check the status.")
+        print(f"{Fore.RED}Ollama is not running. Please check the status.{Fore.RESET}")
 
 def show_help():
     # Display help information
