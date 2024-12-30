@@ -1,5 +1,11 @@
 import datetime
-import readline  # Import readline for input history and completion
+import platform
+
+# Import readline for input history and completion
+if platform.system() == "Windows":
+    import pyreadline3 as readline
+else:
+    import readline
 from langchain_ollama import ChatOllama
 from typing import Literal
 from langchain_core.tools import tool
