@@ -2,6 +2,7 @@ import argparse
 import sys
 from chat_langchain_ollama_agent import main as chatbot_main
 from run_all import main as manual_main
+from check_ollama_status import main as check_ollama_status
 # Assuming you have a test module or function to call for test mode
 
 def run_chatbot_mode(silent, polite):
@@ -13,9 +14,11 @@ def run_manual_mode(silent, polite):
     manual_main(silent, polite)
 
 def run_test_mode(silent, polite):
-    # Placeholder for test mode functionality
     print("Running in test mode...")
-    # Here you would call the test functionality
+    if check_ollama_status():
+        print("Ollama is running correctly.")
+    else:
+        print("Ollama is not running. Please check the status.")
 
 def show_help():
     # Display help information
