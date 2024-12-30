@@ -52,7 +52,8 @@ def run_test_mode(silent, polite):
     except ModuleNotFoundError as e:
         print(f"{Fore.RED}Error: {e}{Fore.RESET}")
         print("It seems like some required packages are missing.")
-        print("Please activate the correct virtual environment and run the following command:")
+        print("Please ensure you are using a virtual environment and that it is activated.")
+        print("Run the following command to install all required packages:")
         print("python -m pip install -r requirements.txt")
 
 def show_help():
