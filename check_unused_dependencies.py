@@ -4,7 +4,7 @@ import re
 def get_installed_packages():
     with open('requirements.txt', 'r') as file:
         packages = [line.split('==')[0].split('~')[0].strip() for line in file]
-    return [package.lower() for package in packages]
+    return [package.lower().replace('-', '_') for package in packages]
 
 def find_imports_in_file(file_path):
     with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
