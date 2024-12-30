@@ -16,7 +16,14 @@ def check_python_dependencies():
     with open('requirements.txt', 'r') as file:
         for line in file:
             package = line.split('==')[0].split('~')[0].strip()
-            if importlib.util.find_spec(package) is None:
+            # Map known package names to their import equivalents
+            package_map = {
+                'langchain_ollama': 'langchain-ollama',
+                'dnspython': 'dns',
+                'python-whois': 'whois',
+            }
+            import_name = package_map.get(package, package)
+            if importlib.util.find_spec(import_name) is None:
                 missing_packages.append(package)
 
     if missing_packages:
