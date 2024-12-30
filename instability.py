@@ -11,12 +11,13 @@ from os_utils import OS_TYPE
 init(autoreset=True)
 
 def check_python_dependencies():
-    required_packages = ['requests', 'psutil', 'colorama']
     missing_packages = []
 
-    for package in required_packages:
-        if importlib.util.find_spec(package) is None:
-            missing_packages.append(package)
+    with open('requirements.txt', 'r') as file:
+        for line in file:
+            package = line.split('==')[0].strip()
+            if importlib.util.find_spec(package) is None:
+                missing_packages.append(package)
 
     if missing_packages:
         print(f"Missing Python packages: {', '.join(missing_packages)}")
