@@ -1,7 +1,10 @@
 import os
 import re
 
-def normalize_package_name(package_name):
+def get_installed_packages():
+    with open('requirements.txt', 'r') as file:
+        packages = [line.split('==')[0].split('~')[0].strip() for line in file]
+    return [normalize_package_name(package.lower().replace('-', '_')) for package in packages]
     # Map known package names to their import equivalents
     package_map = {
         'dnspython': 'dns',
