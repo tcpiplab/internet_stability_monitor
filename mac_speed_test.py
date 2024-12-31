@@ -139,8 +139,11 @@ def compare_speed_to_telecom(speed_mbps: float) -> str:
     return f"this speed is similar to {closest_speed[1]}"
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Run network quality test.")
     parser.add_argument("--silent", action="store_true", help="Run without audio feedback.")
     args = parser.parse_args()
     run_network_quality_test(args.silent)
+
+if __name__ == "__main__":
+    main()
