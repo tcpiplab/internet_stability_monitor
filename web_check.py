@@ -104,7 +104,7 @@ def check_significant_websites(websites):
 
     return reachable_websites, unreachable_websites
 
-if __name__ == "__main__":
+def main():
     # Parse for the command line argument "--silent"
     # Accept arguments from the command line, such as --silent
     parser = argparse.ArgumentParser(description='Monitor important web servers.')
@@ -156,3 +156,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text( "The summary of checking significant websites is as follows:")
         speak_text(f"{significant_website_checks_summary}")
+
+if __name__ == "__main__":
+    main()
