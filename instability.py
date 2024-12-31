@@ -36,9 +36,15 @@ def run_chatbot_mode(silent, polite):
     # Call the chatbot functionality
     chatbot_main()
 
-def run_manual_mode(silent, polite):
-    # Call the manual script execution functionality
-    manual_main(silent, polite)
+def run_manual_mode(script_name, silent, polite):
+    if script_name == 'all':
+        manual_main(silent, polite)
+    else:
+        print(f"Running script: {script_name}")
+        # Here you would add logic to run the specific script by name
+        # For example, you might have a dictionary mapping script names to functions
+        # scripts = {'script1': script1_function, 'script2': script2_function, ...}
+        # scripts[script_name](silent, polite)
 
 def run_test_mode(silent, polite):
     print(f"{Fore.YELLOW}Running in test mode...{Fore.RESET}")
@@ -71,6 +77,7 @@ def show_help():
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('mode', choices=['chatbot', 'manual', 'test', 'help'], help='Mode of operation')
+    parser.add_argument('script_name', nargs='?', default='all', help='Specify the script to run or "all" to run all scripts')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode')
     parser.add_argument('--polite', action='store_true', help='Run in polite mode')
     args = parser.parse_args()
@@ -78,7 +85,7 @@ def main():
     if args.mode == 'chatbot':
         run_chatbot_mode(args.silent, args.polite)
     elif args.mode == 'manual':
-        run_manual_mode(args.silent, args.polite)
+        run_manual_mode(args.script_name, args.silent, args.polite)
     elif args.mode == 'test':
         run_test_mode(args.silent, args.polite)
     elif args.mode == 'help':
