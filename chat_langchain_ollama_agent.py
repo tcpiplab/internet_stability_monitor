@@ -89,7 +89,7 @@ def get_os():
 def get_local_ip():
     """Use this to get our local IP address that we're using for the local LAN, Ethernet, or WiFi network."""
 
-    Returns: str: this computer's local ip address
+    """Returns: str: this computer's local ip address"""
     """
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
