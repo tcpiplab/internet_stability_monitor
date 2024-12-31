@@ -19,7 +19,7 @@ ca_endpoints = {
     "IdenTrust OCSP": "http://ocsp.identrust.com"
 }
 
-def check_ca_endpoint(name, url):
+def check_ca_endpoint(name, url, args):
     """Perform a GET request to verify if the endpoint is reachable."""
     try:
         # Use GET for Let's Encrypt with a longer timeout and ignoring SSL verification
@@ -78,7 +78,7 @@ def main():
 
     # Check each CA endpoint
     for name, url in ca_endpoints.items():
-        status = check_ca_endpoint(name, url)
+        status = check_ca_endpoint(name, url, args)
         if "reachable" in status:
             reachable_endpoints.append((name, status))
         else:
