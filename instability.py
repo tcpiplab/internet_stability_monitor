@@ -88,7 +88,25 @@ def main():
         if args.script_name:
             run_manual_mode(args.script_name, args.silent, args.polite)
         else:
+            available_scripts = [
+                "check_external_ip",
+                "mac_speed_test",
+                "resolver_check",
+                "whois_check",
+                "dns_check",
+                "ntp_check",
+                "web_check",
+                "cloud_check",
+                "imap_check",
+                "smtp_check",
+                "tls_ca_check",
+                "cdn_check",
+                "ixp_check"
+            ]
             print("Please specify a script or tool name, or use 'all' to run all scripts.")
+            print("Available scripts:")
+            for script in available_scripts:
+                print(f"- {script}")
             sys.exit(1)
     elif args.mode == 'test':
         run_test_mode(args.silent, args.polite)
