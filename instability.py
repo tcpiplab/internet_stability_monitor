@@ -85,7 +85,11 @@ def main():
     if args.mode == 'chatbot':
         run_chatbot_mode(args.silent, args.polite)
     elif args.mode == 'manual':
-        run_manual_mode(args.script_name, args.silent, args.polite)
+        if args.script_name == 'all':
+            run_manual_mode(args.script_name, args.silent, args.polite)
+        else:
+            print("Please specify a script or tool name, or use 'all' to run all scripts.")
+            sys.exit(1)
     elif args.mode == 'test':
         run_test_mode(args.silent, args.polite)
     elif args.mode == 'help':
