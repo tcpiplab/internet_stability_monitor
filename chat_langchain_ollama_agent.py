@@ -13,6 +13,8 @@ from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
 from web_check import main as web_check_main
 from report_source_location import get_public_ip, get_isp_and_location
+from tls_ca_check import main as tls_ca_check_main
+from whois_check import main as whois_check_main
 import socket
 import check_ollama_status
 from resolver_check import monitor_dns_resolvers
@@ -29,8 +31,20 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 @tool
-def check_websites():
-    """Use this to check the reachability of major technology provider websites and selected government websites.
+def check_tls_ca_servers():
+    """Use this to verify the operational status of major TLS certificate authority OCSP servers.
+
+    Returns: str: The TLS CA server reachability report
+    """
+    return tls_ca_check_main(silent=True, polite=False)
+
+@tool
+def check_whois_servers():
+    """Use this to check the reachability of WHOIS servers.
+
+    Returns: str: The WHOIS server reachability report
+    """
+    return whois_check_main(silent=True, polite=False)
 
     Returns: str: The website reachability report
     """
@@ -211,7 +225,9 @@ tools = [check_ollama,
          help_menu_and_list_tools,
          get_local_date_time_and_timezone,
          ping_target,
-         check_websites]
+         check_websites,
+         check_tls_ca_servers,
+         check_whois_servers]
 
 
 # Initialize the model with the tools
