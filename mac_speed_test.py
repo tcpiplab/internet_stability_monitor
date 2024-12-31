@@ -58,7 +58,9 @@ def run_network_quality_test(silent, args):
             text=True
         )
 
-        # Parse the output and generate summary
+        # Print the raw output for debugging
+        print("Raw networkQuality output:")
+        print(process.stdout)
         if process.stdout:
             network_quality_report = parse_network_quality_output(process.stdout)
             network_quality_report_manual_summary = generate_summary_text_manually(network_quality_report)
