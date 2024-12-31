@@ -26,19 +26,18 @@ def parse_network_quality_output(output):
 
 def generate_summary_text_manually(summary):
 
-    uplink_mbps = float(summary['uplink_capacity'].split(' ')[0])
-    downlink_mbps = float(summary['downlink_capacity'].split(' ')[0])
+    uplink_mbps = float(summary.get('uplink_capacity', '0').split(' ')[0])
+    downlink_mbps = float(summary.get('downlink_capacity', '0').split(' ')[0])
 
-    uplink_comparison = compare_speed_to_telecom(uplink_mbps)
-    downlink_comparison = compare_speed_to_telecom(downlink_mbps)
-
+    uplink_comparison = compare_speed_to_telecom(uplink_mbps) if 'uplink_capacity' in summary else "uplink capacity could not be measured"
+    downlink_comparison = compare_speed_to_telecom(downlink_mbps) if 'downlink_capacity' in summary else "downlink capacity could not be measured"
 
     return (
-        f"Your current uplink speed is {summary['uplink_capacity']}, {uplink_comparison}."
-        f"Your downlink speed is {summary['downlink_capacity']}, {downlink_comparison}. "
-        f"Uplink responsiveness is measured at {summary['uplink_responsiveness']}. "
-        f"Downlink responsiveness is {summary['downlink_responsiveness']}. "
-        f"The idle latency of the connection is {summary['idle_latency']}."
+        f"Your current uplink speed is {summary.get('uplink_capacity', 'unknown')}, {uplink_comparison}. "
+        f"Your downlink speed is {summary.get('downlink_capacity', 'unknown')}, {downlink_comparison}. "
+        f"Uplink responsiveness is measured at {summary.get('uplink_responsiveness', 'unknown')}. "
+        f"Downlink responsiveness is {summary.get('downlink_responsiveness', 'unknown')}. "
+        f"The idle latency of the connection is {summary.get('idle_latency', 'unknown')}."
     )
 
 
