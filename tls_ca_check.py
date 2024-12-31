@@ -53,7 +53,7 @@ def check_ca_endpoint(name, url):
                                    f"unreachable. The error was: {e}")
         return f"unreachable: {e}"
 
-if __name__ == "__main__":
+def main():
     # Accept arguments from the command line, such as --silent
     parser = argparse.ArgumentParser(description='Monitor important TLS CA servers.')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
@@ -114,3 +114,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text("The summary of checking TLS CA servers is as follows:")
         speak_text(f"{tls_ca_checks_summary}")
+
+if __name__ == "__main__":
+    main()
