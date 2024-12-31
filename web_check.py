@@ -79,7 +79,7 @@ def check_significant_websites(websites, silent):
 
     # First round of checks
     for url in websites:
-        status, result = check_website(url, silent)
+        status, result = check_website(url)
         if status == "reachable":
             reachable_websites.append((url, result))
         else:
