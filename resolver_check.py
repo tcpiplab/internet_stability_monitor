@@ -88,7 +88,7 @@ def monitor_dns_resolvers():
     return results
 
 
-if __name__ == "__main__":
+def main():
     # Accept arguments from the command line, such as --silent
     parser = argparse.ArgumentParser(description='Monitor DNS resolvers.')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
@@ -110,3 +110,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text("The DNS resolver monitoring report is as follows:")
         speak_text(f"{resolver_output_summary}")
+
+if __name__ == "__main__":
+    main()
