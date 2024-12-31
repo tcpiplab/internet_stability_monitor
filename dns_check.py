@@ -62,7 +62,7 @@ def check_dns_root_servers(servers):
 
     return reachable_servers, unreachable_servers
 
-if __name__ == "__main__":
+def main():
     silent = "--silent" in sys.argv
 
     report = ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
@@ -103,3 +103,6 @@ if __name__ == "__main__":
                        "which are crucial to the functioning of the internet.")
         speak_text(f"{intro_lines}")
         speak_text(f"{summary}")
+
+if __name__ == "__main__":
+    main()
