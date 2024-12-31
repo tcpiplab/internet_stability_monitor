@@ -75,11 +75,8 @@ def check_cloud_status(provider, url, browser):
     except Exception as e:
         return f"unreachable: {str(e)}"
 
-def main():
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Check the status pages of major cloud providers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     intro_statement = (
         "Checking the operational status of the primary cloud providers' status pages, "
