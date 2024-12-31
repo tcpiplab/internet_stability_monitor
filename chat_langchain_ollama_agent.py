@@ -45,10 +45,6 @@ def check_whois_servers():
     Returns: str: The WHOIS server reachability report
     """
     return whois_check_main(silent=True, polite=False)
-
-    Returns: str: The website reachability report
-    """
-    return web_check_main(silent=True, polite=False)
 @tool
 def ping_target(target: str):
     """Use this to ping an IP address or hostname to determine the network latency.
@@ -91,7 +87,7 @@ def get_os():
 
 @tool
 def get_local_ip():
-    """Use this to get our local IP address that we're using for the local LAN, Ethernet, or WiFi network.
+    """Use this to get our local IP address that we're using for the local LAN, Ethernet, or WiFi network."""
 
     Returns: str: this computer's local ip address
     """
