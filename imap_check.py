@@ -29,11 +29,8 @@ def check_imap_server(name, server_info):
         print(f"Failed to connect to {name} at {host}:{port}: {e}")
         return f"unreachable: {e}"
 
-def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--silent", help="Silent mode", action="store_true")
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     # Create a couple of lists to store reachable and unreachable servers
     reachable_servers = []

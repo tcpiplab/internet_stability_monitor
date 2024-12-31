@@ -183,10 +183,8 @@ def check_whois_servers(servers):
     return whois_results
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Monitor WHOIS servers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     output = ""
 

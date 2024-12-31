@@ -53,11 +53,8 @@ def check_ca_endpoint(name, url, args):
                                    f"unreachable. The error was: {e}")
         return f"unreachable: {e}"
 
-def main():
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Monitor important TLS CA servers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     intro_statement = (
         "Verifying the operational status of major TLS certificate authority OCSP servers, "

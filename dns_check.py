@@ -62,8 +62,8 @@ def check_dns_root_servers(servers):
 
     return reachable_servers, unreachable_servers
 
-def main():
-    silent = "--silent" in sys.argv
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     report = ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
               "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "

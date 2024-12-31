@@ -88,11 +88,8 @@ def monitor_dns_resolvers():
     return results
 
 
-def main():
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Monitor DNS resolvers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     print(f"Starting DNS Resolver monitoring at {datetime.now()}\n")
     resolver_check_results = monitor_dns_resolvers()
