@@ -5,6 +5,7 @@ from run_all import main as manual_main
 from check_ollama_status import main as check_ollama_status
 from cdn_check import main as cdn_check_main
 from check_external_ip import main as check_external_ip_main
+from cloud_check import main as cloud_check_main
 from dns_check import main as dns_check_main
 from imap_check import main as imap_check_main
 from ixp_check import main as ixp_check_main
