@@ -77,7 +77,7 @@ def show_help():
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('mode', choices=['chatbot', 'manual', 'test', 'help'], help='Mode of operation')
-    parser.add_argument('script_name', nargs='?', default='all', help='Specify the script to run or "all" to run all scripts')
+    parser.add_argument('script_name', nargs='?', help='Specify the script to run or "all" to run all scripts')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode')
     parser.add_argument('--polite', action='store_true', help='Run in polite mode')
     args = parser.parse_args()
