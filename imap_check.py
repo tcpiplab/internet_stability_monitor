@@ -29,7 +29,7 @@ def check_imap_server(name, server_info):
         print(f"Failed to connect to {name} at {host}:{port}: {e}")
         return f"unreachable: {e}"
 
-if __name__ == "__main__":
+def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--silent", help="Silent mode", action="store_true")
@@ -92,3 +92,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text("The IMAP monitoring report is as follows:")
         speak_text(f"{imap_output_summary}")
+
+if __name__ == "__main__":
+    main()
