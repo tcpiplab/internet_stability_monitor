@@ -73,13 +73,13 @@ def check_website(url):
         return "unreachable", str(e)
 
 
-def check_significant_websites(websites):
+def check_significant_websites(websites, silent):
     reachable_websites = []
     unreachable_websites = []
 
     # First round of checks
     for url in websites:
-        status, result = check_website(url)
+        status, result = check_website(url, silent)
         if status == "reachable":
             reachable_websites.append((url, result))
         else:
@@ -94,7 +94,7 @@ def check_significant_websites(websites):
 
         remaining_unreachable = []
         for url, error in unreachable_websites:
-            status, retry_result = check_website(url)
+            status, retry_result = check_website(url, silent)
             if status == "reachable":
                 reachable_websites.append((url, retry_result))
             else:
@@ -121,7 +121,7 @@ def main():
     if not args.silent:
         speak_text(f"{intro_statement}")
 
-    reachable, unreachable = check_significant_websites(list_of_significant_websites)
+    reachable, unreachable = check_significant_websites(list_of_significant_websites, args.silent)
 
     report_on_significant_websites = ""
 
