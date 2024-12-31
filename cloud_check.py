@@ -75,7 +75,7 @@ def check_cloud_status(provider, url, browser):
     except Exception as e:
         return f"unreachable: {str(e)}"
 
-if __name__ == "__main__":
+def main():
     # Accept arguments from the command line, such as --silent
     parser = argparse.ArgumentParser(description='Check the status pages of major cloud providers.')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
@@ -170,3 +170,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text("The cloud platform monitoring report is as follows:")
         speak_text(f"{cloud_platforms_summary}")
+
+if __name__ == "__main__":
+    main()
