@@ -33,7 +33,7 @@ def check_smtp_server(name, server_info):
             speak_text( f"Failed to connect to {name} server: The error was: {e}")
         return f"unreachable: {e}"
 
-if __name__ == "__main__":
+def main():
     # Accept arguments from the command line, such as --silent
     parser = argparse.ArgumentParser(description='Monitor important SMTP servers.')
     parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
@@ -93,3 +93,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text(f"The summary of checking important SMTP servers is as follows:")
         speak_text(f"{smtp_server_checks_summary}")
+
+if __name__ == "__main__":
+    main()
