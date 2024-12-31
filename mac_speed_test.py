@@ -42,7 +42,7 @@ def generate_summary_text_manually(summary):
     )
 
 
-def run_network_quality_test(silent):
+def run_network_quality_test(silent, args):
     try:
         # Check if running on macOS
         if sys.platform != "darwin":
@@ -143,7 +143,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run network quality test.")
     parser.add_argument("--silent", action="store_true", help="Run without audio feedback.")
     args = parser.parse_args()
-    run_network_quality_test(args.silent)
+    run_network_quality_test(args.silent, args)
 
 if __name__ == "__main__":
     main()
