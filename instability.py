@@ -3,6 +3,18 @@ import sys
 from chat_langchain_ollama_agent import main as chatbot_main
 from run_all import main as manual_main
 from check_ollama_status import main as check_ollama_status
+from cdn_check import main as cdn_check_main
+from check_external_ip import main as check_external_ip_main
+from dns_check import main as dns_check_main
+from imap_check import main as imap_check_main
+from ixp_check import main as ixp_check_main
+from mac_speed_test import main as mac_speed_test_main
+from ntp_check import main as ntp_check_main
+from resolver_check import main as resolver_check_main
+from smtp_check import main as smtp_check_main
+from tls_ca_check import main as tls_ca_check_main
+from web_check import main as web_check_main
+from whois_check import main as whois_check_main
 import importlib.util
 from colorama import init, Fore
 from os_utils import OS_TYPE
@@ -37,14 +49,29 @@ def run_chatbot_mode(silent, polite):
     chatbot_main()
 
 def run_manual_mode(script_name, silent, polite):
+    scripts = {
+        "check_external_ip": check_external_ip_main,
+        "mac_speed_test": mac_speed_test_main,
+        "resolver_check": resolver_check_main,
+        "whois_check": whois_check_main,
+        "dns_check": dns_check_main,
+        "ntp_check": ntp_check_main,
+        "web_check": web_check_main,
+        "cloud_check": cloud_check_main,
+        "imap_check": imap_check_main,
+        "smtp_check": smtp_check_main,
+        "tls_ca_check": tls_ca_check_main,
+        "cdn_check": cdn_check_main,
+        "ixp_check": ixp_check_main
+    }
+    
     if script_name == 'all':
         manual_main(silent, polite)
-    else:
+    elif script_name in scripts:
         print(f"Running script: {script_name}")
-        # Here you would add logic to run the specific script by name
-        # For example, you might have a dictionary mapping script names to functions
-        # scripts = {'script1': script1_function, 'script2': script2_function, ...}
-        # scripts[script_name](silent, polite)
+        scripts[script_name](silent, polite)
+    else:
+        print(f"Script '{script_name}' not found. Please specify a valid script name.")
 
 def run_test_mode(silent, polite):
     print(f"{Fore.YELLOW}Running in test mode...{Fore.RESET}")
