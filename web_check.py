@@ -94,7 +94,7 @@ def check_significant_websites(websites, args):
 
         remaining_unreachable = []
         for url, error in unreachable_websites:
-            status, retry_result = check_website(url, silent)
+            status, retry_result = check_website(url)
             if status == "reachable":
                 reachable_websites.append((url, retry_result))
             else:
