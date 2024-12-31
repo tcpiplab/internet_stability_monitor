@@ -17,7 +17,7 @@ smtp_servers = {
     "Fastmail": ("smtp.fastmail.com", 587)
 }
 
-def check_smtp_server(name, server_info):
+def check_smtp_server(name, server_info, args):
     """Attempt to connect to the SMTP server to verify availability."""
     host, port = server_info
     try:
@@ -57,7 +57,7 @@ def main():
 
     # Check each SMTP server
     for name, server_info in smtp_servers.items():
-        status = check_smtp_server(name, server_info)
+        status = check_smtp_server(name, server_info, args)
         if status == "reachable":
             reachable_servers.append(name)
         else:
