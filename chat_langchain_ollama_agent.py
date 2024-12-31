@@ -11,6 +11,7 @@ from typing import Literal
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
+from web_check import main as web_check_main
 from report_source_location import get_public_ip, get_isp_and_location
 import socket
 import check_ollama_status
@@ -27,8 +28,13 @@ init(autoreset=True)
 if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
+@tool
+def check_websites():
+    """Use this to check the reachability of major technology provider websites and selected government websites.
 
-# Define the tool functions. They will work better if they have good docstrings.
+    Returns: str: The website reachability report
+    """
+    return web_check_main(silent=True, polite=False)
 @tool
 def ping_target(target: str):
     """Use this to ping an IP address or hostname to determine the network latency.
@@ -204,7 +210,8 @@ tools = [check_ollama,
          check_local_layer_two_network,
          help_menu_and_list_tools,
          get_local_date_time_and_timezone,
-         ping_target]
+         ping_target,
+         check_websites]
 
 
 # Initialize the model with the tools
