@@ -73,7 +73,7 @@ def check_website(url):
         return "unreachable", str(e)
 
 
-def check_significant_websites(websites, silent):
+def check_significant_websites(websites, args):
     reachable_websites = []
     unreachable_websites = []
 

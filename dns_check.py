@@ -1,4 +1,5 @@
 import dns.resolver
+import argparse
 import time
 import sys
 import subprocess
