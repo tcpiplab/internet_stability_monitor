@@ -31,21 +31,6 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 @tool
-def check_tls_ca_servers():
-    """Use this to verify the operational status of major TLS certificate authority OCSP servers.
-
-    Returns: str: The TLS CA server reachability report
-    """
-    return tls_ca_check_main(silent=True, polite=False)
-
-@tool
-def check_whois_servers():
-    """Use this to check the reachability of WHOIS servers.
-
-    Returns: str: The WHOIS server reachability report
-    """
-    return whois_check_main(silent=True, polite=False)
-@tool
 def check_cdn_reachability():
     """Use this to check the reachability of several of the largest content delivery networks around the world.
 
