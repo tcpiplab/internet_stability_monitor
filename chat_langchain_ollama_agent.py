@@ -11,7 +11,6 @@ from typing import Literal
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
-from web_check import main as web_check_main
 from report_source_location import get_public_ip, get_isp_and_location
 from cdn_check import main as cdn_check_main
 from tls_ca_check import main as tls_ca_check_main
@@ -230,7 +229,6 @@ tools = [check_ollama,
          help_menu_and_list_tools,
          get_local_date_time_and_timezone,
          ping_target,
-         check_websites,
          check_tls_ca_servers,
          check_whois_servers,
          check_cdn_reachability]
