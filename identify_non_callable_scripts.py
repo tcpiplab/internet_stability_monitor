@@ -24,8 +24,11 @@ with open('chat_langchain_ollama_agent.py', 'r') as file:
 with open('instability.py', 'r') as file:
     for line in file:
         if 'import' in line and 'check' in line:
-            # Extract the script name from the import statement
-            script_name = line.split('import')[1].strip().split(' ')[0] + '.py'
+            # Handle both 'import' and 'from ... import ...' statements
+            if 'from' in line:
+                script_name = line.split('from')[1].strip().split(' ')[0] + '.py'
+            else:
+                script_name = line.split('import')[1].strip().split(' ')[0] + '.py'
             callable_tools.add(script_name)
 
 # Step 3: Compare the lists
