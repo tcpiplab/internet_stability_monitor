@@ -64,7 +64,21 @@ def ping_target(target: str):
         return f"Ping failed: {e}"
     except Exception as e:
         return f"An error occurred: {e}"
-def check_ollama():
+@tool
+def check_whois_servers():
+    """Use this to check the reachability of WHOIS servers.
+
+    Returns: str: The WHOIS server monitoring report
+    """
+    return whois_check_main(silent=True, polite=False)
+
+@tool
+def check_tls_ca_servers():
+    """Use this to check the reachability of TLS CA servers.
+
+    Returns: str: The TLS CA server monitoring report
+    """
+    return tls_ca_check_main(silent=True, polite=False)
     """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
     return check_ollama_status.main()
 
@@ -214,6 +228,8 @@ tools = [check_ollama,
          help_menu_and_list_tools,
          get_local_date_time_and_timezone,
          ping_target,
+         check_tls_ca_servers,
+         check_whois_servers,
          check_tls_ca_servers,
          check_whois_servers,
          check_cdn_reachability]
