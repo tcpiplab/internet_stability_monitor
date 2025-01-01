@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 
 # Step 1: List all Python scripts with "check" in their names
