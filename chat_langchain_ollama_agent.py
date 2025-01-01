@@ -31,6 +31,9 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 @tool
+def check_ollama():
+    """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
+    return check_ollama_status.main()
 def check_cdn_reachability():
     """Use this to check the reachability of several of the largest content delivery networks around the world.
 
