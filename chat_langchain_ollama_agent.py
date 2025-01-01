@@ -13,6 +13,7 @@ from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
 from web_check import main as web_check_main
 from report_source_location import get_public_ip, get_isp_and_location
+from cdn_check import main as cdn_check_main
 from tls_ca_check import main as tls_ca_check_main
 from whois_check import main as whois_check_main
 import socket
@@ -46,13 +47,12 @@ def check_whois_servers():
     """
     return whois_check_main(silent=True, polite=False)
 @tool
-def check_websites():
-    """Use this to check the reachability of major technology provider websites and selected government websites.
+def check_cdn_reachability():
+    """Use this to check the reachability of several of the largest content delivery networks around the world.
 
-    Returns: str: The website reachability report
+    Returns: str: The CDN reachability report
     """
-    report = web_check_main(silent=True, polite=False)
-    return f"Website check completed. Report:\n{report}"
+    return cdn_check_main(silent=True, polite=False)
 
 @tool
 def ping_target(target: str):
@@ -232,7 +232,8 @@ tools = [check_ollama,
          ping_target,
          check_websites,
          check_tls_ca_servers,
-         check_whois_servers]
+         check_whois_servers,
+         check_cdn_reachability]
 
 
 # Initialize the model with the tools
