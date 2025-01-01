@@ -1,8 +1,15 @@
 
-
 # Internet Stability Monitor
 
-This project is designed to monitor various aspects of internet stability including DNS checks, NTP synchronization, email alerts, website response, and WHOIS data checks. It is optimized for macOS and can be run using the `instability.py` script.
+The **Internet Stability Monitor** is a tool designed to assess various aspects of internet stability, including DNS checks, NTP synchronization, and WHOIS data retrieval. It is particularly useful for AI developers interested in network analysis and monitoring.
+
+## Key Features
+
+- **Chatbot Mode**: Utilize an interactive chatbot built with **Ollama**, the **qwen2.5** model, and **LangChain**. This mode runs locally, eliminating the need for cloud-based API tokens, and allows you to query your network and internet infrastructure in real-time.
+
+- **Comprehensive Monitoring**: Perform a wide range of checks to gain insights into your internet's performance and stability.
+
+- **macOS Optimization**: The tool is optimized for macOS, using native commands to ensure accurate results.
 
 ## Modes of Operation
 
