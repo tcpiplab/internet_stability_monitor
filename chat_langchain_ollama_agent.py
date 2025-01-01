@@ -34,6 +34,8 @@ if platform.system() != "Windows":
 def check_ollama():
     """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
     return check_ollama_status.main()
+
+@tool
 def check_cdn_reachability():
     """Use this to check the reachability of several of the largest content delivery networks around the world.
 
@@ -67,6 +69,7 @@ def ping_target(target: str):
         return f"Ping failed: {e}"
     except Exception as e:
         return f"An error occurred: {e}"
+
 @tool
 def check_whois_servers():
     """Use this to check the reachability of WHOIS servers.
@@ -82,9 +85,6 @@ def check_tls_ca_servers():
     Returns: str: The TLS CA server monitoring report
     """
     return tls_ca_check_main(silent=True, polite=False)
-    """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
-    return check_ollama_status.main()
-
 
 @tool
 def get_os():
@@ -94,18 +94,15 @@ def get_os():
     """
     return get_os_type()
 
-
 @tool
 def get_local_ip():
     """Use this to get our local IP address that we're using for the local LAN, Ethernet, or WiFi network.
 
     Returns: str: this computer's local ip address
     """
-
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.connect(("8.8.8.8", 80))
         return s.getsockname()[0]
-
 
 @tool
 def get_external_ip():
@@ -114,9 +111,7 @@ def get_external_ip():
     Returns: str: our external ip address
     """
     our_external_ip = get_public_ip()
-
     return our_external_ip
-
 
 @tool
 def get_isp_location():
@@ -126,9 +121,7 @@ def get_isp_location():
     """
     our_external_ip = get_public_ip()
     our_isp_json = get_isp_and_location(our_external_ip)
-
     return our_isp_json
-
 
 @tool
 def check_internet_connection():
@@ -142,7 +135,6 @@ def check_internet_connection():
     except OSError:
         return "disconnected"
 
-
 @tool
 def check_layer_three_network():
     """Use this to check if we have a working layer 3 internet broadband connection and can reach 8.8.8.8 on port 53.
@@ -155,7 +147,6 @@ def check_layer_three_network():
     except OSError:
         return "disconnected at layer 3"
 
-
 @tool
 def check_dns_resolvers():
     """Use this to check the reachability of several of the most popular DNS resolvers.
@@ -164,17 +155,14 @@ def check_dns_resolvers():
     """
     return monitor_dns_resolvers()
 
-
 @tool
 def check_dns_root_servers_reachability():
     """Use this to check the reachability of the DNS Root Servers.
 
     Returns: str: the DNS root server monitoring report
     """
-
     # The mandatory argument dns_root_servers is defined in dns_check.py
     return check_dns_root_servers(dns_root_servers)
-
 
 @tool
 def check_local_layer_two_network():
@@ -185,9 +173,7 @@ def check_local_layer_two_network():
 
     Returns: str: for interfaces that are up, the link name, type guess, and speed
     """
-
     return report_link_status_and_type()
-
 
 @tool
 def help_menu_and_list_tools():
@@ -197,14 +183,12 @@ def help_menu_and_list_tools():
     """
     return "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description}" for tool_object in tools])
 
-
 @tool
 def get_local_date_time_and_timezone():
     """Use this to get the local date, time, and timezone.
 
     Returns: list: the local time in 24-hour format, the local date in the format YYYY-MM-DD, and the local timezone
     """
-
     # Return the local time in 24-hour format
     local_time = datetime.datetime.now().strftime("%H:%M")
 
@@ -216,27 +200,25 @@ def get_local_date_time_and_timezone():
 
     return [local_time, local_date, local_timezone]
 
-
 # Define the tools
-tools = [check_ollama,
-         get_os,
-         get_local_ip,
-         check_internet_connection,
-         check_layer_three_network,
-         get_external_ip,
-         get_isp_location,
-         check_dns_resolvers,
-         check_dns_root_servers_reachability,
-         check_local_layer_two_network,
-         help_menu_and_list_tools,
-         get_local_date_time_and_timezone,
-         ping_target,
-         check_tls_ca_servers,
-         check_whois_servers,
-         check_tls_ca_servers,
-         check_whois_servers,
-         check_cdn_reachability]
-
+tools = [
+    check_ollama,
+    get_os,
+    get_local_ip,
+    check_internet_connection,
+    check_layer_three_network,
+    get_external_ip,
+    get_isp_location,
+    check_dns_resolvers,
+    check_dns_root_servers_reachability,
+    check_local_layer_two_network,
+    help_menu_and_list_tools,
+    get_local_date_time_and_timezone,
+    ping_target,
+    check_tls_ca_servers,
+    check_whois_servers,
+    check_cdn_reachability
+]
 
 # Initialize the model with the tools
 model = ChatOllama(
