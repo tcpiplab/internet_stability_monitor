@@ -51,7 +51,8 @@ def check_websites():
 
     Returns: str: The website reachability report
     """
-    return web_check_main(silent=True, polite=False)
+    report = web_check_main(silent=True, polite=False)
+    return f"Website check completed. Report:\n{report}"
 
 @tool
 def ping_target(target: str):
