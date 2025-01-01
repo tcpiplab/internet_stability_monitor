@@ -46,6 +46,14 @@ def check_whois_servers():
     """
     return whois_check_main(silent=True, polite=False)
 @tool
+def check_websites():
+    """Use this to check the reachability of major technology provider websites and selected government websites.
+
+    Returns: str: The website reachability report
+    """
+    return web_check_main(silent=True, polite=False)
+
+@tool
 def ping_target(target: str):
     """Use this to ping an IP address or hostname to determine the network latency.
 
@@ -221,7 +229,7 @@ tools = [check_ollama,
          help_menu_and_list_tools,
          get_local_date_time_and_timezone,
          ping_target,
-         #check_websites,
+         check_websites,
          check_tls_ca_servers,
          check_whois_servers]
 
