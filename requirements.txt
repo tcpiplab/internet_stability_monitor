@@ -8,3 +8,11 @@ psutil~=6.1.0
 colorama~=0.4.6
 websocket-client~=1.8.0
 python-whois~=0.9.5
+langchain~=0.3.13
+langchain-community~=0.3.13
+langchain-core~=0.3.28
+transformers~=4.47.1
+langgraph~=0.2.60
+langchain-openai~=0.2.14
+ipython~=8.12.3
+langchain-ollama

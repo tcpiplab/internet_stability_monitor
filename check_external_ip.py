@@ -10,11 +10,9 @@ import os
 from summary_utils import add_to_combined_summaries
 
 
-def main():
+def main(silent=False, polite=False):
     global ip_reputation_output
-    parser = argparse.ArgumentParser(description="Fetch and report external IP address.")
-    parser.add_argument('--silent', action='store_true', help="Run without voice announcements")
-    args = parser.parse_args()
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     # Try to find the `op` command
     op_path = shutil.which("op")

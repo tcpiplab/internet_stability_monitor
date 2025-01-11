@@ -1,4 +1,5 @@
 import dns.resolver
+import argparse
 import time
 import sys
 import subprocess
@@ -62,8 +63,8 @@ def check_dns_root_servers(servers):
 
     return reachable_servers, unreachable_servers
 
-if __name__ == "__main__":
-    silent = "--silent" in sys.argv
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     report = ("This script checks the reachability of DNS Root Servers, which are crucial to the functioning of the "
               "internet. DNS Root Servers are responsible for providing the IP addresses of top-level domain (TLD) "
@@ -103,3 +104,6 @@ if __name__ == "__main__":
                        "which are crucial to the functioning of the internet.")
         speak_text(f"{intro_lines}")
         speak_text(f"{summary}")
+
+if __name__ == "__main__":
+    main()

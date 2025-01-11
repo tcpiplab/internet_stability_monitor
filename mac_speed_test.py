@@ -26,23 +26,22 @@ def parse_network_quality_output(output):
 
 def generate_summary_text_manually(summary):
 
-    uplink_mbps = float(summary['uplink_capacity'].split(' ')[0])
-    downlink_mbps = float(summary['downlink_capacity'].split(' ')[0])
+    uplink_mbps = float(summary.get('uplink_capacity', '0').split(' ')[0])
+    downlink_mbps = float(summary.get('downlink_capacity', '0').split(' ')[0])
 
-    uplink_comparison = compare_speed_to_telecom(uplink_mbps)
-    downlink_comparison = compare_speed_to_telecom(downlink_mbps)
-
+    uplink_comparison = compare_speed_to_telecom(uplink_mbps) if 'uplink_capacity' in summary else "uplink capacity could not be measured"
+    downlink_comparison = compare_speed_to_telecom(downlink_mbps) if 'downlink_capacity' in summary else "downlink capacity could not be measured"
 
     return (
-        f"Your current uplink speed is {summary['uplink_capacity']}, {uplink_comparison}."
-        f"Your downlink speed is {summary['downlink_capacity']}, {downlink_comparison}. "
-        f"Uplink responsiveness is measured at {summary['uplink_responsiveness']}. "
-        f"Downlink responsiveness is {summary['downlink_responsiveness']}. "
-        f"The idle latency of the connection is {summary['idle_latency']}."
+        f"Your current uplink speed is {summary.get('uplink_capacity', 'unknown')}, {uplink_comparison}. "
+        f"Your downlink speed is {summary.get('downlink_capacity', 'unknown')}, {downlink_comparison}. "
+        f"Uplink responsiveness is measured at {summary.get('uplink_responsiveness', 'unknown')}. "
+        f"Downlink responsiveness is {summary.get('downlink_responsiveness', 'unknown')}. "
+        f"The idle latency of the connection is {summary.get('idle_latency', 'unknown')}."
     )
 
 
-def run_network_quality_test(silent):
+def run_network_quality_test(silent, args):
     try:
         # Check if running on macOS
         if sys.platform != "darwin":
@@ -58,7 +57,9 @@ def run_network_quality_test(silent):
             text=True
         )
 
-        # Parse the output and generate summary
+        # Print the raw output for debugging
+        print("Raw networkQuality output:")
+        print(process.stdout)
         if process.stdout:
             network_quality_report = parse_network_quality_output(process.stdout)
             network_quality_report_manual_summary = generate_summary_text_manually(network_quality_report)
@@ -139,8 +140,9 @@ def compare_speed_to_telecom(speed_mbps: float) -> str:
     return f"this speed is similar to {closest_speed[1]}"
 
 
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
+    run_network_quality_test(args.silent, args)
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run network quality test.")
-    parser.add_argument("--silent", action="store_true", help="Run without audio feedback.")
-    args = parser.parse_args()
-    run_network_quality_test(args.silent)
+    main()

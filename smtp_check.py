@@ -17,7 +17,7 @@ smtp_servers = {
     "Fastmail": ("smtp.fastmail.com", 587)
 }
 
-def check_smtp_server(name, server_info):
+def check_smtp_server(name, server_info, args):
     """Attempt to connect to the SMTP server to verify availability."""
     host, port = server_info
     try:
@@ -33,11 +33,8 @@ def check_smtp_server(name, server_info):
             speak_text( f"Failed to connect to {name} server: The error was: {e}")
         return f"unreachable: {e}"
 
-if __name__ == "__main__":
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Monitor important SMTP servers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     intro_statement = (
         "Verifying the operational status of several important SMTP servers, "
@@ -57,7 +54,7 @@ if __name__ == "__main__":
 
     # Check each SMTP server
     for name, server_info in smtp_servers.items():
-        status = check_smtp_server(name, server_info)
+        status = check_smtp_server(name, server_info, args)
         if status == "reachable":
             reachable_servers.append(name)
         else:
@@ -93,3 +90,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text(f"The summary of checking important SMTP servers is as follows:")
         speak_text(f"{smtp_server_checks_summary}")
+
+if __name__ == "__main__":
+    main()

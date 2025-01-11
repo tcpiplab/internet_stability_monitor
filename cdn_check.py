@@ -74,10 +74,8 @@ def monitor_cdns():
 
     return ''.join([str(x) for x in reachable_cdns]) + '\n' + ''.join([str(x) for x in unreachable_cdns])
 
-def main():
-    parser = argparse.ArgumentParser(description='Monitor CDN reachability.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     print(f"Starting report on CDN reachability monitoring at {datetime.now()}\n")
     if not args.silent:

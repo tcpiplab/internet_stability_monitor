@@ -63,11 +63,8 @@ def check_ntp_servers(servers):
 
     return reachable_servers, unreachable_servers
 
-if __name__ == "__main__":
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Monitor NTP servers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     if not args.silent:
         speak_text( "Starting NTP server monitoring.")
@@ -114,3 +111,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text("The NTP server monitoring report is as follows:")
         speak_text(f"{ntp_summary}")
+
+if __name__ == "__main__":
+    main()

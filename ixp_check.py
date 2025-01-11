@@ -68,10 +68,8 @@ def monitor_ixps() -> str:
 
     return output_buffer.getvalue()
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Monitor IXPs.")
-    parser.add_argument("--silent", action="store_true", help="Run without announcements.")
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     print(f"Starting IXP monitoring at {datetime.now()}\n")
     if not args.silent:
@@ -116,3 +114,6 @@ if __name__ == "__main__":
     except requests.RequestException as e:
 
         print(f"Failed to get summary from Ollama API: {e}")
+
+if __name__ == "__main__":
+    main()

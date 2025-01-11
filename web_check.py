@@ -73,7 +73,7 @@ def check_website(url):
         return "unreachable", str(e)
 
 
-def check_significant_websites(websites):
+def check_significant_websites(websites, args):
     reachable_websites = []
     unreachable_websites = []
 
@@ -104,12 +104,8 @@ def check_significant_websites(websites):
 
     return reachable_websites, unreachable_websites
 
-if __name__ == "__main__":
-    # Parse for the command line argument "--silent"
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Monitor important web servers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     intro_statement = (
         "Initiating connectivity checks on several major technology provider websites and selected government websites, "
@@ -121,7 +117,7 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text(f"{intro_statement}")
 
-    reachable, unreachable = check_significant_websites(list_of_significant_websites)
+    reachable, unreachable = check_significant_websites(list_of_significant_websites, args.silent)
 
     report_on_significant_websites = ""
 
@@ -156,3 +152,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text( "The summary of checking significant websites is as follows:")
         speak_text(f"{significant_website_checks_summary}")
+
+if __name__ == "__main__":
+    main()

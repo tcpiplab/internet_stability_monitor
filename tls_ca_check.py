@@ -19,7 +19,7 @@ ca_endpoints = {
     "IdenTrust OCSP": "http://ocsp.identrust.com"
 }
 
-def check_ca_endpoint(name, url):
+def check_ca_endpoint(name, url, args):
     """Perform a GET request to verify if the endpoint is reachable."""
     try:
         # Use GET for Let's Encrypt with a longer timeout and ignoring SSL verification
@@ -53,11 +53,8 @@ def check_ca_endpoint(name, url):
                                    f"unreachable. The error was: {e}")
         return f"unreachable: {e}"
 
-if __name__ == "__main__":
-    # Accept arguments from the command line, such as --silent
-    parser = argparse.ArgumentParser(description='Monitor important TLS CA servers.')
-    parser.add_argument('--silent', action='store_true', help='Run in silent mode without voice alerts')
-    args = parser.parse_args()
+def main(silent=False, polite=False):
+    args = argparse.Namespace(silent=silent, polite=polite)
 
     intro_statement = (
         "Verifying the operational status of major TLS certificate authority OCSP servers, "
@@ -78,7 +75,7 @@ if __name__ == "__main__":
 
     # Check each CA endpoint
     for name, url in ca_endpoints.items():
-        status = check_ca_endpoint(name, url)
+        status = check_ca_endpoint(name, url, args)
         if "reachable" in status:
             reachable_endpoints.append((name, status))
         else:
@@ -114,3 +111,6 @@ if __name__ == "__main__":
     if not args.silent:
         speak_text("The summary of checking TLS CA servers is as follows:")
         speak_text(f"{tls_ca_checks_summary}")
+
+if __name__ == "__main__":
+    main()
