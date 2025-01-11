@@ -1,22 +1,36 @@
 
-# Internet Stability Monitor
+# instability.py
 
-The **Internet Stability Monitor** is a tool designed to assess various aspects of internet stability, including DNS checks, NTP synchronization, and WHOIS data retrieval. It is particularly useful for AI developers interested in network analysis and monitoring.
+The **`instability.py`** tool is designed to assess various aspects of local network connectivity and 
+the overall stability of external internet infrastructure and services. 
+
+The chatbot mode is intended to be useful for anyone wanting a quick and easy way to check the status of their 
+network or of worldwide internet infrastructure.
+
+AI developers may also be interested in experimenting with how different models understand (or don't quite understand) 
+network analysis at various OSI layers and monitoring of critical internet infrastructure services like DNS, NTP, HTTP, SMTP, IMAP, WHOIS, etc.
+
 
 ## Key Features
 
-- **Chatbot Mode**: Utilize an interactive chatbot built with **Ollama**, the **qwen2.5** model, and **LangChain**. This mode runs locally, eliminating the need for cloud-based API tokens, and allows you to query your network and internet infrastructure in real-time.
+- **Chatbot Mode**: Utilize an interactive chatbot built with **Ollama**, the **qwen2.5** model (recommended), and 
+  **LangChain**. This mode runs locally, eliminating the need for cloud-based API tokens, and allows you to query your network and internet infrastructure in real-time.
 
 - **Comprehensive Monitoring**: Perform a wide range of checks to gain insights into your internet's performance and stability.
 
-- **macOS Optimization**: The tool is optimized for macOS, using native commands to ensure accurate results.
+- **Cross Platform**: The tool runs on macOS, Linux, Windows, or WSL. But currently the speed test feature only 
+  works on macOS.
+
+- **Optional Speech Summary**: In manual mode you will get a summary of the monitoring results read out loud using 
+  the built-in text-to-speech feature on macOS or Windows. Linux should work too but you may need to install a TTS 
+  engine like `espeak`. The TTS feature can be disabled with `--silent`.
 
 ## Modes of Operation
 
 The project can be run in several modes:
 
 1. **Chatbot Mode**: Run the interactive chatbot using the command `python instability.py chatbot`.
-2. **Manual Mode**: Run all scripts manually using the command `python instability.py manual`.
+2. **Manual Mode**: Run any one or all scripts manually using the command `python instability.py manual`.
 3. **Test Mode**: Run tests using the command `python instability.py test`.
 4. **Help**: Display help information using the command `python instability.py help`.
 
@@ -39,24 +53,32 @@ The project contains the following main files and modules:
 - `cdn_check.py`: Verifies the status of Content Delivery Networks.
 - `imap_check.py`: Monitors IMAP email server status.
 
-## macOS Optimization
-
-- **Bandwidth Test**: The project uses the proprietary macOS command (exact command needs to be added) to test network bandwidth, ensuring accurate results on macOS systems.
-- **Speech Summary**: The `say` command is utilized to read a summary of the test results out loud.
-- **Local LLM Summary**: A local instance of Ollama running the `mistral` LLM is used to create a summary of the monitoring results. Ensure Ollama is installed and properly configured on your macOS system.
 
 ## Installation
 
-1. Ensure you have Python 3.12.7 installed on your macOS system. Note that Python 3.13.1 may not be compatible with all dependencies.
-2. Clone the repository to your local machine.
-3. Create a virtual environment and activate it:
+1. Ensure you have Python <= 3.12.7 installed on your system. Note that very new versions of Python, such as 3.
+   13.1 may not be compatible with all dependencies.
+2. Make sure you already have [Ollama](https://ollama.com/) installed, running, and that you have downloaded the `qwen2.5` model:
+   
+    ```bash
+    ollama pull qwen2.5
+    ollama serve 
+    ```
+
+3. Clone the repository to your local machine.
+    
+    ```bash
+    git clone <this repo url>
+    cd internet_stability_monitor
+    ```
+4. Create a virtual environment and activate it:
 
     ```bash
     python3 -m venv venv
     source venv/bin/activate
     ```
 
-4. Install the required packages using pip:
+5. Install the required packages using pip:
 
     ```bash
     pip install -r requirements.txt
