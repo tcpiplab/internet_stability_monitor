@@ -30,11 +30,19 @@ def did_external_ip_change(current_external_ip):
     # Check if the file exists from the previous run and compare the IP address
     if os.path.exists('/tmp/ip_address.txt'):
         with open('/tmp/ip_address.txt', 'r') as file:
-            previous_external_ip = file.read().split(',')[1].strip()
+
+            # Read the previous timestamp and external IP address from the file
+            previous_external_ip_and_timestamp = file.read().strip()
+
+            previous_external_ip = previous_external_ip_and_timestamp.split(',')[1].strip()
+
+            # Also check the timestamp saved with the IP address last time
+            previous_external_ip_timestamp = previous_external_ip_and_timestamp.split(',')[0].strip()
 
         if current_external_ip != previous_external_ip:
 
-            ip_did_change_message = f"IP address has changed from {previous_external_ip} to {current_external_ip}"
+            ip_did_change_message = (f"IP address has changed from {previous_external_ip} to {current_external_ip}. "
+                                     f"The change occurred some time at or before {previous_external_ip_timestamp}.")
 
             save_current_external_ip(current_external_ip)
 
@@ -42,11 +50,11 @@ def did_external_ip_change(current_external_ip):
 
             return ip_did_change_message
 
-            # TODO check the timestamp saved with the IP address last time
 
         else:
 
-            ip_has_not_changed_message = f"IP address has not changed. It is still {current_external_ip}."
+            ip_has_not_changed_message = (f"IP address has not changed. It is still {current_external_ip}. The last "
+                                          f"change occurred at or before {previous_external_ip_timestamp}.")
 
             save_current_external_ip(current_external_ip)
 
