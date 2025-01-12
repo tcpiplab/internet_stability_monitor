@@ -12,6 +12,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
 from report_source_location import get_public_ip, get_isp_and_location
+from check_if_external_ip_changed import did_external_ip_change
 from cdn_check import main as cdn_check_main
 from tls_ca_check import main as tls_ca_check_main
 from whois_check import main as whois_check_main
@@ -30,6 +31,8 @@ init(autoreset=True)
 if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
+
+
 @tool
 def check_ollama():
     """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
@@ -112,6 +115,21 @@ def get_external_ip():
     """
     our_external_ip = get_public_ip()
     return our_external_ip
+
+@tool
+def check_external_ip_change():
+    """Use this to check if the external IP address has changed since the last check.
+
+    Returns: str: A message indicating whether the IP address has changed or not.
+    """
+    # Get the current external IP using the existing tool
+    current_external_ip = get_public_ip()
+
+    # Check if the external IP has changed
+    external_ip_status_message = did_external_ip_change(current_external_ip)
+
+    return external_ip_status_message
+
 
 @tool
 def get_isp_location():
@@ -208,6 +226,7 @@ tools = [
     check_internet_connection,
     check_layer_three_network,
     get_external_ip,
+    check_external_ip_change,
     get_isp_location,
     check_dns_resolvers,
     check_dns_root_servers_reachability,
