@@ -21,6 +21,7 @@ import check_ollama_status
 from resolver_check import monitor_dns_resolvers
 from dns_check import check_dns_root_servers, dns_root_servers
 from check_layer_two_network import report_link_status_and_type
+from os_utils import OS_TYPE
 import subprocess
 from colorama import init, Fore, Style
 
@@ -34,6 +35,14 @@ if platform.system() != "Windows":
 
 
 @tool
+def run_mac_speed_test():
+    """Use this to run the mac speed test and get a summary of the network quality.
+
+    Returns: str: The mac speed test report or an error message if not on macOS
+    """
+    if OS_TYPE != "macOS":
+        return "The mac speed test is only available on macOS."
+    return mac_speed_test_main(silent=True, polite=False)
 def check_ollama():
     """Use this to check if the Ollama process is running and/or if the Ollama API is reachable."""
     return check_ollama_status.main()
@@ -236,7 +245,8 @@ tools = [
     ping_target,
     check_tls_ca_servers,
     check_whois_servers,
-    check_cdn_reachability
+    check_cdn_reachability,
+    run_mac_speed_test
 ]
 
 # Initialize the model with the tools
