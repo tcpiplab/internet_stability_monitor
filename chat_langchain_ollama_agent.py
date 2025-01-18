@@ -1,6 +1,8 @@
 import datetime
 import platform
 
+from langchain.chains.question_answering.stuff_prompt import messages
+
 # Import readline for input history and completion
 if platform.system() == "Windows":
     import pyreadline3 as readline
@@ -21,8 +23,10 @@ import check_ollama_status
 from resolver_check import monitor_dns_resolvers
 from dns_check import check_dns_root_servers, dns_root_servers
 from check_layer_two_network import report_link_status_and_type
+from os_utils import OS_TYPE
 import subprocess
 from colorama import init, Fore, Style
+import mac_speed_test
 
 # Initialize the colorama module with autoreset=True
 init(autoreset=True)
@@ -31,6 +35,17 @@ init(autoreset=True)
 if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
+
+
+@tool
+def run_mac_speed_test():
+    """Use this to run the mac speed test and get a summary of the network quality.
+
+    Returns: str: The mac speed test report or an error message if not on macOS
+    """
+    if OS_TYPE.lower() != "macOS".lower():
+        return "The mac speed test is only available on macOS."
+    return mac_speed_test.run_network_quality_test(silent=True, args=None)
 
 
 @tool
@@ -236,7 +251,8 @@ tools = [
     ping_target,
     check_tls_ca_servers,
     check_whois_servers,
-    check_cdn_reachability
+    check_cdn_reachability,
+    run_mac_speed_test
 ]
 
 # Initialize the model with the tools
@@ -245,14 +261,28 @@ model = ChatOllama(
     model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
     # model="llama3-groq-tool-use",
     temperature=0,
+    verbose=True,
+#    messages=["system", "If you need more information, see if you can run a tool or function before asking the user for more information. Please provide detailed chain of thought reasoning for each response."]
+    #[("system", "Please provide detailed chain of thought reasoning for each response.")]
 ).bind_tools(tools)
 
+# Define the system prompt
+system_prompt = ("You are a helpful assistant that can run several tools and functions to troubleshoot local and "
+                 "external network problems. Don't ask the user if you should run a tool. Just run the tool if you "
+                 "think it should be run. The user trusts your judgement. If you need more information, see if you "
+                 "can run a tool or function before asking the user for more information. Please provide detailed "
+                 "chain of thought reasoning for each response.")
+
 # Define the graph
-graph = create_react_agent(model, tools=tools)
+graph = create_react_agent(model, tools=tools, debug=False, state_modifier=system_prompt)
 
 
 def print_stream(stream):
     for s in stream:
+        # Check for intermediate thoughts or reasoning
+        if "thoughts" in s:
+            thoughts = s["thoughts"]
+            print(f"{Fore.BLUE}Thoughts: {thoughts}{Style.RESET_ALL}")
         message = s["messages"][-1]
         if isinstance(message, tuple):
             print(message)

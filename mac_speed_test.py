@@ -96,6 +96,8 @@ def run_network_quality_test(silent, args):
     except subprocess.SubprocessError as e:
         print(f"Error running networkQuality command: {e}")
 
+    return network_quality_report_manual_summary
+
 
 def compare_speed_to_telecom(speed_mbps: float) -> str:
     """
