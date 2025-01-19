@@ -27,6 +27,7 @@ from os_utils import OS_TYPE
 import subprocess
 from colorama import init, Fore, Style
 import mac_speed_test
+from smtp_check import main as smtp_check_main
 
 # Initialize the colorama module with autoreset=True
 init(autoreset=True)
@@ -36,8 +37,13 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 
-
 @tool
+def check_smtp_servers():
+    """Use this to check the reachability of several important SMTP servers.
+
+    Returns: str: The SMTP server monitoring report
+    """
+    return smtp_check_main(silent=True, polite=False)
 def run_mac_speed_test():
     """Use this to run the mac speed test and get a summary of the network quality.
 
@@ -252,7 +258,8 @@ tools = [
     check_tls_ca_servers,
     check_whois_servers,
     check_cdn_reachability,
-    run_mac_speed_test
+    run_mac_speed_test,
+    check_smtp_servers
 ]
 
 # Initialize the model with the tools
