@@ -108,5 +108,7 @@ def main(silent=False, polite=False):
         speak_text("The DNS resolver monitoring report is as follows:")
         speak_text(f"{resolver_output_summary}")
 
+    return resolver_output_summary
+
 if __name__ == "__main__":
     main()

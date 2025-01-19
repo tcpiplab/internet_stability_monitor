@@ -74,6 +74,7 @@ def monitor_cdns():
 
     return ''.join([str(x) for x in reachable_cdns]) + '\n' + ''.join([str(x) for x in unreachable_cdns])
 
+
 def main(silent=False, polite=False):
     args = argparse.Namespace(silent=silent, polite=polite)
 
@@ -94,6 +95,8 @@ def main(silent=False, polite=False):
     if not args.silent:
         speak_text("The CDN monitoring report is as follows:")
         speak_text(f"{output_summary}")
+
+    return output_summary
 
 if __name__ == "__main__":
     main()

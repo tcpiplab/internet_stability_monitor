@@ -91,5 +91,8 @@ def main(silent=False, polite=False):
         speak_text(f"The summary of checking important SMTP servers is as follows:")
         speak_text(f"{smtp_server_checks_summary}")
 
+    return smtp_server_checks_summary
+
+
 if __name__ == "__main__":
     main()
