@@ -217,5 +217,7 @@ def main(silent=False, polite=False):
         speak_text("The WHOIS server monitoring report is as follows:")
         speak_text(f"{summary_output}")
 
+    return summary_output
+
 if __name__ == "__main__":
     main()

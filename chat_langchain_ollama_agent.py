@@ -37,6 +37,7 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 
+
 @tool
 def check_smtp_servers():
     """Use this to check the reachability of several important SMTP servers.
@@ -44,6 +45,9 @@ def check_smtp_servers():
     Returns: str: The SMTP server monitoring report
     """
     return smtp_check_main(silent=True, polite=False)
+
+
+@tool
 def run_mac_speed_test():
     """Use this to run the mac speed test and get a summary of the network quality.
 

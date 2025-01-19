@@ -112,5 +112,7 @@ def main(silent=False, polite=False):
         speak_text("The summary of checking TLS CA servers is as follows:")
         speak_text(f"{tls_ca_checks_summary}")
 
+    return tls_ca_checks_summary
+
 if __name__ == "__main__":
     main()
