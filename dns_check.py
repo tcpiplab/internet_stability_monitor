@@ -6,6 +6,10 @@ import subprocess
 from service_check_summarizer import summarize_service_check_output
 from tts_utils import speak_text
 from summary_utils import add_to_combined_summaries
+from colorama import init, Fore, Style
+
+# Initialize colorama
+init(autoreset=True)
 
 # List of DNS root servers
 dns_root_servers = {
@@ -24,16 +28,26 @@ dns_root_servers = {
     "M": "202.12.27.33"
 }
 
+
 def check_dns_server(name, ip, query_name="example.com"):
     try:
         resolver = dns.resolver.Resolver()
         resolver.timeout = 5
         resolver.lifetime = 5
         resolver.nameservers = [ip]
-        resolver.resolve(query_name, "A")
+        query_response = resolver.resolve(query_name, "A")
+
+        print(f"{Fore.GREEN} - Successfully queried the '{name}' root server at {ip} for '{query_name}'{Style.RESET_ALL}")
+        # print(f"{Fore.GREEN}   - Response: {Style.DIM}{query_response.response.to_text()}{Style.RESET_ALL}")
+
         return f"- {name} ({ip})"
+
     except Exception as e:
+
+        print(f"{Fore.RED}  - Failed to query {name} root server at {ip}: {e}{Style.RESET_ALL}")
+
         return f"- {name} ({ip}) - Error: {str(e)}"
+
 
 def check_dns_root_servers(servers):
     reachable_servers = []
@@ -104,6 +118,9 @@ def main(silent=False, polite=False):
                        "which are crucial to the functioning of the internet.")
         speak_text(f"{intro_lines}")
         speak_text(f"{summary}")
+
+    return summary
+
 
 if __name__ == "__main__":
     main()

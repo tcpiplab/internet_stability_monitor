@@ -22,6 +22,7 @@ import socket
 import check_ollama_status
 from resolver_check import monitor_dns_resolvers
 from dns_check import check_dns_root_servers, dns_root_servers
+from dns_check import main as check_all_root_servers
 from check_layer_two_network import report_link_status_and_type
 from os_utils import OS_TYPE
 import subprocess
@@ -198,14 +199,19 @@ def check_dns_resolvers():
     """
     return monitor_dns_resolvers()
 
+
 @tool
 def check_dns_root_servers_reachability():
-    """Use this to check the reachability of the DNS Root Servers.
+    """Use this to check the reachability of the major DNS Root Servers around the world.
 
     Returns: str: the DNS root server monitoring report
     """
-    # The mandatory argument dns_root_servers is defined in dns_check.py
-    return check_dns_root_servers(dns_root_servers)
+
+    # # The mandatory argument dns_root_servers is defined in dns_check.py
+    # return check_dns_root_servers(dns_root_servers)
+
+    return check_all_root_servers(silent=True, polite=False)
+
 
 @tool
 def check_local_layer_two_network():
@@ -222,9 +228,18 @@ def check_local_layer_two_network():
 def help_menu_and_list_tools():
     """Use this when the user inputs 'help' to guide them with a list the available tools and their descriptions.
 
-    Returns: str: a list of available tools and their descriptions
+    Output: Prints a list of available tools and their descriptions.
+
+    Returns: None
     """
-    return "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description}" for tool_object in tools])
+    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description}" for tool_object in tools])
+
+    tools_list = f"Available tools:\n{tools_list}\nEnd of tools list."
+
+    print(tools_list)
+
+    return None
+
 
 @tool
 def get_local_date_time_and_timezone():
@@ -278,10 +293,10 @@ model = ChatOllama(
 ).bind_tools(tools)
 
 # Define the system prompt
-system_prompt = ("You are a helpful assistant that can run several tools and functions to troubleshoot local and "
-                 "external network problems. Don't ask the user if you should run a tool. Just run the tool if you "
-                 "think it should be run. The user trusts your judgement. If you need more information, see if you "
-                 "can run a tool or function before asking the user for more information. Please provide detailed "
+system_prompt = ("You are a helpful assistant that can run several tools and functions to troubleshoot local network and "
+                 "external internet infrastructure and network problems. Don't ask the user if you should run a tool. Just run the tool if you "
+                 "think it should be run. The user trusts your judgement. But is it also OK, if you need more information, "
+                 "to ask the user for more information whenever you need to. Please provide detailed "
                  "chain of thought reasoning for each response.")
 
 # Define the graph
