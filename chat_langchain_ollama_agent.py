@@ -286,8 +286,9 @@ model = ChatOllama(
     # model="llama3.1",
     model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
     # model="llama3-groq-tool-use",
+    # model="innovategy/voicehero",
     temperature=0,
-    verbose=True,
+    verbose=False,
 #    messages=["system", "If you need more information, see if you can run a tool or function before asking the user for more information. Please provide detailed chain of thought reasoning for each response."]
     #[("system", "Please provide detailed chain of thought reasoning for each response.")]
 ).bind_tools(tools)
@@ -295,9 +296,8 @@ model = ChatOllama(
 # Define the system prompt
 system_prompt = ("You are a helpful assistant that can run several tools and functions to troubleshoot local network and "
                  "external internet infrastructure and network problems. Don't ask the user if you should run a tool. Just run the tool if you "
-                 "think it should be run. The user trusts your judgement. But is it also OK, if you need more information, "
-                 "to ask the user for more information whenever you need to. Please provide detailed "
-                 "chain of thought reasoning for each response.")
+                 "think it should be run. The user trusts your judgement. Please provide detailed "
+                 "chain of thought reasoning about why you want to run a tool before you call that tool. Then call the tool.")
 
 # Define the graph
 graph = create_react_agent(model, tools=tools, debug=False, state_modifier=system_prompt)
@@ -305,15 +305,40 @@ graph = create_react_agent(model, tools=tools, debug=False, state_modifier=syste
 
 def print_stream(stream):
     for s in stream:
+
+        # print(f"{Fore.GREEN}Inside the print_stream function{Style.RESET_ALL}")
+        #
+        # print(f"{Fore.YELLOW}Stream: {s}{Style.RESET_ALL}")
+
         # Check for intermediate thoughts or reasoning
         if "thoughts" in s:
             thoughts = s["thoughts"]
             print(f"{Fore.BLUE}Thoughts: {thoughts}{Style.RESET_ALL}")
+
         message = s["messages"][-1]
+
         if isinstance(message, tuple):
-            print(message)
+            print(f"{Fore.GREEN}{message}{Style.RESET_ALL}")
         else:
-            message.pretty_print()
+            # message.pretty_print()
+
+            if message.response_metadata:
+                if message.response_metadata["message"] is not None:
+                    if message.response_metadata["message"]["content"] != "":
+                        print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot:{Style.RESET_ALL} {message.response_metadata['message']['content']}{Style.RESET_ALL}")
+
+            import re
+
+            match = re.search(r"tool_calls=\[\{'name': '([^']+)'", str(message))
+            if match:
+                print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot calling tool:{Style.RESET_ALL} {match.group(1)}(){Style.RESET_ALL}")
+
+            # print(f"Message: {Fore.BLUE}{message}{Style.RESET_ALL}")
+
+                # print(f"{Fore.BLUE}Tool Calls Dict: {message.tool_calls}{Style.RESET_ALL}")
+
+            # else:
+            #     print(f"{Fore.CYAN}Message Content: {message.content}{Style.RESET_ALL}")
 
 
 def main():
@@ -335,6 +360,9 @@ def main():
                 # Prepare inputs with conversation history
                 inputs = {"messages": conversation_history}
                 response_stream = graph.stream(inputs, stream_mode="values")
+
+                print_stream(response_stream)  # Use the print_stream function to print the response stream
+
                 response_message = None
                 for s in response_stream:
                     response_message = s["messages"][-1]
