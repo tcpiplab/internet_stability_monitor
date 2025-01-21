@@ -1,5 +1,6 @@
 import datetime
 import platform
+import re
 
 from langchain.chains.question_answering.stuff_prompt import messages
 
@@ -325,13 +326,17 @@ def print_stream(stream):
             if message.response_metadata:
                 if message.response_metadata["message"] is not None:
                     if message.response_metadata["message"]["content"] != "":
-                        print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot:{Style.RESET_ALL} {message.response_metadata['message']['content']}{Style.RESET_ALL}")
 
-            import re
+                        response_string = message.response_metadata["message"]["content"]
+                        response_string.replace("\n", "{Fore.BLUE}Chatbot: {Style.RESET_ALL}")
+
+                        print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot:{Style.RESET_ALL} {response_string}{Style.RESET_ALL}")
+
+
 
             match = re.search(r"tool_calls=\[\{'name': '([^']+)'", str(message))
             if match:
-                print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot calling tool:{Style.RESET_ALL} {match.group(1)}(){Style.RESET_ALL}")
+                print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot: {Style.RESET_ALL}Calling tool {match.group(1)}()...{Style.RESET_ALL}")
 
             # print(f"Message: {Fore.BLUE}{message}{Style.RESET_ALL}")
 
@@ -351,7 +356,7 @@ def main():
             break
         else:
             try:
-                user_input = input("\nAsk a question about the localhost, network or any internet infrastructure: ")
+                user_input = input(f"{Fore.CYAN}\nUser: {Style.RESET_ALL}")
                 if hasattr(readline, 'add_history'):
                     readline.add_history(user_input)  # Add user input to history
                 # Append user input to conversation history
@@ -367,7 +372,9 @@ def main():
                 for s in response_stream:
                     response_message = s["messages"][-1]
                     if isinstance(response_message, tuple):
-                        print(response_message)
+                        response_message_str = response_message[1]
+                        response_message_str = response_message_str.replace(f"\n", f"{Fore.BLUE}Chatbot: {Style.RESET_ALL}")
+                        print(f"{Fore.BLUE}ChatbotNNNNNN: {Style.RESET_ALL}{response_message_str}")
                     else:
                         response_message.pretty_print()
                 
