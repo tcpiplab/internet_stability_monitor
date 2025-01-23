@@ -30,6 +30,7 @@ import subprocess
 from colorama import init, Fore, Style
 import mac_speed_test
 from smtp_check import main as smtp_check_main
+import subprocess
 
 # Initialize the colorama module with autoreset=True
 init(autoreset=True)
@@ -39,8 +40,38 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 
+def is_nmap_installed():
+    """Check if nmap is installed on the system."""
+    try:
+        subprocess.run(["nmap", "--version"], capture_output=True, check=True)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
 
 @tool
+def run_nmap_scan(target: str):
+    """Use this to run an nmap scan on a target IP address or hostname.
+
+    Args:
+        target (str): The IP address or hostname to scan.
+
+    Returns: str: The nmap scan results or an error message if nmap is not installed.
+    """
+    if not is_nmap_installed():
+        return "nmap is not installed on this system."
+
+    try:
+        result = subprocess.run(
+            ["nmap", target],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        return f"nmap scan failed: {e}"
+    except Exception as e:
+        return f"An error occurred: {e}"
 def check_smtp_servers():
     """Use this to check the reachability of several important SMTP servers.
 
@@ -279,7 +310,8 @@ tools = [
     check_whois_servers,
     check_cdn_reachability,
     run_mac_speed_test,
-    check_smtp_servers
+    check_smtp_servers,
+    run_nmap_scan
 ]
 
 # Initialize the model with the tools
