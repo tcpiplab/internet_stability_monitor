@@ -40,8 +40,35 @@ if platform.system() != "Windows":
     readline.parse_and_bind("tab: complete")
     readline.parse_and_bind("set editing-mode emacs")
 
+
+
+
+@tool
 def is_nmap_installed():
     """Check if nmap is installed on the system."""
+
+    # Based on the OS type, check if nmap is installed in any of the common locations
+    if OS_TYPE.lower() == "macOS".lower():
+        try:
+            subprocess.run(["brew", "list", "nmap"], capture_output=True, check=True)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    elif OS_TYPE.lower() == "Linux".lower():
+        try:
+            subprocess.run(["dpkg", "-l", "nmap"], capture_output=True, check=True)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    elif OS_TYPE.lower() == "Windows".lower():
+        try:
+            subprocess.run(["where", "nmap"], capture_output=True, check=True)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
     try:
         subprocess.run(["nmap", "--version"], capture_output=True, check=True)
         return True
@@ -51,6 +78,8 @@ def is_nmap_installed():
 @tool
 def run_nmap_scan(target: str):
     """Use this to run an nmap scan on a target IP address or hostname.
+       If nmap is not installed, it will return an error message.
+       If nmap is not installed, just return a message saying nmap is not installed.
 
     Args:
         target (str): The IP address or hostname to scan.
@@ -311,13 +340,14 @@ tools = [
     check_cdn_reachability,
     run_mac_speed_test,
     check_smtp_servers,
+    is_nmap_installed,
     run_nmap_scan
 ]
 
 # Initialize the model with the tools
 model = ChatOllama(
-    # model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
-    model="/Users/lukesheppard/.cache/lm-studio/models/bartowski/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-GGUF/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-Q8_0.gguf",
+    model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
+    # model="/Users/lukesheppard/.cache/lm-studio/models/bartowski/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-GGUF/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-Q8_0.gguf",
     temperature=0,
     verbose=True,
 #    messages=["system", "If you need more information, see if you can run a tool or function before asking the user for more information. Please provide detailed chain of thought reasoning for each response."]
