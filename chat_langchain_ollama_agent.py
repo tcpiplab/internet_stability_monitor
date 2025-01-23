@@ -284,12 +284,10 @@ tools = [
 
 # Initialize the model with the tools
 model = ChatOllama(
-    # model="llama3.1",
-    model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
-    # model="llama3-groq-tool-use",
-    # model="innovategy/voicehero",
+    # model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
+    model="/Users/lukesheppard/.cache/lm-studio/models/bartowski/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-GGUF/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-Q8_0.gguf",
     temperature=0,
-    verbose=False,
+    verbose=True,
 #    messages=["system", "If you need more information, see if you can run a tool or function before asking the user for more information. Please provide detailed chain of thought reasoning for each response."]
     #[("system", "Please provide detailed chain of thought reasoning for each response.")]
 ).bind_tools(tools)
