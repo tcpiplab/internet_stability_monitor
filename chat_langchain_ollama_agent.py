@@ -41,39 +41,102 @@ if platform.system() != "Windows":
     readline.parse_and_bind("set editing-mode emacs")
 
 
+def is_brew_installed():
+    """Check if Homebrew is installed on macOS. And return the path to the brew executable.
+       On Apple Silicon systems, it defaults to /opt/homebrew/bin/brew.
+       But on Intel-based macs it often resides in /usr/local/bin/brew.
+       Check both locations.
+
+    Returns: tuple: (bool) True if brew is installed, False if brew is not installed.
+                    (str) Path to the brew executable if brew is installed, None if brew is not installed.
+    """
+
+    # First of all, double check if we are on macOS
+    if OS_TYPE.lower() != "macOS".lower():
+        print(f"{Fore.RED}This function is only available on macOS.{Style.RESET_ALL}")
+        return False, None
+
+    else:
+
+        print(f"{Fore.YELLOW}Checking if brew is installed...{Style.RESET_ALL}")
+
+        path_to_brew = None
+
+        try:
+            print(f"{Fore.YELLOW}Checking if brew is installed using which...{Style.RESET_ALL}")
+            path_to_brew = subprocess.run(["which", "brew"], capture_output=True, text=True, check=True)
+            print(f"{Fore.GREEN}brew is installed at {path_to_brew}.{Style.RESET_ALL}")
+            return True, path_to_brew
+
+        except subprocess.CalledProcessError as e:
+            print(f"{Fore.YELLOW}Was not able to check for brew using which. Error: {e}{Style.RESET_ALL}")
+            return False, path_to_brew
 
 
-@tool
+
 def is_nmap_installed():
-    """Check if nmap is installed on the system."""
+    """Check if nmap is installed on the system.
+
+    Returns: tuple: (bool) True if nmap is installed, False if nmap is not installed.
+                    (str) Path to the nmap executable if nmap is installed, None if nmap is not installed.
+    """
+
+    print(f"{Fore.YELLOW}Checking if nmap is installed...{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}OS Type: {OS_TYPE}{Style.RESET_ALL}")
+
+    path_to_nmap = None
 
     # Based on the OS type, check if nmap is installed in any of the common locations
     if OS_TYPE.lower() == "macOS".lower():
-        try:
-            subprocess.run(["brew", "list", "nmap"], capture_output=True, check=True)
-            return True
-        except subprocess.CalledProcessError:
-            return False
+
+        # Check if brew is installed
+        is_brew_installed_bool, path_to_brew = is_brew_installed()
+
+        if is_brew_installed_bool:
+
+            try:
+
+                print(f"{Fore.YELLOW}Checking if nmap is installed using brew...{Style.RESET_ALL}")
+                path_to_nmap = subprocess.run(["brew", "list", "nmap", "|", "grep", "'/bin/nmap'"], capture_output=True, check=True)
+                print(f"{Fore.GREEN}nmap is installed on {OS_TYPE} using brew at {path_to_nmap}.{Style.RESET_ALL}")
+                return True, path_to_nmap
+
+            except subprocess.CalledProcessError as e:
+                print(f"{Fore.YELLOW}Was not able to check for nmap using brew. Error: {e}{Style.RESET_ALL}")
+                return False, path_to_nmap
 
     elif OS_TYPE.lower() == "Linux".lower():
         try:
-            subprocess.run(["dpkg", "-l", "nmap"], capture_output=True, check=True)
-            return True
-        except subprocess.CalledProcessError:
-            return False
+            print(f"{Fore.YELLOW}Checking if nmap is installed using dpkg...{Style.RESET_ALL}")
+            path_to_nmap = subprocess.run(["dpkg", "-l", "nmap"], capture_output=True, check=True)
+            print(f"{Fore.GREEN}nmap is installed on {OS_TYPE} at {path_to_nmap}.{Style.RESET_ALL}")
+            return True, path_to_nmap
+
+        except subprocess.CalledProcessError as e:
+            print(f"{Fore.YELLOW}Was not able to check for nmap using dpkg. Error: {e}{Style.RESET_ALL}")
+            return False, path_to_nmap
+
 
     elif OS_TYPE.lower() == "Windows".lower():
         try:
-            subprocess.run(["where", "nmap"], capture_output=True, check=True)
-            return True
-        except subprocess.CalledProcessError:
-            return False
+            print(f"{Fore.YELLOW}Checking if nmap is installed using where...{Style.RESET_ALL}")
+            path_to_nmap = subprocess.run(["where", "nmap"], capture_output=True, check=True)
+            print(f"{Fore.GREEN}nmap is installed on {OS_TYPE} at {path_to_nmap}.{Style.RESET_ALL}")
+            return True, path_to_nmap
+
+        except subprocess.CalledProcessError as e:
+            print(f"{Fore.YELLOW}Was not able to check for nmap using where. Error: {e}{Style.RESET_ALL}")
+            return False, path_to_nmap
 
     try:
+        print(f"{Fore.YELLOW}Checking if nmap is installed using nmap --version...{Style.RESET_ALL}")
         subprocess.run(["nmap", "--version"], capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+        return True, "nmap"
+
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"{Fore.RED}nmap is not installed on this system. Error: {e}{Style.RESET_ALL}")
+        return False, path_to_nmap
+
 
 @tool
 def run_nmap_scan(target: str):
@@ -82,25 +145,48 @@ def run_nmap_scan(target: str):
        If nmap is not installed, just return a message saying nmap is not installed.
 
     Args:
-        target (str): The IP address or hostname to scan.
+        target (str): The IP address, CIDR block, or hostname to scan.
 
     Returns: str: The nmap scan results or an error message if nmap is not installed.
     """
-    if not is_nmap_installed():
+
+    # At first, assume nmap is not installed
+    is_nmap_installed_bool = False
+
+    try:
+        # Check if nmap is installed
+        print(f"{Fore.YELLOW}Checking if nmap is installed by calling is_nmap_installed()...{Style.RESET_ALL}")
+        is_nmap_installed_bool, path_to_nmap = is_nmap_installed()
+        print(f"{Fore.GREEN}nmap is installed: {is_nmap_installed_bool} at {path_to_nmap}.{Style.RESET_ALL}")
+
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred while checking if nmap is installed: {e}{Style.RESET_ALL}")
+        return f"An error occurred while checking if nmap is installed: {e}"
+
+    if not is_nmap_installed_bool:
+        print(f"{Fore.RED}nmap is not installed on this system.{Style.RESET_ALL}")
         return "nmap is not installed on this system."
 
     try:
-        result = subprocess.run(
-            ["nmap", target],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout
+
+        if path_to_nmap is None:
+
+            # Just try running it without the full path
+            result = subprocess.run(
+                ["nmap", target],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return result.stdout
+
     except subprocess.CalledProcessError as e:
         return f"nmap scan failed: {e}"
     except Exception as e:
         return f"An error occurred: {e}"
+
+
+@tool
 def check_smtp_servers():
     """Use this to check the reachability of several important SMTP servers.
 
@@ -340,7 +426,6 @@ tools = [
     check_cdn_reachability,
     run_mac_speed_test,
     check_smtp_servers,
-    is_nmap_installed,
     run_nmap_scan
 ]
 
