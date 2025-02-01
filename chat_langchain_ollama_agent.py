@@ -1,7 +1,7 @@
 import datetime
 import platform
 import re
-
+from chatbot_cache_persister import load_cache, save_cache, update_cache, get_cached_value
 from langchain.chains.question_answering.stuff_prompt import messages
 
 # Import readline for input history and completion
@@ -10,7 +10,7 @@ if platform.system() == "Windows":
 else:
     import readline
 from langchain_ollama import ChatOllama
-from chatbot_cache_persister import load_cache, save_cache, update_cache, get_cached_value
+
 from typing import Literal
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
@@ -355,6 +355,10 @@ def main():
 
     # Print a message to indicate that the cache has been loaded
     print(f"{Fore.GREEN}Cache (memories) loaded successfully!{Style.RESET_ALL}")
+
+    # Update the cache with some fundamental information
+    if get_cached_value(cache, "os_type") is None:
+        update_cache(cache, "os_type", f"{get_os_type()}")
 
 
     # Loop through the cache and print the keys and values from the cache file
