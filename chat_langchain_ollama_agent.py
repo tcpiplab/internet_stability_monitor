@@ -10,6 +10,7 @@ if platform.system() == "Windows":
 else:
     import readline
 from langchain_ollama import ChatOllama
+from chatbot_cache_persister import load_cache, save_cache, update_cache, get_cached_value
 from typing import Literal
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
@@ -349,6 +350,9 @@ def print_stream(stream):
 def main():
     conversation_history = []
 
+    # Initialize the cache
+    cache = load_cache()
+
     while True:
         if not check_ollama_status.is_ollama_process_running():
             print(f"{Fore.RED}Ollama process is not running. Please start the Ollama service.{Style.RESET_ALL}")
@@ -384,6 +388,8 @@ def main():
 
             except EOFError:
                 print("\nExiting...")
+                save_cache(cache)
+                print("Exiting and saving cache...")
                 break
 
 
