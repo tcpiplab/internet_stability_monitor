@@ -298,8 +298,8 @@ model = ChatOllama(
 # Define the system prompt
 system_prompt = ("You are a helpful assistant that can run several tools and functions to troubleshoot local network and "
                  "external internet infrastructure and network problems. Don't ask the user if you should run a tool. Just run the tool if you "
-                 "think it should be run. The user trusts your judgement. Please provide detailed "
-                 "chain of thought reasoning about why you want to run a tool before you call that tool. Then call the tool.")
+                 "think it should be run. The user trusts your judgement. Use cached data when available to avoid unnecessary tool executions. "
+                 "Please provide detailed chain of thought reasoning about why you want to run a tool before you call that tool. Then call the tool.")
 
 # Define the graph
 graph = create_react_agent(model, tools=tools, debug=False, state_modifier=system_prompt)
@@ -386,8 +386,11 @@ def main():
                 # Append user input to conversation history
                 conversation_history.append(("user", user_input))
 
-                # Prepare inputs with conversation history
-                inputs = {"messages": conversation_history}
+                # Prepare inputs with conversation history and cache data
+                inputs = {
+                    "messages": conversation_history,
+                    "cache": cache  # Include cache data as part of the inputs
+                }
                 response_stream = graph.stream(inputs, stream_mode="values")
 
                 print_stream(response_stream)  # Use the print_stream function to print the response stream
