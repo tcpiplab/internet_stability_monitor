@@ -62,6 +62,18 @@ def did_external_ip_change(current_external_ip):
 
             return ip_has_not_changed_message
 
+    else:
+
+        # If the file does not exist, create it and save the current external IP address
+        save_current_external_ip(current_external_ip)
+
+        ip_file_not_found_message = (f"IP address file not found. Created a new file and saved the current external IP address: "
+                                     f"{current_external_ip}.")
+
+        print(ip_file_not_found_message)
+
+        return ip_file_not_found_message
+
 
 
 def save_current_external_ip(current_external_ip):
