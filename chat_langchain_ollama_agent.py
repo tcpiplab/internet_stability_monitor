@@ -350,8 +350,17 @@ def print_stream(stream):
 def main():
     conversation_history = []
 
-    # Initialize the cache
+    # Initialize the cache dictionary by loading the cache from the cache file
     cache = load_cache()
+
+    # Print a message to indicate that the cache has been loaded
+    print(f"{Fore.GREEN}Cache (memories) loaded successfully!{Style.RESET_ALL}")
+
+
+    # Loop through the cache and print the keys and values from the cache file
+    for key, value in cache.items():
+        print(f"Key: {key}, Value: {value}")
+
 
     while True:
         if not check_ollama_status.is_ollama_process_running():
@@ -361,7 +370,14 @@ def main():
         else:
             try:
                 user_input = input(f"{Fore.CYAN}\nUser: {Style.RESET_ALL}")
-                if hasattr(readline, 'add_history'):
+
+                if user_input.lower() == "exit":
+                    print("\nExiting...")
+                    save_cache(cache)
+                    print("Exiting and saving cache...")
+                    break
+
+                elif hasattr(readline, 'add_history'):
                     readline.add_history(user_input)  # Add user input to history
                 # Append user input to conversation history
                 conversation_history.append(("user", user_input))
@@ -378,7 +394,7 @@ def main():
                     if isinstance(response_message, tuple):
                         response_message_str = response_message[1]
                         response_message_str = response_message_str.replace(f"\n", f"{Fore.BLUE}Chatbot: {Style.RESET_ALL}")
-                        print(f"{Fore.BLUE}ChatbotNNNNNN: {Style.RESET_ALL}{response_message_str}")
+                        print(f"{Fore.BLUE}Chatbot: {Style.RESET_ALL}{response_message_str}")
                     else:
                         response_message.pretty_print()
                 
