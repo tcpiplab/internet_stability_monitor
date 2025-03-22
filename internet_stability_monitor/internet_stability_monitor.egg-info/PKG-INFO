@@ -1,3 +1,49 @@
+Metadata-Version: 2.4
+Name: internet-stability-monitor
+Version: 0.1.0
+Summary: A comprehensive tool for monitoring internet stability and connectivity
+Home-page: https://github.com/yourusername/internet_stability_monitor
+Author: Luke Sheppard
+Author-email: luke.sheppard@example.com
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: System Administrators
+Classifier: Topic :: System :: Monitoring
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: requests>=2.31.0
+Requires-Dist: dnspython>=2.4.2
+Requires-Dist: python-whois>=0.8.0
+Requires-Dist: colorama>=0.4.6
+Requires-Dist: tabulate>=0.9.0
+Requires-Dist: langchain-ollama>=0.1.5
+Requires-Dist: psutil>=5.9.0
+Requires-Dist: ntplib>=0.4.0
+Requires-Dist: urllib3>=2.0.0
+Requires-Dist: websocket-client>=1.6.0
+Requires-Dist: PyYAML>=6.0.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: aiohttp>=3.8.0
+Requires-Dist: python-dotenv>=1.0.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 # Internet Stability Monitor
 
 A comprehensive tool for monitoring internet stability and connectivity, including DNS, email, WHOIS, IXP, CDN, cloud services, and more.

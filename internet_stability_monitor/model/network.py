@@ -115,7 +115,7 @@ class NetworkModel:
         addrs = psutil.net_if_addrs()
 
         for ifname, ifinfo in stats.items():
-            if ifinfo.is_up and ifinfo.speed > 0:
+            if ifinfo.isup and ifinfo.speed > 0:
                 interface = NetworkInterface(
                     name=ifname,
                     is_up=ifinfo.isup,

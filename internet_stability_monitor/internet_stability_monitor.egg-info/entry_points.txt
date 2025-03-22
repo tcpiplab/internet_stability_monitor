@@ -1,0 +1,2 @@
+[console_scripts]
+instability = src.main:main

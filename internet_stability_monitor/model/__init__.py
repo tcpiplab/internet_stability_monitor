@@ -1,14 +1,12 @@
-"""Model package for internet stability monitor.
+"""Model layer for internet stability monitor.
 
-This package contains the core data models used throughout the application:
-- CacheModel: Manages persistent cache data
-- NetworkModel: Handles network state information
-- LocationModel: Manages location and IP information
+This module provides data models and business logic for the internet stability monitor.
 """
 
 from .cache import CacheModel
 from .network import NetworkModel, NetworkInterface, NetworkState
 from .location import LocationModel, LocationInfo, IPReputation
+from .system import SystemModel, SystemInfo
 
 __all__ = [
     'CacheModel',
@@ -17,5 +15,7 @@ __all__ = [
     'NetworkState',
     'LocationModel',
     'LocationInfo',
-    'IPReputation'
+    'IPReputation',
+    'SystemModel',
+    'SystemInfo',
 ] 

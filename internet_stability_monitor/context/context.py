@@ -10,12 +10,13 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from colorama import Fore, Style, init
 
-from ..model import (
+from internet_stability_monitor.model import (
     CacheModel,
     NetworkModel,
     NetworkInterface,
     NetworkState,
     SystemModel,
+    SystemInfo,
     LocationModel,
     LocationInfo,
     IPReputation
@@ -45,7 +46,7 @@ class MonitorContext:
         self.cache = CacheModel(cache_file)
         self.network = NetworkModel()
         self.system = SystemModel()
-        self.location = LocationModel()
+        self.location = LocationModel(self.cache)
         self._context = SystemContext(last_updated=datetime.now())
 
     def update_all(self) -> None:
@@ -182,4 +183,15 @@ class MonitorContext:
         """Load the last saved context from cache."""
         last_update = self.cache.get("last_context_update")
         if last_update:
-            self._context.last_updated = datetime.fromisoformat(last_update) 
+            self._context.last_updated = datetime.fromisoformat(last_update)
+
+    def get_location_summary(self) -> str:
+        """Get a summary of location information.
+        
+        Returns:
+            Formatted summary string
+        """
+        self.update_all()
+        if not self._context.location_info:
+            return "No location information available"
+        return self.location.get_location_summary() 

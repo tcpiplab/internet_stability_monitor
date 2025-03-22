@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 from dataclasses import dataclass
 from colorama import Fore, Style, init
 
@@ -11,49 +11,49 @@ init(autoreset=True)
 class LocationInfo:
     """Data class representing location information."""
     ip: str
-    city: str
-    region: str
-    country: str
     country_code: str
-    isp: str
-    asn: str
-    latitude: float
-    longitude: float
-    timezone: str
-    last_updated: datetime
+    city: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timezone: Optional[str] = None
+    isp: Optional[str] = None
+    asn: Optional[str] = None
+    organization: Optional[str] = None
+    last_updated: datetime = datetime.now()
 
 @dataclass
 class IPReputation:
     """Data class representing IP reputation information."""
+    ip: str
+    is_public: bool
     abuse_confidence_score: int
-    total_reports: int
-    distinct_users: int
-    is_whitelisted: bool
-    is_tor: bool
-    last_reported: Optional[str]
+    country_code: str
     usage_type: str
+    is_tor: bool
+    is_proxy: bool
+    is_datacenter: bool
+    is_vpn: bool
     reports: List[Dict[str, str]]
-    last_updated: datetime
+    last_updated: datetime = datetime.now()
 
 class LocationModel:
     """Model for managing location and IP information."""
     
-    def __init__(self):
-        """Initialize the location model."""
+    def __init__(self, cache=None):
+        """Initialize the location model.
+        
+        Args:
+            cache: Optional CacheModel instance
+        """
         self._location_info = LocationInfo(
             ip="",
-            city="",
-            region="",
-            country="",
             country_code="",
-            isp="",
-            asn="",
-            latitude=0.0,
-            longitude=0.0,
-            timezone="",
             last_updated=datetime.now()
         )
         self._reputation: Optional[IPReputation] = None
+        self.cache = cache
 
     def _get_public_ip(self) -> str:
         """Get the public IP address.
@@ -62,7 +62,7 @@ class LocationModel:
             Public IP address
         """
         try:
-            response = requests.get("https://api.ipify.org?format=json")
+            response = requests.get("https://api.ipify.org?format=json", verify=True)
             response.raise_for_status()
             return response.json().get("ip")
         except Exception as e:
@@ -79,7 +79,10 @@ class LocationModel:
             Dictionary containing location information
         """
         try:
-            response = requests.get(f"https://ipinfo.io/{ip}")
+            response = requests.get(
+                f"https://ipinfo.io/{ip}/json",
+                verify=True
+            )
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -143,6 +146,7 @@ class LocationModel:
             latitude=float(loc[0]) if len(loc) > 0 else 0.0,
             longitude=float(loc[1]) if len(loc) > 1 else 0.0,
             timezone=location_data.get("timezone", ""),
+            organization=location_data.get("org", ""),
             last_updated=datetime.now()
         )
 
@@ -164,13 +168,15 @@ class LocationModel:
             return
             
         self._reputation = IPReputation(
+            ip=ip,
+            is_public=reputation_data.get("isPublic", False),
             abuse_confidence_score=reputation_data.get("abuseConfidenceScore", 0),
-            total_reports=reputation_data.get("totalReports", 0),
-            distinct_users=reputation_data.get("numDistinctUsers", 0),
-            is_whitelisted=reputation_data.get("isWhitelisted", False),
-            is_tor=reputation_data.get("isTor", False),
-            last_reported=reputation_data.get("lastReportedAt"),
+            country_code=reputation_data.get("countryCode", ""),
             usage_type=reputation_data.get("usageType", "Unknown"),
+            is_tor=reputation_data.get("isTor", False),
+            is_proxy=reputation_data.get("isProxy", False),
+            is_datacenter=reputation_data.get("isDatacenter", False),
+            is_vpn=reputation_data.get("isVpn", False),
             reports=reputation_data.get("reports", []),
             last_updated=datetime.now()
         )
@@ -213,13 +219,8 @@ class LocationModel:
         if self._reputation:
             summary.append("\nIP Reputation:")
             summary.append(f"Abuse Confidence Score: {self._reputation.abuse_confidence_score} (High risk if > 50)")
-            summary.append(f"Total Reports: {self._reputation.total_reports} from {self._reputation.distinct_users} distinct users")
             summary.append(f"Usage Type: {self._reputation.usage_type}")
-            if self._reputation.is_whitelisted:
-                summary.append("This IP is whitelisted by AbuseIPDB")
             if self._reputation.is_tor:
                 summary.append("Warning: This IP is associated with a Tor exit node")
-            if self._reputation.last_reported:
-                summary.append(f"Last Reported: {self._reputation.last_reported}")
         
         return "\n".join(summary) 
