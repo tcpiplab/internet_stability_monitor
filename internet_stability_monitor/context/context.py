@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from colorama import Fore, Style, init
+import os
 
 from internet_stability_monitor.model import (
     CacheModel,
@@ -48,6 +49,13 @@ class MonitorContext:
         self.system = SystemModel()
         self.location = LocationModel(self.cache)
         self._context = SystemContext(last_updated=datetime.now())
+        
+        # Check for ipinfo.io API key in environment
+        if not os.environ.get("IPINFOIO_API_KEY"):
+            print(f"{Fore.YELLOW}Warning: IPINFOIO_API_KEY environment variable not set{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}Please set the environment variable with your ipinfo.io API key:{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}  export IPINFOIO_API_KEY=your_api_key_here{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}You can get a free API key at https://ipinfo.io/{Style.RESET_ALL}")
 
     def update_all(self) -> None:
         """Update all models with current information."""

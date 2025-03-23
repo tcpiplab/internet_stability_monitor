@@ -23,6 +23,13 @@ A comprehensive tool for monitoring internet stability and connectivity, includi
 - Python 3.8 or higher
 - pip (Python package installer)
 - Ollama (for AI-powered features)
+- ipinfo.io API key (for location information)
+
+### Environment Variables
+
+The following environment variables are required:
+
+- `IPINFOIO_API_KEY`: Your ipinfo.io API key for location information. You can get a free API key at https://ipinfo.io/
 
 ### Installing the Package
 

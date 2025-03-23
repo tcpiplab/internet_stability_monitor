@@ -1,27 +1,46 @@
 import requests
 from datetime import datetime
-from typing import Dict, Optional, Tuple, List
-from dataclasses import dataclass
+from typing import Dict, Optional, Tuple, List, Any
+from dataclasses import dataclass, field
 from colorama import Fore, Style, init
+import os
 
 # Initialize colorama
 init(autoreset=True)
 
 @dataclass
 class LocationInfo:
-    """Data class representing location information."""
+    """Location information data class."""
+    
     ip: str
-    country_code: str
-    city: Optional[str] = None
-    region: Optional[str] = None
-    country: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    timezone: Optional[str] = None
-    isp: Optional[str] = None
-    asn: Optional[str] = None
-    organization: Optional[str] = None
-    last_updated: datetime = datetime.now()
+    city: str = "Unknown"
+    region: str = "Unknown"
+    country: str = "Unknown"
+    country_code: str = "Unknown"
+    org: str = "Unknown"
+    loc: str = "Unknown"
+    timezone: str = "Unknown"
+    last_updated: datetime = field(default_factory=datetime.now)
+    
+    def __str__(self) -> str:
+        """Get string representation of location info."""
+        if self.ip == "Unknown":
+            return "No location information available"
+            
+        parts = []
+        if self.city != "Unknown":
+            parts.append(self.city)
+        if self.region != "Unknown":
+            parts.append(self.region)
+        if self.country != "Unknown":
+            parts.append(self.country)
+            
+        location = ", ".join(parts) if parts else "Unknown location"
+        
+        if self.org != "Unknown":
+            return f"{location}, downstream from the {self.org} network"
+        else:
+            return location
 
 @dataclass
 class IPReputation:
@@ -69,24 +88,44 @@ class LocationModel:
             print(f"{Fore.RED}Error getting public IP: {e}{Style.RESET_ALL}")
             return ""
 
-    def _get_location_info(self, ip: str) -> Optional[Dict]:
+    def _get_location_info(self, ip: str) -> Optional[Dict[str, Any]]:
         """Get location information for an IP address.
         
         Args:
             ip: IP address to look up
             
         Returns:
-            Dictionary containing location information
+            Location information dictionary or None if lookup fails
         """
         try:
-            response = requests.get(
-                f"https://ipinfo.io/{ip}/json",
-                verify=True
-            )
-            response.raise_for_status()
-            return response.json()
+            # Get API token from environment variable
+            token = os.environ.get("IPINFOIO_API_KEY")
+            if not token:
+                print(f"{Fore.YELLOW}Warning: IPINFOIO_API_KEY environment variable not set{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Please set the environment variable with your ipinfo.io API key:{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}  export IPINFOIO_API_KEY=your_api_key_here{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}You can get a free API key at https://ipinfo.io/{Style.RESET_ALL}")
+                return None
+                
+            # Get location data from ipinfo.io
+            headers = {"Authorization": f"Bearer {token}"}
+            response = requests.get(f"https://ipinfo.io/{ip}", headers=headers, verify=True)
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "city": data.get("city", "Unknown"),
+                    "region": data.get("region", "Unknown"),
+                    "country": data.get("country", "Unknown"),
+                    "org": data.get("org", "Unknown"),
+                    "loc": data.get("loc", "Unknown"),
+                    "timezone": data.get("timezone", "Unknown")
+                }
+            else:
+                print(f"{Fore.RED}Warning: Failed to get location info for IP {ip}: {response.status_code}{Style.RESET_ALL}")
+                return None
+                
         except Exception as e:
-            print(f"{Fore.RED}Error getting location info: {e}{Style.RESET_ALL}")
+            print(f"{Fore.RED}Warning: Error getting location info: {e}{Style.RESET_ALL}")
             return None
 
     def _get_ip_reputation(self, ip: str, api_key: str) -> Optional[Dict]:
@@ -141,12 +180,9 @@ class LocationModel:
             region=location_data.get("region", ""),
             country=location_data.get("country", ""),
             country_code=location_data.get("country", ""),
-            isp=location_data.get("org", ""),
-            asn=location_data.get("asn", ""),
-            latitude=float(loc[0]) if len(loc) > 0 else 0.0,
-            longitude=float(loc[1]) if len(loc) > 1 else 0.0,
+            org=location_data.get("org", ""),
+            loc=location_data.get("loc", ""),
             timezone=location_data.get("timezone", ""),
-            organization=location_data.get("org", ""),
             last_updated=datetime.now()
         )
 
@@ -209,11 +245,11 @@ class LocationModel:
         if self._location_info.ip:
             summary.append(f"IP Address: {self._location_info.ip}")
             summary.append(f"Location: {self._location_info.city}, {self._location_info.region}, {self._location_info.country}")
-            summary.append(f"ISP: {self._location_info.isp}")
-            if self._location_info.asn:
-                summary.append(f"ASN: {self._location_info.asn}")
+            summary.append(f"ISP: {self._location_info.org}")
+            if self._location_info.country_code:
+                summary.append(f"Country Code: {self._location_info.country_code}")
             summary.append(f"Timezone: {self._location_info.timezone}")
-            summary.append(f"Coordinates: {self._location_info.latitude}, {self._location_info.longitude}")
+            summary.append(f"Coordinates: {self._location_info.loc}")
         
         # Reputation information if available
         if self._reputation:

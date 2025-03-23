@@ -16,7 +16,7 @@ import requests
 import platform
 import subprocess
 from urllib.parse import urlparse, urljoin
-
+from internet_stability_monitor.location import get_public_ip, get_isp_and_location
 from internet_stability_monitor.context import MonitorContext
 
 # Initialize colorama
@@ -951,8 +951,40 @@ class MonitorService:
         results["system_services"].append(self.system.check_ollama_status())
         
         # Check location services
-        results["location_services"].append(self.location.check_location_services())
+        # results["location_services"].append(self.location.check_location_services())
         
+        # Add location check using existing functionality
+        try:
+            public_ip = get_public_ip()
+            if public_ip:
+                ip_data = get_isp_and_location(public_ip)
+                
+                isp = ip_data.get("org", "Unknown ISP")
+                isp = f"B.G.P Autonomous System Number {isp}"
+                city = ip_data.get("city", "Unknown city")
+                region = ip_data.get("region", "Unknown region")
+                country = ip_data.get("country", "Unknown country")
+                
+                results['location'] = {
+                    'status': 'ok',
+                    'ip': public_ip,
+                    'city': city,
+                    'region': region,
+                    'country': country,
+                    'isp': isp,
+                    'full_location': f"{city}, {region}, {country}, downstream from the {isp} network"
+                }
+            else:
+                results['location'] = {
+                    'status': 'error',
+                    'message': 'Could not determine IP address'
+                }
+        except Exception as e:
+            results['location'] = {
+                'status': 'error',
+                'message': f'Failed to get location information: {str(e)}'
+            }
+
         return results
 
     def get_service_summary(self) -> str:

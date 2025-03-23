@@ -190,35 +190,28 @@ def run_batch_mode(
             if count and checks >= count:
                 break
 
-def run_interactive_mode(cache_file: Optional[str] = None) -> None:
-    """Run the interactive chatbot mode.
+def run_interactive_mode(cache_file: str) -> None:
+    """Run the monitor in interactive mode.
     
     Args:
-        cache_file: Optional path to the cache file
+        cache_file: Path to cache file
     """
-    context = MonitorContext(cache_file)
-    chatbot = Chatbot(context)
-    
-    print(f"{Fore.GREEN}Internet Stability Monitor - Interactive Mode{Style.RESET_ALL}")
-    print("Type 'help' for available commands, 'exit' to quit.\n")
-    
-    while True:
-        try:
-            user_input = input("instability> ").strip()
-            if not user_input:
-                continue
-                
-            response = chatbot.process_input(user_input)
-            print(response)
-            
-            if user_input.lower() == 'exit' or user_input == '/exit':
-                break
-                
-        except KeyboardInterrupt:
-            print("\nGoodbye!")
-            break
-        except Exception as e:
-            print(f"{Fore.RED}Error: {str(e)}{Style.RESET_ALL}")
+    try:
+        # Initialize components
+        context = MonitorContext(cache_file)
+        chatbot = Chatbot(context)
+        
+        # Print welcome message
+        print(f"{Fore.CYAN}Internet Stability Monitor - Interactive Mode{Style.RESET_ALL}")
+        print(f"Type {Fore.GREEN}/help{Style.RESET_ALL} for available commands, {Fore.RED}/exit{Style.RESET_ALL} to quit.\n")
+        
+        # Run the chatbot
+        chatbot.run()
+        
+    except KeyboardInterrupt:
+        print("\nStopping monitor...")
+    except Exception as e:
+        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
 
 def run_test_mode() -> None:
     """Run the test mode to verify core functionality."""
