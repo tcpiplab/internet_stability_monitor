@@ -965,25 +965,29 @@ class MonitorService:
                 region = ip_data.get("region", "Unknown region")
                 country = ip_data.get("country", "Unknown country")
                 
-                results['location'] = {
-                    'status': 'ok',
-                    'ip': public_ip,
-                    'city': city,
-                    'region': region,
-                    'country': country,
-                    'isp': isp,
-                    'full_location': f"{city}, {region}, {country}, downstream from the {isp} network"
-                }
+                location_info = f"{city}, {region}, {country}, downstream from the {isp} network"
+                
+                results["location_services"].append(ServiceStatus(
+                    name="Location Services",
+                    is_reachable=True,
+                    response_time=time.time() - start_time,
+                    error=f"IP: {public_ip}, Location: {location_info}"
+                ))
             else:
-                results['location'] = {
-                    'status': 'error',
-                    'message': 'Could not determine IP address'
-                }
+                results["location_services"].append(ServiceStatus(
+                    name="Location Services",
+                    is_reachable=False,
+                    response_time=time.time() - start_time,
+                    error="Could not determine IP address"
+                ))
         except Exception as e:
-            results['location'] = {
-                'status': 'error',
-                'message': f'Failed to get location information: {str(e)}'
-            }
+            results["location_services"].append(ServiceStatus(
+                name="Location Services",
+                is_reachable=False,
+                response_time=time.time() - start_time,
+                error=f"Failed to get location information: {str(e)}"
+            ))
+
 
         return results
 
