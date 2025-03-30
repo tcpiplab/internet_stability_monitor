@@ -158,8 +158,10 @@ def check_external_ip_change() -> str:
 
 
 @tool
-def get_isp_location() -> str:
-    """Use this to get our external ISP location data based on our external IP address.
+def get_isp_location() -> dict[str, Any]:
+    """
+    Use this to get our external ISP location data based on our external IP address.
+    Uses the ipinfo.io API to get the ISP name and location data.
 
     Returns: str: JSON formatted ISP name and location data
     """
@@ -394,6 +396,16 @@ def main():
     # Update the cache with some fundamental information
     if get_cached_value(cache, "os_type") is None:
         update_cache(cache, "os_type", f"{get_os_type()}")
+    if get_cached_value(cache, "external_ip") is None:
+        update_cache(cache, "external_ip", f"{get_public_ip()}")
+    if get_cached_value(cache, "location_data") is None:
+        update_cache(cache, "location_data", f"{get_isp_and_location(get_public_ip())}")
+    # if get_cached_value(cache, "local_ip") is None:
+    #     update_cache(cache, "local_ip", f"{get_local_ip()}")
+    # if get_cached_value(cache, "local_date_time") is None:
+    #     update_cache(cache, "local_date_time", f"{get_local_date_time_and_timezone()}")
+    if get_cached_value(cache, "available_tools") is None:
+        update_cache(cache, "available_tools", f"{tools}")
 
 
     # Loop through the cache and print the keys and values from the cache file
