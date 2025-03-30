@@ -38,7 +38,6 @@ whois_servers_dict = {
     "whois.nic.asia": ("DotAsia WHOIS server for .asia domain registrations", "203.119.86.101"),
     "whois.nic.me": ("doMEn WHOIS server for .me domain registrations", "185.24.64.96"),
     "whois.nic.pro": ("RegistryPro WHOIS server for .pro domain registrations", "199.7.59.74"),
-    "whois.nic.jobs": ("Employ Media LLC WHOIS server for .jobs domain registrations", "192.42.93.30"),
     "whois.nic.museum": ("Museum Domain Management Association WHOIS server for .museum domain registrations", "130.242.24.5"),
     "whois.nic.ai": ("Government of Anguilla WHOIS server for .ai domain registrations", "209.59.119.34"),
     "whois.nic.de": ("DENIC eG WHOIS server for .de domain registrations", "81.91.164.5"),
@@ -56,35 +55,18 @@ whois_servers_dict = {
 
 def run_whois_command(whois_server_name, whois_server_ip):
     """Run the whois command for a specific server and IP."""
-    # print(f"Finally inside the run_whois_command function.")
-    # speak_text(f"Finally inside the run_whois_command function.")
-    # print(f"First we need to check the OS type.")
-    # speak_text(f"First we need to check the OS type.")
 
     try:
-        # the_os_type = get_os_type()
-        # print(f"OS type is: {the_os_type}")
-        # speak_text(f"OS type is: {the_os_type}")
+
         if get_os_type() == "macOS" or get_os_type() == "Linux":
-            # print(f"Running whois checks on a Unix compatible system here.")
-            # speak_text(f"Running whois checks on a Unix compatible system here.")
-            # speak_text("And thank goodness for that because trying to run something useful like this on Windows is a nightmare.")
-            # print(f"Running whois command for {whois_server_name} with IP {whois_server_ip}...")
-            # speak_text(f"Running whois command for {whois_server_name} with IP {whois_server_ip}...")
-            #
-            # print(f"Running the following command: ['whois', '-h', {whois_server_name}, {whois_server_ip}]")
 
             result = subprocess.run(['whois', '-h', whois_server_name, whois_server_ip],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
                                     timeout=10)
 
-            # print(f"WHOIS command output: {result.stdout.decode().strip()}")
-            # print(f"WHOIS command error: {result.stderr.decode().strip()}")
-            # print(f"WHOIS command return code: {result.returncode}")
-
             if result.returncode == 0:
-                # print(f"All good, returning tuple: 'reachable', None.")
+
                 return "reachable", None
             else:
                 return "unreachable", result.stderr.decode().strip()
@@ -105,27 +87,23 @@ def run_whois_command(whois_server_name, whois_server_ip):
                     return "reachable", None
                 except Exception as e:
                     print(f"Failed to run whois command for {whois_server_name} with IP {whois_server_ip}")
-                    speak_text(f"Failed to run whois command for {whois_server_name} with IP {whois_server_ip}")
+                    # speak_text(f"Failed to run whois command for {whois_server_name} with IP {whois_server_ip}")
                     print(f"Specifically, the error was: {e}")
                     return "unreachable", str(e)
 
             except Exception as e:
                 print(f"No idea what went wrong here.")
-                speak_text(f"No idea what went wrong here.")
+                # speak_text(f"No idea what went wrong here.")
                 print(f"But the error was: {e}")
-                speak_text(f"But the error was: {e}")
+                # speak_text(f"But the error was: {e}")
                 return "unreachable", str(e)
 
     except Exception as e:
         print(f"Reached the last except block in the run_whois_command function.")
-        speak_text(f"Reached the last except block in the run_whois_command function.")
+        # speak_text(f"Reached the last except block in the run_whois_command function.")
         print(f"And so the error was: {e}")
-        speak_text(f"And so the error was: {e}")
+        # speak_text(f"And so the error was: {e}")
         return "unreachable", str(e)
-
-    # print(f"I think we found the bug here at the end of the run_whois_command function.")
-    # speak_text(f"I think we found the bug here at the end of the run_whois_command function.")
-    # return "reachable", None
 
 
 def check_whois_servers(servers):
@@ -135,8 +113,6 @@ def check_whois_servers(servers):
 
     # First round of checks
     for whois_server_name, (whois_server_description, ip) in servers.items():
-
-        # speak_text(f"Checking {whois_server_name}, which is the {whois_server_description}.")
 
         status, error = run_whois_command(whois_server_name, ip)
         if status == "reachable":
@@ -200,8 +176,6 @@ def main(silent=False, polite=False):
 
     output += f"Starting WHOIS server monitoring at {time.ctime()}\n"
     print(f"{results}")
-    # if not args.silent:
-    #     speak_text( results])
 
     # Send the results to service_check_summary.py and ask for a summary
     summary_output = summarize_service_check_output(results)

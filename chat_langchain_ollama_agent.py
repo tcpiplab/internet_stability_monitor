@@ -1,9 +1,7 @@
 from typing import Optional, List, Dict, Any, Tuple, Literal
 import datetime
 import platform
-import re
 from chatbot_cache_persister import load_cache, save_cache, update_cache, get_cached_value
-from langchain.chains.question_answering.stuff_prompt import messages
 
 # Import readline for input history and completion
 if platform.system() == "Windows":
@@ -11,7 +9,6 @@ if platform.system() == "Windows":
 else:
     import readline
 from langchain_ollama import ChatOllama
-
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
@@ -27,6 +24,7 @@ from dns_check import check_dns_root_servers, dns_root_servers
 from dns_check import main as check_all_root_servers
 from check_layer_two_network import report_link_status_and_type
 from os_utils import OS_TYPE
+from web_check import main as web_check_main
 import subprocess
 from colorama import init, Fore, Style
 import mac_speed_test
@@ -160,8 +158,10 @@ def check_external_ip_change() -> str:
 
 
 @tool
-def get_isp_location() -> str:
-    """Use this to get our external ISP location data based on our external IP address.
+def get_isp_location() -> dict[str, Any]:
+    """
+    Use this to get our external ISP location data based on our external IP address.
+    Uses the ipinfo.io API to get the ISP name and location data.
 
     Returns: str: JSON formatted ISP name and location data
     """
@@ -201,6 +201,15 @@ def check_dns_resolvers() -> str:
     Returns: str: the DNS resolver monitoring report
     """
     return monitor_dns_resolvers()
+
+
+@tool
+def check_websites() -> str:
+    """Use this to check the reachability of several important websites.
+
+    Returns: str: The website monitoring report
+    """
+    return web_check_main(silent=True, polite=False)
 
 
 @tool
@@ -267,15 +276,18 @@ def check_cache() -> str:
 
     Returns: str: The cache contents
     """
-    # Load the cache
-    cache = load_cache()
+
+    try:
+
+        # Load the cache
+        cache = load_cache()
+
+    except Exception as e:
+        print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot (thinking):{Style.RESET_ALL} {Fore.RED}Error loading cache: {e}{Style.RESET_ALL}")
+        return "Error loading cache."
 
     # Print a message to indicate that the cache has been loaded
-    print(f"{Fore.GREEN}Cache (memories) loaded successfully!{Style.RESET_ALL}")
-
-    # Loop through the cache and print the keys and values from the cache file
-    # for key, value in cache.items():
-    #     print(f"Key: {key}, Value: {value}")
+    print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot (thinking):{Style.RESET_ALL} {Fore.GREEN}Cache (memories) loaded successfully.{Style.RESET_ALL}")
 
     return f"Cached Data Context: {cache}"
 
@@ -290,6 +302,7 @@ tools = [
     check_external_ip_change,
     get_isp_location,
     check_dns_resolvers,
+    check_websites,
     check_dns_root_servers_reachability,
     check_local_layer_two_network,
     help_menu_and_list_tools,
@@ -311,12 +324,11 @@ model = ChatOllama(
 ).bind_tools(tools)
 
 # Define the system prompt
-system_prompt = ("""You are a helpful assistant that can run several tools and functions to troubleshoot local network 
-                 and external internet infrastructure and network problems. Before you run a tool you must first try to use the information in 
-                 the cache to avoid unnecessary tool executions. But if you find that you need to run a 
-                 tool to respond to the user input, you can run that tool. If you find that you need to run more than
-                 three different tools to respond to the user input then explain to the user why you need to run those
-                 additional tools.""")
+system_prompt = ("You are a helpful assistant that always answers user questions and you can run several tools and "
+                 "functions to troubleshoot local network "
+                 "and external internet infrastructure and network problems. If a tool's response is too verbose, you "
+                 "must summarize the response and only return the most important information that will help you and "
+                 "the user to troubleshoot any problems.")
 
 # Define the graph
 graph = create_react_agent(model, tools=tools, debug=False, state_modifier=system_prompt)
@@ -330,42 +342,44 @@ def print_stream(stream, cache):
 
         message = s["messages"][-1]
 
-        # Debug info (can be removed once everything works)
-        print(f"{Fore.CYAN}DEBUG: Message type: {type(message)}{Style.RESET_ALL}")
-        message_preview = str(message)[:100] + "..." if len(str(message)) > 100 else str(message)
-        print(f"{Fore.CYAN}DEBUG: Message preview: {message_preview}{Style.RESET_ALL}")
-
         # Handle AI messages with direct content (most important case)
         if hasattr(message, "content") and message.content:
+
+            # Check if the message is a tool message
+            if hasattr(message, "__class__") and message.__class__.__name__ == "ToolMessage":
+                # Print the name of the tool but not the tool message content
+                if hasattr(message, "name"):
+                    print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot (calling tool):{Style.RESET_ALL} {Fore.GREEN}{message.name}(){Style.RESET_ALL}")
+
             # Only print if it's not a tool message
             if not hasattr(message, "name"):
-                print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot:{Style.RESET_ALL} {message.content}{Style.RESET_ALL}")
+                print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot 1:{Style.RESET_ALL} {message.content}{Style.RESET_ALL}")
 
         # Handle AI messages with response_metadata
         if hasattr(message, "response_metadata") and message.response_metadata:
             if message.response_metadata.get("message") and message.response_metadata["message"].get("content"):
                 response_string = message.response_metadata["message"]["content"]
                 if response_string:  # Only print if there's actual content
-                    print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot:{Style.RESET_ALL} {response_string}{Style.RESET_ALL}")
+                    print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot (final response):{Style.RESET_ALL} {response_string}{Style.RESET_ALL}")
 
         # Handle tool messages
         if hasattr(message, "__class__") and message.__class__.__name__ == "ToolMessage":
             if hasattr(message, "name") and hasattr(message, "content"):
                 tool_name = message.name
                 tool_content = message.content
-                print(f"{Fore.GREEN}Tool {tool_name} returned: {tool_content[:50]}...{Style.RESET_ALL}")
+                # print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot 4:{Style.RESET_ALL} {Fore.GREEN}Calling tool {tool_name}(){Style.RESET_ALL}")
 
                 # Store in cache with meaningful key
                 if tool_name == "get_external_ip":
                     cache = update_cache(cache, "external_ip", tool_content)
-                    print(f"Cache updated with external_ip: {tool_content}")
+                    # print(f"Cache updated with external_ip: {tool_content}")
                 elif tool_name == "get_isp_location":
                     cache = update_cache(cache, "location_data", tool_content)
-                    print(f"Cache updated with location_data: {tool_content}")
+                    # print(f"Cache updated with location_data: {tool_content}")
 
                 # Always store with generic tool name key
                 cache = update_cache(cache, tool_name, tool_content)
-                print(f"Cache updated with {tool_name}: {tool_content}")
+                # print(f"Cache updated with {tool_name}: {tool_content}")
                 save_cache(cache)
 
     return cache
@@ -377,16 +391,26 @@ def main():
     cache: Dict[str, Any] = load_cache()
 
     # Print a message to indicate that the cache has been loaded
-    print(f"{Fore.GREEN}Cache (memories) loaded successfully!{Style.RESET_ALL}")
+    # print(f"{Fore.GREEN}Cache (memories) loaded successfully!{Style.RESET_ALL}")
 
     # Update the cache with some fundamental information
     if get_cached_value(cache, "os_type") is None:
         update_cache(cache, "os_type", f"{get_os_type()}")
+    if get_cached_value(cache, "external_ip") is None:
+        update_cache(cache, "external_ip", f"{get_public_ip()}")
+    if get_cached_value(cache, "location_data") is None:
+        update_cache(cache, "location_data", f"{get_isp_and_location(get_public_ip())}")
+    # if get_cached_value(cache, "local_ip") is None:
+    #     update_cache(cache, "local_ip", f"{get_local_ip()}")
+    # if get_cached_value(cache, "local_date_time") is None:
+    #     update_cache(cache, "local_date_time", f"{get_local_date_time_and_timezone()}")
+    if get_cached_value(cache, "available_tools") is None:
+        update_cache(cache, "available_tools", f"{tools}")
 
 
     # Loop through the cache and print the keys and values from the cache file
-    for key, value in cache.items():
-        print(f"Key: {key}, Value: {value}")
+    # for key, value in cache.items():
+    #     print(f"Key: {key}, Value: {value}")
 
 
     while True:
@@ -407,105 +431,25 @@ def main():
                 elif user_input.lower() == "/cache":
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
 
-                elif hasattr(readline, 'add_history'):
-                    # readline.add_history(f"# Previous User Input: \"{user_input}\"\n")  # Add user input to history
-                    pass
-
-                # Append user input to conversation history
-                # conversation_history.append(("user", user_input))
-
-                # Prepare inputs with conversation history and cache data
-                inputs = {
-                    # "messages": conversation_history,
-                    # "messages": [("user", user_input)],
-                    "messages": [("user", user_input),("ai", f"cache: {cache}")]
-                    # "cache": cache  # Include cache data as part of the inputs
+                # Create a selective cache with only essential information
+                selective_cache = {
+                    "os_type": cache.get("os_type", "unknown"),
+                    "external_ip": cache.get("external_ip", None),
+                    "location_data": cache.get("location_data", None)
                 }
 
-                # Track tool calls to store in cache later
-                # tool_results = {}
+                # Only include items that are not None
+                selective_cache = {k: v for k, v in selective_cache.items() if v is not None}
+
+                # Prepare inputs with selective cache data
+                inputs = {
+                    "messages": [("user", user_input), ("system", f"cache: {selective_cache}")]
+                }
 
                 response_stream = graph.stream(inputs, stream_mode="values", debug=False)
-                # response_stream = graph.stream(inputs, stream_mode="updates")
-
                 cache = print_stream(response_stream, cache)  # Use the print_stream function to print the response stream
 
-                # Track tool calls to store in cache later
-                tool_results = {}
-                last_message = None  # Store the last message
-
-                # response_message = None
-                for s in response_stream:
-                    if "messages" not in s:
-                        continue
-
-                    message = s["messages"][-1]
-                    last_message = s  # Save the current message as the last one
-
-                    # Extract tool names and results from output
-                    if isinstance(message, dict) and "content" in message:
-                        content_str = str(message["content"])
-                        tool_match = re.search(r"Calling tool ([^(]+)\(\)", content_str)
-                        if tool_match:
-                            tool_name = tool_match.group(1)
-                            # The next message should contain the result
-                            tool_results[tool_name] = True  # Mark this tool as used
-                            print(f"Tool called: {tool_name}")
-
-                    # Look for tool results in the response
-                    if str(message).find("'name': '") > 0 and str(message).find("'response': ") > 0:
-                        result_pattern = re.search(r"'name': '([^']+)'.*?'response': ([^,}]+)", str(message))
-                        if result_pattern:
-                            tool_name = result_pattern.group(1)
-                            tool_result = result_pattern.group(2)
-                            tool_results[tool_name] = tool_result
-                            print(f"Tool result for {tool_name}: {tool_result}")
-
-                    # Store all tool results in cache
-                for tool_name, tool_result in tool_results.items():
-                    if tool_result is not True:  # Skip if we didn't capture the actual result
-                        update_cache(cache, tool_name, tool_result)
-                        print(f"{Fore.GREEN}Tool result for {tool_name}: {tool_result}{Style.RESET_ALL}")
-
-
-
-
-                # Also store the final response - now using last_message which is safely stored
-                if last_message and "messages" in last_message and last_message["messages"]:
-                    final_message = last_message["messages"][-1]
-                    if hasattr(final_message, "content") and final_message.content:
-                        update_cache(cache, "last_response", final_message.content)
-
                 save_cache(cache)
-
-                    # response_message = s["messages"][-1]
-                    #
-                    # # Check if there are tool calls in the message
-                    # if hasattr(response_message, "tool_calls") and response_message.tool_calls:
-                    #     for tool_call in response_message.tool_calls:
-                    #         tool_name = tool_call.name
-                    #         tool_result = tool_call.response
-                    #
-                    #         # Store tool results in cache with meaningful keys
-                    #         if tool_name == "get_external_ip":
-                    #             update_cache(cache, "external_ip", tool_result)
-                    #         elif tool_name == "get_isp_location":
-                    #             update_cache(cache, "location_data", tool_result)
-                    #         elif tool_name == "check_internet_connection":
-                    #             update_cache(cache, "internet_status", tool_result)
-                    #         # Add more tool result handlers as needed
-                    #
-                    # if isinstance(response_message, tuple):
-                    #     response_message_str = response_message[1]
-                    #     response_message_str = response_message_str.replace(f"\n", f"{Fore.BLUE}Chatbot: {Style.RESET_ALL}")
-                    #     # Append model's response to conversation history
-                    #     # conversation_history.append(("assistant", response_message_str))
-                    #     # Store the last response separately instead of overwriting
-                    #     update_cache(cache, "last_assistant_response", response_message_str)
-                    #     save_cache(cache)
-                    #     print(f"{Fore.BLUE}Chatbot: {Style.RESET_ALL}{response_message_str}")
-                    # else:
-                    #     response_message.pretty_print()
 
             except EOFError:
                 print("\nExiting...")
