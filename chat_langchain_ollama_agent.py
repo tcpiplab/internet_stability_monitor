@@ -443,7 +443,7 @@ def main():
 
                 # Prepare inputs with selective cache data
                 inputs = {
-                    "messages": [("user", user_input), ("ai", f"cache: {selective_cache}")]
+                    "messages": [("user", user_input), ("system", f"cache: {selective_cache}")]
                 }
 
                 response_stream = graph.stream(inputs, stream_mode="values", debug=False)
