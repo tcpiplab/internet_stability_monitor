@@ -282,7 +282,8 @@ def help_menu_and_list_tools() -> None:
 - {Fore.GREEN}/help{Style.RESET_ALL}: Show this help message
 - {Fore.GREEN}/exit{Style.RESET_ALL}: Exit the chatbot
 - {Fore.GREEN}/clear{Style.RESET_ALL}: Clear conversation history
-- {Fore.GREEN}/history{Style.RESET_ALL}: Show recent conversation history
+- {Fore.GREEN}/history{Style.RESET_ALL}: Show recent conversation history (may have issues)
+- {Fore.GREEN}/memory{Style.RESET_ALL}: Alternative way to view conversation state
 - {Fore.GREEN}/tools{Style.RESET_ALL}: List all available tools
 - {Fore.GREEN}/cache{Style.RESET_ALL}: Show cached data
 
@@ -558,10 +559,29 @@ def main():
                     # Show the conversation history (for debugging)
                     try:
                         config = {"configurable": {"thread_id": "1"}}
-                        # Use get_tuple to get the raw state from memory
+                        # Use get_tuple to get the raw state from memory safely
                         history_tuple = memory.get_tuple(config)
-                        # Convert to dict if needed
-                        thread_state = dict(history_tuple) if history_tuple else {}
+                        
+                        # Initialize an empty dict for thread_state
+                        thread_state = {}
+                        
+                        # Handle different possible formats of history_tuple
+                        if history_tuple is not None:
+                            print(f"{Fore.YELLOW}History tuple type: {type(history_tuple)}{Style.RESET_ALL}")
+                            
+                            # If it's already a dict, use it directly
+                            if isinstance(history_tuple, dict):
+                                thread_state = history_tuple
+                            # If it's a StateDict or similar object with 'messages' attribute
+                            elif hasattr(history_tuple, "messages"):
+                                thread_state = {"messages": history_tuple.messages}
+                            # If it's a tuple or list with state data
+                            elif isinstance(history_tuple, (tuple, list)) and len(history_tuple) > 0:
+                                # Try to access first element if it contains our data
+                                if isinstance(history_tuple[0], dict) and "messages" in history_tuple[0]:
+                                    thread_state = history_tuple[0]
+                            # Print the raw tuple for debugging
+                            print(f"{Fore.YELLOW}Raw history data: {str(history_tuple)[:100]}...{Style.RESET_ALL}")
                         
                         # Ensure we have a valid messages list
                         if isinstance(thread_state, dict) and "messages" in thread_state and isinstance(thread_state["messages"], list):
@@ -613,15 +633,23 @@ def main():
                         print(f"{Fore.RED}Error retrieving history: {e}{Style.RESET_ALL}")
                         # Print more debug info for troubleshooting
                         import traceback
-                        print(f"{Fore.YELLOW}Debug info: thread_state type: {type(thread_state)}{Style.RESET_ALL}")
-                        print(f"{Fore.YELLOW}Debug info: Keys: {thread_state.keys() if isinstance(thread_state, dict) else 'not a dict'}{Style.RESET_ALL}")
                         print(f"{Fore.YELLOW}Traceback: {traceback.format_exc()}{Style.RESET_ALL}")
-                        if isinstance(thread_state, dict) and "messages" in thread_state:
-                            print(f"Messages type: {type(thread_state['messages'])}")
-                            if hasattr(thread_state["messages"], "__iter__"):
-                                for i, msg in enumerate(thread_state["messages"][-2:]):
-                                    print(f"Message {i} type: {type(msg)}")
-                                    print(f"Message {i} attributes: {[attr for attr in dir(msg) if not attr.startswith('_')]}")
+                        
+                        # Additional debugging to understand what we're getting from memory
+                        try:
+                            # Try direct access through invoke
+                            print(f"{Fore.YELLOW}Trying direct access to graph history...{Style.RESET_ALL}")
+                            response = graph.invoke(
+                                {"messages": [HumanMessage(content="Show history")]},
+                                {"configurable": {"thread_id": "1"}},
+                            )
+                            if response and "messages" in response:
+                                print(f"Found {len(response['messages'])} messages in direct graph history")
+                                # Show last few messages
+                                for i, msg in enumerate(response["messages"][-3:]):
+                                    print(f"Message -{3-i}: {type(msg)}")
+                        except Exception as e2:
+                            print(f"{Fore.RED}Direct history access failed: {e2}{Style.RESET_ALL}")
                     continue
                     
                 elif user_input.lower() == "/tools":
@@ -639,6 +667,29 @@ def main():
                     
                 elif user_input.lower() == "/cache":
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
+                    
+                elif user_input.lower() == "/memory":
+                    # A simpler way to check what's in memory
+                    try:
+                        print(f"{Fore.YELLOW}Memory contents:{Style.RESET_ALL}")
+                        memory_contents = memory.list_keys()
+                        print(f"Memory keys: {memory_contents}")
+                        
+                        # Get state directly from graph for this thread
+                        print(f"{Fore.YELLOW}Asking graph for current message state:{Style.RESET_ALL}")
+                        question = HumanMessage(content="What messages have been exchanged in this conversation?")
+                        config = {"configurable": {"thread_id": "1"}}
+                        response = graph.invoke({"messages": [question]}, config)
+                        print(f"Response type: {type(response)}")
+                        if hasattr(response, "get") and response.get("messages"):
+                            msg_count = len(response["messages"])
+                            print(f"Found {msg_count} messages in conversation")
+                            last_msg = response["messages"][-1]
+                            if hasattr(last_msg, "content"):
+                                print(f"Last message content: {last_msg.content[:100]}...")
+                    except Exception as e:
+                        print(f"{Fore.RED}Error accessing memory: {e}{Style.RESET_ALL}")
+                    continue
 
                 # Create configuration object with thread_id - exactly as shown in LangGraph docs
                 config = {"configurable": {"thread_id": "1"}}
