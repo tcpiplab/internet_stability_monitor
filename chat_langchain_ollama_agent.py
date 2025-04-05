@@ -8,7 +8,7 @@ if platform.system() == "Windows":
     import pyreadline3 as readline
 else:
     import readline
-from langchain_ollama import ChatOllama
+
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from os_utils import get_os_type
@@ -29,6 +29,27 @@ import subprocess
 from colorama import init, Fore, Style
 import mac_speed_test
 from smtp_check import main as smtp_check_main
+# Major refactor of the code to use the new in-memory checkpointer
+# https://langchain-ai.github.io/langgraph/tutorials/introduction/#part-3-adding-memory-to-the-chatbot
+from langgraph.checkpoint.memory import MemorySaver
+from typing import Annotated
+# from langchain_anthropic import ChatAnthropic
+from langchain_ollama import ChatOllama
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_core.messages import BaseMessage
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode, tools_condition
+
+
+
+
+
+
+
+
+
 
 # Initialize the colorama module with autoreset=True
 init(autoreset=True)
@@ -291,6 +312,22 @@ def check_cache() -> str:
 
     return f"Cached Data Context: {cache}"
 
+
+# New memory system code below
+
+search_tool = TavilySearchResults(max_results=2)
+
+
+
+# Initialize the memory saver, an in-memory checkpointer to replace the clumsy cache system we have now
+memory = MemorySaver()
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+graph_builder = StateGraph(State)
+
+
 # Define the tools
 tools = [
     check_ollama,
@@ -313,25 +350,69 @@ tools = [
     check_cdn_reachability,
     run_mac_speed_test,
     check_smtp_servers,
-    check_cache
+    check_cache,
+    search_tool
 ]
 
-# Initialize the model with the tools
-model = ChatOllama(
-    model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
-    temperature=0,
-    verbose=False
-).bind_tools(tools)
+
+
+
+model = ChatOllama(model="qwen2.5").bind_tools(tools)
+
+
+def chatbot(state: State):
+    return {"messages": [model.invoke(state["messages"])]}
+
 
 # Define the system prompt
-system_prompt = ("You are a helpful assistant that always answers user questions and you can run several tools and "
-                 "functions to troubleshoot local network "
-                 "and external internet infrastructure and network problems. If a tool's response is too verbose, you "
-                 "must summarize the response and only return the most important information that will help you and "
-                 "the user to troubleshoot any problems.")
+system_prompt = ("You are a precise network diagnostics assistant. Follow these guidelines for tool usage:"
+                 "\n1. IMPORTANT: When a user request closely matches a specific tool's purpose, use ONLY that tool"
+                 "\n2. For example, if a user asks to 'check websites' or 'check significant websites', use ONLY the check_websites tool"
+                 "\n3. Use multiple tools ONLY when necessary to fulfill distinct parts of a complex request"
+                 "\n4. Avoid using the search tool unless explicitly requested or when local tools cannot answer the question"
+                 "\n5. Prioritize direct tool names over general descriptions (e.g., 'check_dns_resolvers' over general DNS queries)"
+                 "\n6. If a tool's response is verbose, summarize only the most important troubleshooting information"
+                 "\nYour primary job is network diagnostics using available tools, not general information retrieval.")
+
+
+
+graph_builder.add_node("chatbot", chatbot)
+
+tool_node = ToolNode(tools=tools)
+graph_builder.add_node("tools", tool_node)
+
+graph_builder.add_conditional_edges(
+    "chatbot",
+    tools_condition,
+)
+# Any time a tool is called, we return to the chatbot to decide the next step
+graph_builder.add_edge("tools", "chatbot")
+graph_builder.add_edge(START, "chatbot")
+
+# compile the graph with the provided checkpointer
+graph = graph_builder.compile(checkpointer=memory)
+
+# Now you can interact with your bot! First, pick a thread to use as the key for this conversation.
+config = {"configurable": {"thread_id": "1"}}
+
+
+
+
+
+
+
+
+# Initialize the model with the tools
+# model = ChatOllama(
+#     model="qwen2.5", # For some reason the qwen2.5 model works better than all the other models I tested
+#     temperature=0,
+#     verbose=False
+# ).bind_tools(tools)
+
+
 
 # Define the graph
-graph = create_react_agent(model, tools=tools, debug=False, state_modifier=system_prompt)
+# graph = create_react_agent(model, tools=tools, debug=False, state_modifier=system_prompt)
 
 
 def print_stream(stream, cache):
@@ -446,10 +527,30 @@ def main():
                     "messages": [("user", user_input), ("system", f"cache: {selective_cache}")]
                 }
 
-                response_stream = graph.stream(inputs, stream_mode="values", debug=False)
-                cache = print_stream(response_stream, cache)  # Use the print_stream function to print the response stream
+                # Original streaming code is here, commented out
+                # response_stream = graph.stream(inputs, stream_mode="values", debug=False)
 
-                save_cache(cache)
+                # New code for the new memory system
+                # The config is the **second positional argument** to stream() or invoke()!
+                events = graph.stream(
+                    {"messages": [{"role": "user", "content": user_input}]},
+                    config,
+                    stream_mode="values",
+                )
+
+                for event in events:
+                    event["messages"][-1].pretty_print()
+
+
+
+
+
+
+
+                # Original code with the cache is commented out for now
+                # cache = print_stream(response_stream, cache)  # Use the print_stream function to print the response stream
+                #
+                # save_cache(cache)
 
             except EOFError:
                 print("\nExiting...")
