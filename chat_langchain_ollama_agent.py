@@ -509,6 +509,28 @@ def main():
                     print("Exiting and saving cache...")
                     break
 
+                elif user_input.lower() == "/clear":
+                    # Clear conversation history but keep the system prompt
+                    memory.delete(config["configurable"]["thread_id"])
+                    print(f"{Fore.GREEN}Conversation history cleared.{Style.RESET_ALL}")
+                    continue
+                
+                elif user_input.lower() == "/history":
+                    # Show the conversation history (for debugging)
+                    try:
+                        thread_state = memory.get(config["configurable"]["thread_id"]) or {}
+                        if "messages" in thread_state:
+                            print(f"{Fore.YELLOW}Conversation history (last 5 messages):{Style.RESET_ALL}")
+                            for i, msg in enumerate(thread_state["messages"][-5:]):
+                                role = msg.get("role", "unknown")
+                                content_preview = (msg.get("content", "")[:50] + "...") if len(msg.get("content", "")) > 50 else msg.get("content", "")
+                                print(f"{i}: {Fore.BLUE}{role}{Style.RESET_ALL}: {content_preview}")
+                        else:
+                            print(f"{Fore.YELLOW}No conversation history found.{Style.RESET_ALL}")
+                    except Exception as e:
+                        print(f"{Fore.RED}Error retrieving history: {e}{Style.RESET_ALL}")
+                    continue
+                    
                 elif user_input.lower() == "/cache":
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
 
@@ -530,10 +552,23 @@ def main():
                 # Original streaming code is here, commented out
                 # response_stream = graph.stream(inputs, stream_mode="values", debug=False)
 
-                # New code for the new memory system
-                # The config is the **second positional argument** to stream() or invoke()!
+                # Get existing thread state or initialize new thread if it doesn't exist
+                try:
+                    # Try to retrieve existing thread state
+                    thread_state = memory.get(config["configurable"]["thread_id"]) or {}
+                    # If no messages exist yet, initialize with empty list and system prompt
+                    if "messages" not in thread_state:
+                        thread_state["messages"] = [{"role": "system", "content": system_prompt}]
+                except Exception:
+                    # If any error occurs, start with a fresh state and system prompt
+                    thread_state = {"messages": [{"role": "system", "content": system_prompt}]}
+                
+                # Add the new user message to the existing messages
+                thread_state["messages"].append({"role": "user", "content": user_input})
+                
+                # Send the complete conversation history to maintain context
                 events = graph.stream(
-                    {"messages": [{"role": "user", "content": user_input}]},
+                    thread_state,
                     config,
                     stream_mode="values",
                 )
