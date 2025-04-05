@@ -624,25 +624,6 @@ def main():
                 elif user_input.lower() == "/cache":
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
 
-                # We don't need the separate inputs anymore since we're using thread_state directly
-                # But we can optionally add cache info to the system message if needed
-                if thread_state["messages"] and hasattr(thread_state["messages"][0], "type") and thread_state["messages"][0].type == "system":
-                    # Create selective cache with only essential information
-                    selective_cache = {
-                        "os_type": cache.get("os_type", "unknown"),
-                        "external_ip": cache.get("external_ip", None),
-                        "location_data": cache.get("location_data", None)
-                    }
-                    # Only include items that are not None
-                    selective_cache = {k: v for k, v in selective_cache.items() if v is not None}
-                    
-                    # Update system message with cache info - but only once at the beginning
-                    if not hasattr(thread_state["messages"][0], "_cache_added"):
-                        from langchain_core.messages import SystemMessage
-                        cache_msg = f"\n\nAvailable cached data: {selective_cache}"
-                        thread_state["messages"][0] = SystemMessage(content=thread_state["messages"][0].content + cache_msg)
-                        setattr(thread_state["messages"][0], "_cache_added", True)
-
                 # Original streaming code is here, commented out
                 # response_stream = graph.stream(inputs, stream_mode="values", debug=False)
 
@@ -670,6 +651,24 @@ def main():
                 
                 # Add the user message
                 thread_state["messages"].append(HumanMessage(content=user_input))
+                
+                # Now we can optionally add cache info to the system message if needed
+                if thread_state["messages"] and hasattr(thread_state["messages"][0], "type") and thread_state["messages"][0].type == "system":
+                    # Create selective cache with only essential information
+                    selective_cache = {
+                        "os_type": cache.get("os_type", "unknown"),
+                        "external_ip": cache.get("external_ip", None),
+                        "location_data": cache.get("location_data", None)
+                    }
+                    # Only include items that are not None
+                    selective_cache = {k: v for k, v in selective_cache.items() if v is not None}
+                    
+                    # Update system message with cache info - but only once at the beginning
+                    if not hasattr(thread_state["messages"][0], "_cache_added"):
+                        from langchain_core.messages import SystemMessage
+                        cache_msg = f"\n\nAvailable cached data: {selective_cache}"
+                        thread_state["messages"][0] = SystemMessage(content=thread_state["messages"][0].content + cache_msg)
+                        setattr(thread_state["messages"][0], "_cache_added", True)
                 
                 # Send the complete conversation history to maintain context
                 events = graph.stream(
