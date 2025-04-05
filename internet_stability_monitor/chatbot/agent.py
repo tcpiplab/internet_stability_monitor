@@ -67,9 +67,11 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
         if not isinstance(last_message, AIMessage):
             # Reset tracking when we get a new human message
             if hasattr(last_message, "type") and last_message.type == "human":
-                global EXECUTED_TOOLS
+                global TOOL_CALL_COUNTER
                 TOOL_CALL_COUNTER = 0
-                EXECUTED_TOOLS = []  # Clear executed tools list for new query
+                # Reset the executed tools list for the new query
+                global EXECUTED_TOOLS
+                EXECUTED_TOOLS.clear()  # Use clear() instead of reassignment
                 print("Debug: Cleared tool execution history for new query")
             return "chatbot"
     except Exception as e:
@@ -116,7 +118,6 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
                 
                 # Only check against EXECUTED_TOOLS (tools that actually ran),
                 # not against all requested tools
-                global EXECUTED_TOOLS
                 if current_tool in EXECUTED_TOOLS:
                     print(f"Debug: Preventing repeated call to {current_tool} (already executed)")
                     return "chatbot"
