@@ -14,7 +14,8 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import BaseMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import ToolNode
+# We'll create our own tools_condition instead of importing the default one
 
 # Default system prompt
 DEFAULT_SYSTEM_PROMPT = (
@@ -22,16 +23,63 @@ DEFAULT_SYSTEM_PROMPT = (
     "\n1. IMPORTANT: When a user request closely matches a specific tool's purpose, use ONLY that tool"
     "\n2. For example, if a user asks to 'check websites' or 'check significant websites', use ONLY the check_websites tool"
     "\n3. Use multiple tools ONLY when necessary to fulfill distinct parts of a complex request"
-    "\n4. Avoid using the search tool unless explicitly requested or when local tools cannot answer the question"
-    "\n5. Prioritize direct tool names over general descriptions (e.g., 'check_dns_resolvers' over general DNS queries)"
-    "\n6. If a tool's response is verbose, summarize only the most important troubleshooting information"
-    "\n7. Keep track of which tools you've run in the current conversation, so you can accurately tell the user which tools were run when asked"
+    "\n4. NEVER call the same tool twice in a row - this is especially important for DNS tools"
+    "\n5. After running a tool like check_dns_root_servers_reachability, NEVER run it again immediately"
+    "\n6. Avoid using the search tool unless explicitly requested or when local tools cannot answer the question"
+    "\n7. Prioritize direct tool names over general descriptions (e.g., 'check_dns_resolvers' over general DNS queries)"
+    "\n8. If a tool's response is verbose, summarize only the most important troubleshooting information"
+    "\n9. Keep track of which tools you've run in the current conversation, so you can accurately tell the user which tools were run when asked"
     "\nYour primary job is network diagnostics using available tools, not general information retrieval."
+    "\nAFTER running a diagnostic tool, ALWAYS provide a direct summary without running additional tools unless explicitly requested."
 )
 
 class State(TypedDict):
     """State type for the LangGraph agent."""
     messages: Annotated[list, add_messages]
+
+# Custom tools condition to prevent repeated tool calls
+def custom_tools_condition(state: Dict[str, Any]) -> str:
+    """Custom condition that decides whether to use tools or not.
+    
+    This version adds protection against repeated tool calls, especially
+    for the DNS root server check which can cause loops.
+    """
+    from langchain_core.messages import AIMessage
+    
+    # Get the last message
+    last_message = state["messages"][-1]
+    
+    # Only AIMessages can call tools
+    if not isinstance(last_message, AIMessage):
+        return "chatbot"
+    
+    # Check for tool calls
+    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+        # Check for potential infinite loops in tool calls
+        # Look at recent history to see if we're repeating the same tool too many times
+        recent_tool_calls = []
+        tool_count = {}
+        
+        # Look back up to 4 messages for repeated tool patterns
+        message_window = min(len(state["messages"]), 8)
+        for msg in state["messages"][-message_window:]:
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    recent_tool_calls.append(tool_call.name)
+                    tool_count[tool_call.name] = tool_count.get(tool_call.name, 0) + 1
+        
+        # If a tool was used more than twice recently, don't run it again
+        for tool_call in last_message.tool_calls:
+            if tool_count.get(tool_call.name, 0) >= 2:
+                # Force return to chatbot instead of running the tool again
+                # This effectively ends the tool calling cycle
+                return "chatbot"
+        
+        # No infinite loop detected, continue with tool execution
+        return "tools"
+    
+    # No tool calls, continue with the chatbot
+    return "chatbot"
 
 class ChatbotAgent:
     """LangGraph agent for the chatbot."""
@@ -46,6 +94,9 @@ class ChatbotAgent:
         self.memory = memory_system
         self.model_name = model_name
         self.system_prompt = system_prompt
+        
+        # Keep track of recently run tools to prevent loops
+        self.recent_tools = []
         
         # Add search tool to the tools
         self.search_tool = TavilySearchResults(max_results=2)
@@ -72,7 +123,7 @@ class ChatbotAgent:
         
         graph_builder.add_conditional_edges(
             "chatbot",
-            tools_condition,
+            custom_tools_condition,
         )
         # Any time a tool is called, we return to the chatbot to decide the next step
         graph_builder.add_edge("tools", "chatbot")
