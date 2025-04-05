@@ -118,24 +118,28 @@ End of help menu.
 """
     print(help_text)
 
-def handle_command(command: str, graph = None) -> bool:
-    """Handle a command and return True if the command was handled."""
+def handle_command(command: str, graph = None) -> (bool, bool):
+    """
+    Handle a command and return two booleans:
+    - First one indicates if the command was handled
+    - Second one indicates if the program should exit
+    """
     if command.lower() in ["/exit", "/quit"]:
         print("\nExiting...")
         if memory_system:
             memory_system.save_cache()
         print("Exiting and saving cache...")
-        return True
+        return True, True  # Command handled, and should exit
     
     elif command.lower() in ["/help", "help", "/?", "?"]:
         display_help()
-        return True
+        return True, False  # Command handled, should not exit
 
     elif command.lower() == "/clear":
         if memory_system:
             memory_system.clear_history()
         print(f"{Fore.GREEN}Conversation history cleared.{Style.RESET_ALL}")
-        return True
+        return True, False  # Command handled, should not exit
     
     elif command.lower() == "/history":
         if memory_system:
@@ -143,7 +147,7 @@ def handle_command(command: str, graph = None) -> bool:
             print(f"{Fore.YELLOW}Conversation History:{Style.RESET_ALL}\n{history}")
         else:
             print(f"{Fore.RED}Memory system not initialized.{Style.RESET_ALL}")
-        return True
+        return True, False  # Command handled, should not exit
     
     elif command.lower() == "/memory":
         try:
@@ -190,18 +194,18 @@ def handle_command(command: str, graph = None) -> bool:
             print(f"{Fore.RED}Error accessing memory: {e}{Style.RESET_ALL}")
             import traceback
             print(f"{Fore.YELLOW}Traceback: {traceback.format_exc()}{Style.RESET_ALL}")
-        return True
+        return True, False  # Command handled, should not exit
     
     elif command.lower() == "/tools":
         # Display a list of available tools
         tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {get_first_line(tool_object.description)}" 
                             for tool_object in all_tools])
         print(f"{Fore.YELLOW}Available tools:{Style.RESET_ALL}\n{tools_list}")
-        return True
+        return True, False  # Command handled, should not exit
     
     elif command.lower() == "/cache":
         print(f"{Fore.YELLOW}Cache (memories): {memory_system.cache if memory_system else 'Memory system not initialized'}{Style.RESET_ALL}")
-        return True
+        return True, False  # Command handled, should not exit
     
     elif command.lower() == "/tool_history":
         if memory_system:
@@ -218,6 +222,6 @@ def handle_command(command: str, graph = None) -> bool:
                 print(f"{Fore.YELLOW}No tool history found.{Style.RESET_ALL}")
         else:
             print(f"{Fore.RED}Memory system not initialized.{Style.RESET_ALL}")
-        return True
+        return True, False  # Command handled, should not exit
     
-    return False
+    return False, False  # Command not handled, should not exit

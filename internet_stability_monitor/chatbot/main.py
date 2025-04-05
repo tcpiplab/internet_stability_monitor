@@ -62,8 +62,12 @@ def main(silent: bool = False, polite: bool = True):
                 user_input = get_user_input()
                 
                 # Check for commands
-                if handle_command(user_input):
-                    continue
+                handled, should_exit = handle_command(user_input)
+                if handled:
+                    if should_exit:
+                        break  # Exit the loop if the command indicates we should exit
+                    else:
+                        continue
                 
                 # Process user input
                 response = agent.process_input(user_input)
