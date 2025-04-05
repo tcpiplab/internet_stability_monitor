@@ -19,33 +19,44 @@ from langgraph.prebuilt import ToolNode
 
 # Default system prompt
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a precise network diagnostics assistant. Follow these guidelines for tool usage:"
-    "\n1. IMPORTANT: When a user request closely matches a specific tool's purpose, use ONLY that tool"
-    "\n2. For example, if a user asks to 'check websites' or 'check significant websites', use ONLY the check_websites tool"
-    "\n3. Use multiple tools ONLY when necessary to fulfill distinct parts of a complex request"
-    "\n4. NEVER call the same tool twice in a row - this is especially important for DNS tools"
-    "\n5. After running a tool like check_dns_root_servers_reachability, NEVER run it again immediately"
-    "\n6. Avoid using the search tool unless explicitly requested or when local tools cannot answer the question"
-    "\n7. Prioritize direct tool names over general descriptions (e.g., 'check_dns_resolvers' over general DNS queries)"
-    "\n8. If a tool's response is verbose, summarize only the most important troubleshooting information"
-    "\n9. Keep track of which tools you've run in the current conversation, so you can accurately tell the user which tools were run when asked"
-    "\nYour primary job is network diagnostics using available tools, not general information retrieval."
-    "\nAFTER running a diagnostic tool, ALWAYS provide a direct summary without running additional tools unless explicitly requested."
+    "You are a precise network diagnostics assistant. Follow these exact tool selection rules:"
+    "\n\nTOOL SELECTION RULES:"
+    "\n- For user location or IP geolocation questions: ALWAYS use get_isp_location ONLY"
+    "\n- For questions about external IP: ALWAYS use get_external_ip ONLY"
+    "\n- For local IP address questions: ALWAYS use get_local_ip ONLY" 
+    "\n- For DNS root server questions: ALWAYS use check_dns_root_servers_reachability ONLY"
+    "\n- For website reachability questions: ALWAYS use check_websites ONLY"
+    "\n- NEVER use check_websites or check_internet_connection unless specifically asked about website status"
+    "\n\nTOOL USAGE RULES:"
+    "\n- ALWAYS use EXACTLY ONE tool for simple questions - do not chain multiple tools"
+    "\n- NEVER run the same tool twice in a row"
+    "\n- ALWAYS provide a direct answer after running a tool without running more tools"
+    "\n- If you're unsure which tool to use, ask the user for clarification instead of guessing"
+    "\n\nThe available tools include get_isp_location, get_external_ip, get_local_ip, check_websites, check_internet_connection, and several others. Choose the most appropriate one based on the rules above."
 )
 
 class State(TypedDict):
     """State type for the LangGraph agent."""
     messages: Annotated[list, add_messages]
 
-# Custom tools condition to prevent repeated tool calls
+# Global counter for total tool calls in a single query processing
+TOOL_CALL_COUNTER = 0
+MAX_TOOL_CALLS_PER_QUERY = 3  # Maximum number of tool calls allowed per user query
+
+# Custom tools condition to prevent repeated tool calls and enforce tool selection rules
 def custom_tools_condition(state: Dict[str, Any]) -> str:
     """Custom condition that decides whether to use tools or not.
     
-    This version adds protection against repeated tool calls, especially
-    for the DNS root server check which can cause loops.
+    This improved version:
+    1. Limits total tool calls per user query
+    2. Prevents repeated tool calls
+    3. Adds extra checks for correct tool selection
     """
     from langchain_core.messages import AIMessage
     import traceback
+    
+    # Access global counter
+    global TOOL_CALL_COUNTER
     
     try:
         # Get the last message
@@ -53,73 +64,85 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
         
         # Only AIMessages can call tools
         if not isinstance(last_message, AIMessage):
+            # Reset counter when we get a new human message
+            if hasattr(last_message, "type") and last_message.type == "human":
+                TOOL_CALL_COUNTER = 0
             return "chatbot"
     except Exception as e:
-        print(f"Error in custom_tools_condition examining last message: {e}")
+        print(f"Error examining message type: {e}")
         traceback.print_exc()
         return "chatbot"  # Safe fallback
     
     # Check for tool calls
     try:
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            # Check for potential infinite loops in tool calls
-            # Look at recent history to see if we're repeating the same tool too many times
-            recent_tool_calls = []
-            tool_count = {}
+            # Hard limit on total tool calls per user query
+            if TOOL_CALL_COUNTER >= MAX_TOOL_CALLS_PER_QUERY:
+                print(f"Debug: Maximum tool call limit of {MAX_TOOL_CALLS_PER_QUERY} reached, stopping execution")
+                return "chatbot"  # Stop the tool execution chain
+                
+            # Count unique tools requested in this message
+            unique_tools = set()
+            for tool_call in last_message.tool_calls:
+                if isinstance(tool_call, dict) and "name" in tool_call:
+                    unique_tools.add(tool_call["name"])
+                elif hasattr(tool_call, "name"):
+                    unique_tools.add(tool_call.name)
+            
+            # Warn if more than one tool requested at once (violates our rules)
+            if len(unique_tools) > 1:
+                print(f"Warning: Model requested {len(unique_tools)} tools at once: {unique_tools}")
+                print("Only the first tool will be executed")
             
             # Print debug info about the tool calls
             print(f"Debug: Tool calls type: {type(last_message.tool_calls)}")
             print(f"Debug: Tool calls content: {last_message.tool_calls}")
             
-            # Look back up to 4 messages for repeated tool patterns
-            message_window = min(len(state["messages"]), 8)
-            for msg in state["messages"][-message_window:]:
+            # Get history of all tool calls in the current conversation
+            tool_history = []
+            for msg in state["messages"]:
                 if hasattr(msg, "tool_calls") and msg.tool_calls:
                     for tool_call in msg.tool_calls:
-                        # Handle both object-style and dict-style tool calls
                         if isinstance(tool_call, dict) and "name" in tool_call:
-                            # Dictionary style
-                            tool_name = tool_call["name"]
+                            tool_history.append(tool_call["name"])
                         elif hasattr(tool_call, "name"):
-                            # Object style
-                            tool_name = tool_call.name
-                        else:
-                            # Unknown format, skip this one
-                            continue
-                            
-                        recent_tool_calls.append(tool_name)
-                        tool_count[tool_name] = tool_count.get(tool_name, 0) + 1
-        
-            # If a tool was used more than twice recently, don't run it again
-            for tool_call in last_message.tool_calls:
-                try:
-                    # Get the tool name with the same logic as above
-                    if isinstance(tool_call, dict) and "name" in tool_call:
-                        tool_name = tool_call["name"]
-                    elif hasattr(tool_call, "name"):
-                        tool_name = tool_call.name
-                    else:
-                        continue
-                        
-                    if tool_count.get(tool_name, 0) >= 2:
-                        # Force return to chatbot instead of running the tool again
-                        # This effectively ends the tool calling cycle
-                        print(f"Debug: Preventing repeated call to {tool_name}")
-                        return "chatbot"
-                except Exception as e:
-                    print(f"Error checking tool repetition: {e}")
-                    traceback.print_exc()
-                    # On error, let's be safe and not run the tool
-                    return "chatbot"
+                            tool_history.append(tool_call.name)
             
-            # No infinite loop detected, continue with tool execution
-            return "tools"
+            # Check the last tool call request
+            current_tool = None
+            if last_message.tool_calls:
+                tool_call = last_message.tool_calls[0]  # Focus on first requested tool
+                if isinstance(tool_call, dict) and "name" in tool_call:
+                    current_tool = tool_call["name"]
+                elif hasattr(tool_call, "name"):
+                    current_tool = tool_call.name
+            
+            if current_tool:
+                print(f"Debug: Model wants to call {current_tool}")
+                
+                # Check if this tool was already called in the sequence
+                if current_tool in tool_history:
+                    print(f"Debug: Preventing repeated call to {current_tool}")
+                    return "chatbot"
+                
+                # Location-related queries should use get_isp_location
+                if "location" in " ".join(msg.content for msg in state["messages"] if hasattr(msg, "content")).lower():
+                    if current_tool != "get_isp_location" and current_tool != "get_external_ip":
+                        print(f"Warning: Model using {current_tool} for location query instead of get_isp_location")
+                
+                # Increment our global counter and allow the tool call
+                TOOL_CALL_COUNTER += 1
+                return "tools"
+            
+            # No valid tool identified
+            return "chatbot"
     except Exception as e:
         print(f"Error in custom_tools_condition: {e}")
         traceback.print_exc()
         return "chatbot"  # Safe fallback
     
-    # No tool calls, continue with the chatbot
+    # No tool calls, reset counter and continue with the chatbot
+    TOOL_CALL_COUNTER = 0
     return "chatbot"
 
 class ChatbotAgent:
