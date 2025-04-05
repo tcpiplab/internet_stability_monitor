@@ -265,7 +265,17 @@ def help_menu_and_list_tools() -> None:
 
     Returns: None
     """
-    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description.split('\n')[0]}" for tool_object in tools])
+    # Tools will be defined later, but we'll use them in the actual function
+    # We use a safe method to extract first line of description without backslashes
+    def get_first_line(desc):
+        if not desc:
+            return ""
+        lines = desc.split('\n')
+        return lines[0] if lines else ""
+    
+    # Get the list of tools at runtime, not definition time
+    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {get_first_line(tool_object.description)}" 
+                           for tool_object in tools])
 
     help_text = f"""
 {Fore.CYAN}Available chat commands:{Style.RESET_ALL}
@@ -579,7 +589,14 @@ def main():
                     
                 elif user_input.lower() == "/tools":
                     # Display a list of available tools
-                    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description.split('\n')[0]}" for tool_object in tools])
+                    def get_first_line(desc):
+                        if not desc:
+                            return ""
+                        lines = desc.split('\n')
+                        return lines[0] if lines else ""
+                    
+                    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {get_first_line(tool_object.description)}" 
+                                           for tool_object in tools])
                     print(f"{Fore.YELLOW}Available tools:{Style.RESET_ALL}\n{tools_list}")
                     continue
                     
