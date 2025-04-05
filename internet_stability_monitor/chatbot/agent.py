@@ -39,9 +39,10 @@ class State(TypedDict):
     """State type for the LangGraph agent."""
     messages: Annotated[list, add_messages]
 
-# Global counter for total tool calls in a single query processing
+# Global variables for tool call tracking
 TOOL_CALL_COUNTER = 0
 MAX_TOOL_CALLS_PER_QUERY = 3  # Maximum number of tool calls allowed per user query
+EXECUTED_TOOLS = []  # List of tools that have been successfully executed
 
 # Custom tools condition to prevent repeated tool calls and enforce tool selection rules
 def custom_tools_condition(state: Dict[str, Any]) -> str:
@@ -64,9 +65,12 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
         
         # Only AIMessages can call tools
         if not isinstance(last_message, AIMessage):
-            # Reset counter when we get a new human message
+            # Reset tracking when we get a new human message
             if hasattr(last_message, "type") and last_message.type == "human":
+                global EXECUTED_TOOLS
                 TOOL_CALL_COUNTER = 0
+                EXECUTED_TOOLS = []  # Clear executed tools list for new query
+                print("Debug: Cleared tool execution history for new query")
             return "chatbot"
     except Exception as e:
         print(f"Error examining message type: {e}")
@@ -98,16 +102,6 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
             print(f"Debug: Tool calls type: {type(last_message.tool_calls)}")
             print(f"Debug: Tool calls content: {last_message.tool_calls}")
             
-            # Get history of all tool calls in the current conversation
-            tool_history = []
-            for msg in state["messages"]:
-                if hasattr(msg, "tool_calls") and msg.tool_calls:
-                    for tool_call in msg.tool_calls:
-                        if isinstance(tool_call, dict) and "name" in tool_call:
-                            tool_history.append(tool_call["name"])
-                        elif hasattr(tool_call, "name"):
-                            tool_history.append(tool_call.name)
-            
             # Check the last tool call request
             current_tool = None
             if last_message.tool_calls:
@@ -120,10 +114,17 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
             if current_tool:
                 print(f"Debug: Model wants to call {current_tool}")
                 
-                # Check if this tool was already called in the sequence
-                if current_tool in tool_history:
-                    print(f"Debug: Preventing repeated call to {current_tool}")
+                # Only check against EXECUTED_TOOLS (tools that actually ran),
+                # not against all requested tools
+                global EXECUTED_TOOLS
+                if current_tool in EXECUTED_TOOLS:
+                    print(f"Debug: Preventing repeated call to {current_tool} (already executed)")
                     return "chatbot"
+                    
+                # Register that we're about to execute this tool
+                EXECUTED_TOOLS.append(current_tool)
+                print(f"Debug: Allowing execution of {current_tool} (first time)")
+                print(f"Debug: Executed tools so far: {EXECUTED_TOOLS}")
                 
                 # Location-related queries should use get_isp_location
                 if "location" in " ".join(msg.content for msg in state["messages"] if hasattr(msg, "content")).lower():
