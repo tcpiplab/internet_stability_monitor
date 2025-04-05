@@ -95,6 +95,29 @@ def get_local_date_time_and_timezone() -> List[str]:
         memory_system.record_tool_call("get_local_date_time_and_timezone", {}, result)
     return result
 
+def display_help():
+    """Display the help menu without using the LangChain tool."""
+    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {get_first_line(tool_object.description)}" 
+                          for tool_object in all_tools])
+
+    help_text = f"""
+{Fore.CYAN}Available chat commands:{Style.RESET_ALL}
+- {Fore.GREEN}/help{Style.RESET_ALL}: Show this help message
+- {Fore.GREEN}/exit{Style.RESET_ALL}: Exit the chatbot
+- {Fore.GREEN}/clear{Style.RESET_ALL}: Clear conversation history
+- {Fore.GREEN}/history{Style.RESET_ALL}: Show recent conversation history
+- {Fore.GREEN}/memory{Style.RESET_ALL}: Show detailed conversation state
+- {Fore.GREEN}/tools{Style.RESET_ALL}: List all available tools
+- {Fore.GREEN}/cache{Style.RESET_ALL}: Show cached data
+- {Fore.GREEN}/tool_history{Style.RESET_ALL}: Show recently used tools
+
+{Fore.CYAN}Available tools:{Style.RESET_ALL}
+{tools_list}
+
+End of help menu.
+"""
+    print(help_text)
+
 def handle_command(command: str, graph = None) -> bool:
     """Handle a command and return True if the command was handled."""
     if command.lower() in ["/exit", "/quit"]:
@@ -105,7 +128,7 @@ def handle_command(command: str, graph = None) -> bool:
         return True
     
     elif command.lower() in ["/help", "help", "/?", "?"]:
-        help_menu_and_list_tools()
+        display_help()
         return True
 
     elif command.lower() == "/clear":

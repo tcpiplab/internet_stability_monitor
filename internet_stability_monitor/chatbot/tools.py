@@ -305,3 +305,18 @@ def get_tools():
         run_mac_speed_test,
         check_smtp_servers,
     ]
+
+# Function to directly invoke a tool (for command handlers)
+def invoke_tool(tool, input_data=None):
+    """Directly invoke a tool with optional input data."""
+    if input_data is None:
+        input_data = {}
+        
+    # Use the new invoke method instead of calling directly
+    if hasattr(tool, "invoke"):
+        return tool.invoke(input_data)
+    # Fallback for older tools or custom functions
+    elif callable(tool):
+        return tool(**input_data)
+        
+    return None

@@ -36,9 +36,10 @@ def main(silent: bool = False, polite: bool = True):
     tools = get_tools()
     set_memory_system(memory)
     
-    # Also add command-related tools
+    # Also add command-related tools that should be available to the model
     from internet_stability_monitor.chatbot.commands import help_menu_and_list_tools, check_cache, get_local_date_time_and_timezone
-    tools.extend([help_menu_and_list_tools, check_cache, get_local_date_time_and_timezone])
+    # Make these tools available to the model but handle them separately in UI when needed
+    tools.extend([check_cache, get_local_date_time_and_timezone])
     
     # Set dependencies for commands
     set_dependencies(memory, tools)
