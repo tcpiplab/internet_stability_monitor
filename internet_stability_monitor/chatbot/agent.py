@@ -57,8 +57,8 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
     from langchain_core.messages import AIMessage
     import traceback
     
-    # Access global counter
-    global TOOL_CALL_COUNTER
+    # Access all globals at the beginning of the function
+    global TOOL_CALL_COUNTER, EXECUTED_TOOLS, QUERY_COMPLETED
     
     try:
         # Get the last message
@@ -68,7 +68,7 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
         if not isinstance(last_message, AIMessage):
             # Reset tracking when we get a new human message
             if hasattr(last_message, "type") and last_message.type == "human":
-                global TOOL_CALL_COUNTER, EXECUTED_TOOLS, QUERY_COMPLETED
+                # No need for global here, already declared at function start
                 TOOL_CALL_COUNTER = 0
                 EXECUTED_TOOLS.clear()  # Use clear() instead of reassignment
                 QUERY_COMPLETED = False  # Reset completion flag
@@ -83,7 +83,6 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
     try:
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
             # Check if we've already completed this query with a tool
-            global QUERY_COMPLETED
             if QUERY_COMPLETED:
                 print("Debug: Query already completed with a tool, stopping further tool execution")
                 return "chatbot"  # Prevent any more tool calls
