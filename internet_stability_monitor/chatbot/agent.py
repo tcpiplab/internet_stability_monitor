@@ -41,8 +41,9 @@ class State(TypedDict):
 
 # Global variables for tool call tracking
 TOOL_CALL_COUNTER = 0
-MAX_TOOL_CALLS_PER_QUERY = 3  # Maximum number of tool calls allowed per user query
+MAX_TOOL_CALLS_PER_QUERY = 1  # Strict limit: one tool per query
 EXECUTED_TOOLS = []  # List of tools that have been successfully executed
+QUERY_COMPLETED = False  # Flag to indicate when we've run a tool and should stop
 
 # Custom tools condition to prevent repeated tool calls and enforce tool selection rules
 def custom_tools_condition(state: Dict[str, Any]) -> str:
@@ -67,11 +68,10 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
         if not isinstance(last_message, AIMessage):
             # Reset tracking when we get a new human message
             if hasattr(last_message, "type") and last_message.type == "human":
-                global TOOL_CALL_COUNTER
+                global TOOL_CALL_COUNTER, EXECUTED_TOOLS, QUERY_COMPLETED
                 TOOL_CALL_COUNTER = 0
-                # Reset the executed tools list for the new query
-                global EXECUTED_TOOLS
                 EXECUTED_TOOLS.clear()  # Use clear() instead of reassignment
+                QUERY_COMPLETED = False  # Reset completion flag
                 print("Debug: Cleared tool execution history for new query")
             return "chatbot"
     except Exception as e:
@@ -82,9 +82,16 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
     # Check for tool calls
     try:
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            # Check if we've already completed this query with a tool
+            global QUERY_COMPLETED
+            if QUERY_COMPLETED:
+                print("Debug: Query already completed with a tool, stopping further tool execution")
+                return "chatbot"  # Prevent any more tool calls
+                
             # Hard limit on total tool calls per user query
             if TOOL_CALL_COUNTER >= MAX_TOOL_CALLS_PER_QUERY:
                 print(f"Debug: Maximum tool call limit of {MAX_TOOL_CALLS_PER_QUERY} reached, stopping execution")
+                QUERY_COMPLETED = True  # Mark as completed
                 return "chatbot"  # Stop the tool execution chain
                 
             # Count unique tools requested in this message
@@ -132,8 +139,10 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
                     if current_tool != "get_isp_location" and current_tool != "get_external_ip":
                         print(f"Warning: Model using {current_tool} for location query instead of get_isp_location")
                 
-                # Increment our global counter and allow the tool call
+                # Increment our global counter, mark query as completed, and allow the tool call
                 TOOL_CALL_COUNTER += 1
+                QUERY_COMPLETED = True  # Mark this query as completed after running the tool
+                print("Debug: Executing tool and marking query as completed")
                 return "tools"
             
             # No valid tool identified
