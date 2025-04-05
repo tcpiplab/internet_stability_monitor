@@ -719,35 +719,51 @@ def main():
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
                     
                 elif user_input.lower() == "/memory":
-                    # A simpler way to check what's in memory
+                    # Detailed way to inspect conversation state without relying on the model
                     try:
                         print(f"{Fore.YELLOW}Memory contents:{Style.RESET_ALL}")
                         
-                        # Skip the list_keys() method that doesn't exist
-                        print(f"{Fore.YELLOW}Attempting to ask the model to summarize conversation history:{Style.RESET_ALL}")
+                        # Try to access the checkpoint directly
+                        print(f"{Fore.YELLOW}Examining LangGraph memory state:{Style.RESET_ALL}")
                         
-                        # Create a special system message to tell the model what we want
-                        from langchain_core.messages import SystemMessage
-                        system_msg = SystemMessage(content="Please list all previous messages in this conversation, including who said what and any tools that were called. This is for the /memory command.")
-                        
-                        # Make a regular request but with our special instruction
+                        # Try to access data via the memory object itself
                         config = {"configurable": {"thread_id": "1"}}
-                        response = graph.invoke(
-                            {"messages": [system_msg, HumanMessage(content="Show me the conversation history")]}, 
-                            config
-                        )
+                        checkpoint_data = memory.get_tuple(config)
                         
-                        # Extract and display the response
-                        if isinstance(response, dict) and "messages" in response:
-                            last_msg = response["messages"][-1]
-                            if hasattr(last_msg, "content"):
-                                print(f"{Fore.GREEN}Conversation summary:{Style.RESET_ALL}")
-                                print(f"{last_msg.content}")
-                            else:
-                                print(f"{Fore.YELLOW}Last message has no content attribute: {last_msg}{Style.RESET_ALL}")
-                        else:
-                            print(f"{Fore.YELLOW}Unexpected response format: {type(response)}{Style.RESET_ALL}")
+                        if checkpoint_data:
+                            print(f"CheckpointTuple found with {len(checkpoint_data) if hasattr(checkpoint_data, '__len__') else 'unknown'} elements")
                             
+                            # Get more information about tuple elements
+                            if hasattr(checkpoint_data, "_fields"):
+                                print(f"Named fields: {checkpoint_data._fields}")
+                                
+                            # Try to extract the stored messages
+                            for i, elem in enumerate(checkpoint_data):
+                                if isinstance(elem, list):
+                                    print(f"\nElement {i} is a list with {len(elem)} items")
+                                    if len(elem) > 0:
+                                        print(f"First item type: {type(elem[0])}")
+                                        # If we found potential messages, show a few
+                                        for j, item in enumerate(elem[:3]):
+                                            content = getattr(item, "content", str(item)[:50])
+                                            item_type = getattr(item, "type", type(item).__name__)
+                                            print(f"  Item {j}: {item_type} - {content[:50]}...")
+                                
+                                elif isinstance(elem, dict):
+                                    print(f"\nElement {i} is a dict with keys: {elem.keys()}")
+                                    if "messages" in elem:
+                                        print(f"Found 'messages' in element {i} with {len(elem['messages'])} items")
+                                        if len(elem["messages"]) > 0:
+                                            # Display a few sample messages
+                                            for j, msg in enumerate(elem["messages"][-3:]):
+                                                content = getattr(msg, "content", str(msg)[:50])
+                                                msg_type = getattr(msg, "type", type(msg).__name__)
+                                                print(f"  Message {j}: {msg_type} - {content[:50]}...")
+                        else:
+                            print("No checkpoint data found")
+                        
+                        # Finally, make a simple request to show the configured thread ID
+                        print(f"{Fore.YELLOW}Current thread ID: 1{Style.RESET_ALL}")
                     except Exception as e:
                         print(f"{Fore.RED}Error accessing memory: {e}{Style.RESET_ALL}")
                         import traceback
