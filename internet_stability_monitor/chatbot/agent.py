@@ -45,38 +45,79 @@ def custom_tools_condition(state: Dict[str, Any]) -> str:
     for the DNS root server check which can cause loops.
     """
     from langchain_core.messages import AIMessage
+    import traceback
     
-    # Get the last message
-    last_message = state["messages"][-1]
-    
-    # Only AIMessages can call tools
-    if not isinstance(last_message, AIMessage):
-        return "chatbot"
+    try:
+        # Get the last message
+        last_message = state["messages"][-1]
+        
+        # Only AIMessages can call tools
+        if not isinstance(last_message, AIMessage):
+            return "chatbot"
+    except Exception as e:
+        print(f"Error in custom_tools_condition examining last message: {e}")
+        traceback.print_exc()
+        return "chatbot"  # Safe fallback
     
     # Check for tool calls
-    if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-        # Check for potential infinite loops in tool calls
-        # Look at recent history to see if we're repeating the same tool too many times
-        recent_tool_calls = []
-        tool_count = {}
+    try:
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            # Check for potential infinite loops in tool calls
+            # Look at recent history to see if we're repeating the same tool too many times
+            recent_tool_calls = []
+            tool_count = {}
+            
+            # Print debug info about the tool calls
+            print(f"Debug: Tool calls type: {type(last_message.tool_calls)}")
+            print(f"Debug: Tool calls content: {last_message.tool_calls}")
+            
+            # Look back up to 4 messages for repeated tool patterns
+            message_window = min(len(state["messages"]), 8)
+            for msg in state["messages"][-message_window:]:
+                if hasattr(msg, "tool_calls") and msg.tool_calls:
+                    for tool_call in msg.tool_calls:
+                        # Handle both object-style and dict-style tool calls
+                        if isinstance(tool_call, dict) and "name" in tool_call:
+                            # Dictionary style
+                            tool_name = tool_call["name"]
+                        elif hasattr(tool_call, "name"):
+                            # Object style
+                            tool_name = tool_call.name
+                        else:
+                            # Unknown format, skip this one
+                            continue
+                            
+                        recent_tool_calls.append(tool_name)
+                        tool_count[tool_name] = tool_count.get(tool_name, 0) + 1
         
-        # Look back up to 4 messages for repeated tool patterns
-        message_window = min(len(state["messages"]), 8)
-        for msg in state["messages"][-message_window:]:
-            if hasattr(msg, "tool_calls") and msg.tool_calls:
-                for tool_call in msg.tool_calls:
-                    recent_tool_calls.append(tool_call.name)
-                    tool_count[tool_call.name] = tool_count.get(tool_call.name, 0) + 1
-        
-        # If a tool was used more than twice recently, don't run it again
-        for tool_call in last_message.tool_calls:
-            if tool_count.get(tool_call.name, 0) >= 2:
-                # Force return to chatbot instead of running the tool again
-                # This effectively ends the tool calling cycle
-                return "chatbot"
-        
-        # No infinite loop detected, continue with tool execution
-        return "tools"
+            # If a tool was used more than twice recently, don't run it again
+            for tool_call in last_message.tool_calls:
+                try:
+                    # Get the tool name with the same logic as above
+                    if isinstance(tool_call, dict) and "name" in tool_call:
+                        tool_name = tool_call["name"]
+                    elif hasattr(tool_call, "name"):
+                        tool_name = tool_call.name
+                    else:
+                        continue
+                        
+                    if tool_count.get(tool_name, 0) >= 2:
+                        # Force return to chatbot instead of running the tool again
+                        # This effectively ends the tool calling cycle
+                        print(f"Debug: Preventing repeated call to {tool_name}")
+                        return "chatbot"
+                except Exception as e:
+                    print(f"Error checking tool repetition: {e}")
+                    traceback.print_exc()
+                    # On error, let's be safe and not run the tool
+                    return "chatbot"
+            
+            # No infinite loop detected, continue with tool execution
+            return "tools"
+    except Exception as e:
+        print(f"Error in custom_tools_condition: {e}")
+        traceback.print_exc()
+        return "chatbot"  # Safe fallback
     
     # No tool calls, continue with the chatbot
     return "chatbot"
