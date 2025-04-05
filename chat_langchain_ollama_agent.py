@@ -415,8 +415,16 @@ graph_builder.add_edge(START, "chatbot")
 # compile the graph with the provided checkpointer
 graph = graph_builder.compile(checkpointer=memory)
 
-# Now you can interact with your bot! First, pick a thread to use as the key for this conversation.
-thread_id = "1"  # Simple string identifier for this conversation thread
+# Flag to track if this is the first message in the conversation
+_first_message = True
+
+# Function to check and update the first_message flag
+def _is_first_message():
+    global _first_message
+    if _first_message:
+        _first_message = False
+        return True
+    return False
 
 
 
@@ -538,14 +546,22 @@ def main():
 
                 elif user_input.lower() == "/clear":
                     # Clear conversation history but keep the system prompt
-                    memory.delete(thread_id)
+                    config = {"configurable": {"thread_id": "1"}}
+                    memory.delete(config)
+                    # Reset first message flag to include system message on next message
+                    global _first_message
+                    _first_message = True
                     print(f"{Fore.GREEN}Conversation history cleared.{Style.RESET_ALL}")
                     continue
                 
                 elif user_input.lower() == "/history":
                     # Show the conversation history (for debugging)
                     try:
-                        thread_state = memory.get(thread_id) or {}
+                        config = {"configurable": {"thread_id": "1"}}
+                        # Use get_tuple to get the raw state from memory
+                        history_tuple = memory.get_tuple(config)
+                        # Convert to dict if needed
+                        thread_state = dict(history_tuple) if history_tuple else {}
                         
                         # Ensure we have a valid messages list
                         if isinstance(thread_state, dict) and "messages" in thread_state and isinstance(thread_state["messages"], list):
@@ -624,37 +640,19 @@ def main():
                 elif user_input.lower() == "/cache":
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
 
-                # Original streaming code is here, commented out
-                # response_stream = graph.stream(inputs, stream_mode="values", debug=False)
-
-                # Get existing thread state or initialize new thread if it doesn't exist
-                try:
-                    # Try to retrieve existing thread state using simple thread_id string
-                    thread_state = memory.get(thread_id) or {}
-                    # If no messages exist yet, initialize with empty list and system prompt
-                    if "messages" not in thread_state:
-                        from langchain_core.messages import SystemMessage, HumanMessage
-                        thread_state["messages"] = [SystemMessage(content=system_prompt)]
-                except Exception as e:
-                    # If any error occurs, start with a fresh state and system prompt
-                    from langchain_core.messages import SystemMessage, HumanMessage
-                    thread_state = {"messages": [SystemMessage(content=system_prompt)]}
-                    print(f"{Fore.YELLOW}Debug: Starting fresh state due to: {e}{Style.RESET_ALL}")
+                # Create configuration object with thread_id - exactly as shown in LangGraph docs
+                config = {"configurable": {"thread_id": "1"}}
                 
                 # Import all message types we might encounter
-                from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+                from langchain_core.messages import HumanMessage, SystemMessage
                 
-                # Add the new user message to the existing messages using LangChain message objects
-                # Make sure thread_state["messages"] is a list
-                if not isinstance(thread_state.get("messages", []), list):
-                    thread_state["messages"] = [SystemMessage(content=system_prompt)]
+                # Create a HumanMessage object from the user input
+                user_message = HumanMessage(content=user_input)
                 
-                # Add the user message
-                thread_state["messages"].append(HumanMessage(content=user_input))
-                
-                # Now we can optionally add cache info to the system message if needed
-                if thread_state["messages"] and hasattr(thread_state["messages"][0], "type") and thread_state["messages"][0].type == "system":
-                    # Create selective cache with only essential information
+                # Create input data structure following LangGraph documentation
+                # We only add the new message in each call - the checkpointer handles history
+                if _is_first_message():
+                    # For the first message, include a system message
                     selective_cache = {
                         "os_type": cache.get("os_type", "unknown"),
                         "external_ip": cache.get("external_ip", None),
@@ -663,17 +661,17 @@ def main():
                     # Only include items that are not None
                     selective_cache = {k: v for k, v in selective_cache.items() if v is not None}
                     
-                    # Update system message with cache info - but only once at the beginning
-                    if not hasattr(thread_state["messages"][0], "_cache_added"):
-                        from langchain_core.messages import SystemMessage
-                        cache_msg = f"\n\nAvailable cached data: {selective_cache}"
-                        thread_state["messages"][0] = SystemMessage(content=thread_state["messages"][0].content + cache_msg)
-                        setattr(thread_state["messages"][0], "_cache_added", True)
+                    # Add cache data to system prompt
+                    full_system_prompt = f"{system_prompt}\n\nAvailable cached data: {selective_cache}"
+                    input_data = {"messages": [SystemMessage(content=full_system_prompt), user_message]}
+                else:
+                    # For subsequent messages, just add the user message
+                    input_data = {"messages": [user_message]}
                 
-                # Send the complete conversation history to maintain context
+                # Stream the graph with the input_data and config - exactly matching docs
                 events = graph.stream(
-                    thread_state,
-                    {"configurable": {"thread_id": thread_id}},
+                    input_data,  # New message(s) to add
+                    config,      # Configuration with thread_id
                     stream_mode="values",
                 )
 
