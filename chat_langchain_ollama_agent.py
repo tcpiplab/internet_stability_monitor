@@ -546,45 +546,66 @@ def main():
                     # Show the conversation history (for debugging)
                     try:
                         thread_state = memory.get(config["configurable"]["thread_id"]) or {}
-                        if "messages" in thread_state:
-                            print(f"{Fore.YELLOW}Conversation history (last 5 messages):{Style.RESET_ALL}")
-                            for i, msg in enumerate(thread_state["messages"][-5:]):
-                                # Handle LangChain message objects
-                                if hasattr(msg, "type") and hasattr(msg, "content"):
-                                    role = msg.type
-                                    content = msg.content
-                                    # Specifically identify tool calls
-                                    if hasattr(msg, "tool_calls") and msg.tool_calls:
-                                        role = f"{role} (tool: {msg.tool_calls[0].name})"
-                                # Handle dictionaries (unlikely but possible)
-                                elif isinstance(msg, dict):
-                                    if "role" in msg:
-                                        role = msg["role"]
-                                        content = msg.get("content", "")
-                                    elif "type" in msg:
-                                        role = msg["type"]
-                                        content = msg.get("content", "")
-                                    else:
-                                        role = "unknown"
-                                        content = str(msg)[:100]
-                                # Fall back for any other type
+                        
+                        # Ensure we have a valid messages list
+                        if isinstance(thread_state, dict) and "messages" in thread_state and isinstance(thread_state["messages"], list):
+                            messages = thread_state["messages"]
+                            msg_count = len(messages)
+                            
+                            print(f"{Fore.YELLOW}Conversation history ({msg_count} messages, showing last 5):{Style.RESET_ALL}")
+                            
+                            # Show at most the last 5 messages
+                            for i, msg in enumerate(messages[-5:]):
+                                # A safer way to get message type and content
+                                msg_class = msg.__class__.__name__ if hasattr(msg, "__class__") else "Unknown"
+                                
+                                # Different message types
+                                if hasattr(msg, "content"):
+                                    content = str(msg.content) if msg.content is not None else ""
                                 else:
-                                    role = msg.__class__.__name__ if hasattr(msg, "__class__") else "unknown"
                                     content = str(msg)[:100]
                                 
-                                # Create preview
+                                # Get role from type or class name
+                                if hasattr(msg, "type"):
+                                    role = msg.type
+                                else:
+                                    # Map class names to roles
+                                    role_map = {
+                                        "HumanMessage": "user",
+                                        "AIMessage": "assistant",
+                                        "SystemMessage": "system",
+                                        "ToolMessage": "tool",
+                                        "FunctionMessage": "function"
+                                    }
+                                    role = role_map.get(msg_class, msg_class)
+                                
+                                # Add tool information if present
+                                if hasattr(msg, "name") and msg.name:
+                                    role = f"{role} (tool: {msg.name})"
+                                
+                                # Create a preview of the content
                                 content_preview = (content[:50] + "...") if len(content) > 50 else content
-                                print(f"{i}: {Fore.BLUE}{role}{Style.RESET_ALL}: {content_preview}")
+                                
+                                # Display message with pretty formatting
+                                idx = msg_count - 5 + i if msg_count > 5 else i
+                                print(f"{idx}: {Fore.BLUE}{role}{Style.RESET_ALL}: {content_preview}")
                         else:
-                            print(f"{Fore.YELLOW}No conversation history found.{Style.RESET_ALL}")
+                            print(f"{Fore.YELLOW}No valid conversation history found.{Style.RESET_ALL}")
+                            if "messages" in thread_state:
+                                print(f"Messages is type: {type(thread_state['messages'])}")
                     except Exception as e:
                         print(f"{Fore.RED}Error retrieving history: {e}{Style.RESET_ALL}")
-                        # Print more debug info
+                        # Print more debug info for troubleshooting
+                        import traceback
                         print(f"{Fore.YELLOW}Debug info: thread_state type: {type(thread_state)}{Style.RESET_ALL}")
-                        if "messages" in thread_state:
-                            for i, msg in enumerate(thread_state["messages"][-2:]):
-                                print(f"Message {i} type: {type(msg)}")
-                                print(f"Message {i} dir: {dir(msg)[:100]}")
+                        print(f"{Fore.YELLOW}Debug info: Keys: {thread_state.keys() if isinstance(thread_state, dict) else 'not a dict'}{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}Traceback: {traceback.format_exc()}{Style.RESET_ALL}")
+                        if isinstance(thread_state, dict) and "messages" in thread_state:
+                            print(f"Messages type: {type(thread_state['messages'])}")
+                            if hasattr(thread_state["messages"], "__iter__"):
+                                for i, msg in enumerate(thread_state["messages"][-2:]):
+                                    print(f"Message {i} type: {type(msg)}")
+                                    print(f"Message {i} attributes: {[attr for attr in dir(msg) if not attr.startswith('_')]}")
                     continue
                     
                 elif user_input.lower() == "/tools":
@@ -603,20 +624,24 @@ def main():
                 elif user_input.lower() == "/cache":
                     print(f"{Fore.YELLOW}Cache (memories): {cache}{Style.RESET_ALL}")
 
-                # Create a selective cache with only essential information
-                selective_cache = {
-                    "os_type": cache.get("os_type", "unknown"),
-                    "external_ip": cache.get("external_ip", None),
-                    "location_data": cache.get("location_data", None)
-                }
-
-                # Only include items that are not None
-                selective_cache = {k: v for k, v in selective_cache.items() if v is not None}
-
-                # Prepare inputs with selective cache data
-                inputs = {
-                    "messages": [("user", user_input), ("system", f"cache: {selective_cache}")]
-                }
+                # We don't need the separate inputs anymore since we're using thread_state directly
+                # But we can optionally add cache info to the system message if needed
+                if thread_state["messages"] and hasattr(thread_state["messages"][0], "type") and thread_state["messages"][0].type == "system":
+                    # Create selective cache with only essential information
+                    selective_cache = {
+                        "os_type": cache.get("os_type", "unknown"),
+                        "external_ip": cache.get("external_ip", None),
+                        "location_data": cache.get("location_data", None)
+                    }
+                    # Only include items that are not None
+                    selective_cache = {k: v for k, v in selective_cache.items() if v is not None}
+                    
+                    # Update system message with cache info - but only once at the beginning
+                    if not hasattr(thread_state["messages"][0], "_cache_added"):
+                        from langchain_core.messages import SystemMessage
+                        cache_msg = f"\n\nAvailable cached data: {selective_cache}"
+                        thread_state["messages"][0] = SystemMessage(content=thread_state["messages"][0].content + cache_msg)
+                        setattr(thread_state["messages"][0], "_cache_added", True)
 
                 # Original streaming code is here, commented out
                 # response_stream = graph.stream(inputs, stream_mode="values", debug=False)
@@ -635,8 +660,15 @@ def main():
                     thread_state = {"messages": [SystemMessage(content=system_prompt)]}
                     print(f"{Fore.YELLOW}Debug: Starting fresh state due to: {e}{Style.RESET_ALL}")
                 
+                # Import all message types we might encounter
+                from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+                
                 # Add the new user message to the existing messages using LangChain message objects
-                from langchain_core.messages import HumanMessage
+                # Make sure thread_state["messages"] is a list
+                if not isinstance(thread_state.get("messages", []), list):
+                    thread_state["messages"] = [SystemMessage(content=system_prompt)]
+                
+                # Add the user message
                 thread_state["messages"].append(HumanMessage(content=user_input))
                 
                 # Send the complete conversation history to maintain context
