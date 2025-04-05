@@ -416,7 +416,7 @@ graph_builder.add_edge(START, "chatbot")
 graph = graph_builder.compile(checkpointer=memory)
 
 # Now you can interact with your bot! First, pick a thread to use as the key for this conversation.
-config = {"configurable": {"thread_id": "1"}}
+thread_id = "1"  # Simple string identifier for this conversation thread
 
 
 
@@ -538,14 +538,14 @@ def main():
 
                 elif user_input.lower() == "/clear":
                     # Clear conversation history but keep the system prompt
-                    memory.delete(config["configurable"]["thread_id"])
+                    memory.delete(thread_id)
                     print(f"{Fore.GREEN}Conversation history cleared.{Style.RESET_ALL}")
                     continue
                 
                 elif user_input.lower() == "/history":
                     # Show the conversation history (for debugging)
                     try:
-                        thread_state = memory.get(config["configurable"]["thread_id"]) or {}
+                        thread_state = memory.get(thread_id) or {}
                         
                         # Ensure we have a valid messages list
                         if isinstance(thread_state, dict) and "messages" in thread_state and isinstance(thread_state["messages"], list):
@@ -629,8 +629,8 @@ def main():
 
                 # Get existing thread state or initialize new thread if it doesn't exist
                 try:
-                    # Try to retrieve existing thread state
-                    thread_state = memory.get(config["configurable"]["thread_id"]) or {}
+                    # Try to retrieve existing thread state using simple thread_id string
+                    thread_state = memory.get(thread_id) or {}
                     # If no messages exist yet, initialize with empty list and system prompt
                     if "messages" not in thread_state:
                         from langchain_core.messages import SystemMessage, HumanMessage
@@ -673,7 +673,7 @@ def main():
                 # Send the complete conversation history to maintain context
                 events = graph.stream(
                     thread_state,
-                    config,
+                    {"configurable": {"thread_id": thread_id}},
                     stream_mode="values",
                 )
 
