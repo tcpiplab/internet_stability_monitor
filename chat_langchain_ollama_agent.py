@@ -265,11 +265,24 @@ def help_menu_and_list_tools() -> None:
 
     Returns: None
     """
-    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description}" for tool_object in tools])
+    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description.split('\n')[0]}" for tool_object in tools])
 
-    tools_list = f"Available tools:\n{tools_list}\nEnd of tools list."
+    help_text = f"""
+{Fore.CYAN}Available chat commands:{Style.RESET_ALL}
+- {Fore.GREEN}/help{Style.RESET_ALL}: Show this help message
+- {Fore.GREEN}/exit{Style.RESET_ALL}: Exit the chatbot
+- {Fore.GREEN}/clear{Style.RESET_ALL}: Clear conversation history
+- {Fore.GREEN}/history{Style.RESET_ALL}: Show recent conversation history
+- {Fore.GREEN}/tools{Style.RESET_ALL}: List all available tools
+- {Fore.GREEN}/cache{Style.RESET_ALL}: Show cached data
 
-    print(tools_list)
+{Fore.CYAN}Available tools:{Style.RESET_ALL}
+{tools_list}
+
+End of help menu.
+"""
+
+    print(help_text)
 
     return None
 
@@ -503,11 +516,15 @@ def main():
             try:
                 user_input = input(f"{Fore.CYAN}\nUser: {Style.RESET_ALL}")
 
-                if user_input.lower() == "/exit":
+                if user_input.lower() in ["/exit", "/quit"]:
                     print("\nExiting...")
                     save_cache(cache)
                     print("Exiting and saving cache...")
                     break
+                
+                elif user_input.lower() in ["/help", "help", "/?", "?"]:
+                    help_menu_and_list_tools()
+                    continue
 
                 elif user_input.lower() == "/clear":
                     # Clear conversation history but keep the system prompt
@@ -522,13 +539,48 @@ def main():
                         if "messages" in thread_state:
                             print(f"{Fore.YELLOW}Conversation history (last 5 messages):{Style.RESET_ALL}")
                             for i, msg in enumerate(thread_state["messages"][-5:]):
-                                role = msg.get("role", "unknown")
-                                content_preview = (msg.get("content", "")[:50] + "...") if len(msg.get("content", "")) > 50 else msg.get("content", "")
+                                # Handle LangChain message objects
+                                if hasattr(msg, "type") and hasattr(msg, "content"):
+                                    role = msg.type
+                                    content = msg.content
+                                    # Specifically identify tool calls
+                                    if hasattr(msg, "tool_calls") and msg.tool_calls:
+                                        role = f"{role} (tool: {msg.tool_calls[0].name})"
+                                # Handle dictionaries (unlikely but possible)
+                                elif isinstance(msg, dict):
+                                    if "role" in msg:
+                                        role = msg["role"]
+                                        content = msg.get("content", "")
+                                    elif "type" in msg:
+                                        role = msg["type"]
+                                        content = msg.get("content", "")
+                                    else:
+                                        role = "unknown"
+                                        content = str(msg)[:100]
+                                # Fall back for any other type
+                                else:
+                                    role = msg.__class__.__name__ if hasattr(msg, "__class__") else "unknown"
+                                    content = str(msg)[:100]
+                                
+                                # Create preview
+                                content_preview = (content[:50] + "...") if len(content) > 50 else content
                                 print(f"{i}: {Fore.BLUE}{role}{Style.RESET_ALL}: {content_preview}")
                         else:
                             print(f"{Fore.YELLOW}No conversation history found.{Style.RESET_ALL}")
                     except Exception as e:
                         print(f"{Fore.RED}Error retrieving history: {e}{Style.RESET_ALL}")
+                        # Print more debug info
+                        print(f"{Fore.YELLOW}Debug info: thread_state type: {type(thread_state)}{Style.RESET_ALL}")
+                        if "messages" in thread_state:
+                            for i, msg in enumerate(thread_state["messages"][-2:]):
+                                print(f"Message {i} type: {type(msg)}")
+                                print(f"Message {i} dir: {dir(msg)[:100]}")
+                    continue
+                    
+                elif user_input.lower() == "/tools":
+                    # Display a list of available tools
+                    tools_list = "\n".join([f"- {Fore.GREEN}{tool_object.name}{Style.RESET_ALL}: {tool_object.description.split('\n')[0]}" for tool_object in tools])
+                    print(f"{Fore.YELLOW}Available tools:{Style.RESET_ALL}\n{tools_list}")
                     continue
                     
                 elif user_input.lower() == "/cache":
@@ -558,13 +610,17 @@ def main():
                     thread_state = memory.get(config["configurable"]["thread_id"]) or {}
                     # If no messages exist yet, initialize with empty list and system prompt
                     if "messages" not in thread_state:
-                        thread_state["messages"] = [{"role": "system", "content": system_prompt}]
-                except Exception:
+                        from langchain_core.messages import SystemMessage, HumanMessage
+                        thread_state["messages"] = [SystemMessage(content=system_prompt)]
+                except Exception as e:
                     # If any error occurs, start with a fresh state and system prompt
-                    thread_state = {"messages": [{"role": "system", "content": system_prompt}]}
+                    from langchain_core.messages import SystemMessage, HumanMessage
+                    thread_state = {"messages": [SystemMessage(content=system_prompt)]}
+                    print(f"{Fore.YELLOW}Debug: Starting fresh state due to: {e}{Style.RESET_ALL}")
                 
-                # Add the new user message to the existing messages
-                thread_state["messages"].append({"role": "user", "content": user_input})
+                # Add the new user message to the existing messages using LangChain message objects
+                from langchain_core.messages import HumanMessage
+                thread_state["messages"].append(HumanMessage(content=user_input))
                 
                 # Send the complete conversation history to maintain context
                 events = graph.stream(
