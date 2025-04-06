@@ -25,6 +25,9 @@ class ChatbotMemory:
         self.cache = self._load_cache()
         self._is_first_message = True
         self._tool_history = []
+        self._plan_history = []
+        self._current_plan = None
+        self._current_results = []
     
     def _load_cache(self) -> Dict[str, Any]:
         """Load the cache from the cache file."""
@@ -85,23 +88,69 @@ class ChatbotMemory:
         self.memory.delete(config)
         self._is_first_message = True
         self._tool_history = []
+        self._plan_history = []
+        self._current_plan = None
+        self._current_results = []
     
     def record_tool_call(self, tool_name: str, args: Dict[str, Any], result: Any) -> None:
         """Record a tool call in the history."""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self._tool_history.append({
+        tool_record = {
             "timestamp": timestamp,
             "tool": tool_name,
             "args": args,
-            "result_summary": str(result)[:100] + "..." if len(str(result)) > 100 else str(result)
+            "result_summary": str(result)[:100] + "..." if len(str(result)) > 100 else str(result),
+            "plan_id": id(self._current_plan) if self._current_plan else None
+        }
+        
+        self._tool_history.append(tool_record)
+        self._current_results.append({
+            "tool": tool_name,
+            "result": result
         })
         
         # Also update the cache to maintain backward compatibility
         self.update_cache(tool_name, result)
     
+    def add_plan(self, plan: Dict[str, Any]) -> None:
+        """Record a planning step."""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        plan_record = {
+            "timestamp": timestamp,
+            "plan": plan,
+            "id": id(plan)
+        }
+        self._plan_history.append(plan_record)
+        self._current_plan = plan
+    
+    def get_current_plan(self) -> Optional[Dict[str, Any]]:
+        """Get the current execution plan."""
+        return self._current_plan
+    
+    def get_current_results(self) -> List[Dict[str, Any]]:
+        """Get the results from the current plan's tool executions."""
+        return self._current_results
+    
+    def clear_current_execution(self) -> None:
+        """Clear the current execution state."""
+        self._current_plan = None
+        self._current_results = []
+    
     def get_tool_history(self, limit: int = 5) -> List[Dict[str, Any]]:
         """Get the tool call history, limited to the most recent calls."""
         return self._tool_history[-limit:] if self._tool_history else []
+    
+    def get_plan_history(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get the planning history, limited to the most recent plans."""
+        return self._plan_history[-limit:] if self._plan_history else []
+    
+    def get_context(self) -> Dict[str, Any]:
+        """Get the current context for planning."""
+        return {
+            "cache": self.get_selective_cache(),
+            "recent_tools": self.get_tool_history(3),
+            "recent_plans": self.get_plan_history(2)
+        }
     
     def get_config(self) -> Dict[str, Any]:
         """Get the LangGraph configuration object."""
@@ -118,43 +167,54 @@ class ChatbotMemory:
             
         return {"messages": [SystemMessage(content=full_system_prompt)]}
     
+    def add_interaction(self, user_input: str, response: str) -> None:
+        """Record a complete interaction including planning and results."""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        interaction = {
+            "timestamp": timestamp,
+            "user_input": user_input,
+            "response": response,
+            "plan": self._current_plan,
+            "results": self._current_results
+        }
+        
+        self.update_cache(f"interaction_{timestamp}", interaction)
+        self.clear_current_execution()
+    
     def format_history_output(self) -> str:
         """Format the conversation history for display."""
         config = {"configurable": {"thread_id": self.thread_id}}
         try:
-            # Try to get history from LangGraph memory
-            history_tuple = self.memory.get_tuple(config)
-            
-            if not history_tuple:
-                return "No conversation history found."
-                
             output_lines = [f"Conversation history for thread ID: {self.thread_id}"]
             
-            # Most reliable place to look for messages is in the response from a direct invoke
-            try:
-                from langchain_core.messages import HumanMessage
-                response = self.get_direct_history()
-                
-                if response and "messages" in response:
-                    messages = response["messages"]
-                    output_lines.append(f"Found {len(messages)} messages in conversation")
-                    
-                    # Show last 5 messages
-                    for i, msg in enumerate(messages[-5:]):
-                        msg_type = getattr(msg, "type", type(msg).__name__)
-                        content = getattr(msg, "content", str(msg)[:50])
-                        output_lines.append(f"{i}: {msg_type} - {content[:50]}...")
-                    
-                    return "\n".join(output_lines)
-            except Exception as e:
-                output_lines.append(f"Error getting direct history: {e}")
+            # Add recent plans
+            recent_plans = self.get_plan_history(3)
+            if recent_plans:
+                output_lines.append("\nRecent Plans:")
+                for plan in recent_plans:
+                    output_lines.append(f"[{plan['timestamp']}]")
+                    output_lines.append(f"Steps: {', '.join(plan['plan'].get('steps', []))}")
             
-            # If we have tool history, show that
+            # Add tool history
             if self._tool_history:
                 output_lines.append("\nTool Call History:")
-                for i, call in enumerate(self._tool_history[-5:]):
-                    output_lines.append(f"{i}: {call['timestamp']} - {call['tool']}")
-                    
+                for call in self._tool_history[-5:]:
+                    output_lines.append(f"[{call['timestamp']}] {call['tool']}")
+            
+            # Try to get message history
+            try:
+                response = self.get_direct_history()
+                if response and "messages" in response:
+                    messages = response["messages"]
+                    output_lines.append(f"\nLast {min(5, len(messages))} Messages:")
+                    for msg in messages[-5:]:
+                        msg_type = getattr(msg, "type", type(msg).__name__)
+                        content = getattr(msg, "content", str(msg))[:50]
+                        output_lines.append(f"{msg_type}: {content}...")
+            except Exception as e:
+                output_lines.append(f"\nError getting message history: {e}")
+            
             return "\n".join(output_lines)
             
         except Exception as e:
@@ -162,6 +222,8 @@ class ChatbotMemory:
     
     def get_direct_history(self) -> Dict[str, Any]:
         """Get history directly from the graph through an invoke call."""
-        # This would need a reference to the graph, which isn't available here
-        # In the real implementation, this would be passed in or accessed through a different method
-        return {"messages": []}  # Placeholder
+        config = self.get_config()
+        try:
+            return self.memory.get_tuple(config) or {"messages": []}
+        except Exception:
+            return {"messages": []}

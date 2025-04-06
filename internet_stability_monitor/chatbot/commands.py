@@ -47,6 +47,9 @@ def help_menu_and_list_tools() -> None:
 - {Fore.GREEN}/tools{Style.RESET_ALL}: List all available tools
 - {Fore.GREEN}/cache{Style.RESET_ALL}: Show cached data
 - {Fore.GREEN}/tool_history{Style.RESET_ALL}: Show recently used tools
+- {Fore.GREEN}/plans{Style.RESET_ALL}: Show recent planning steps
+- {Fore.GREEN}/context{Style.RESET_ALL}: Show current conversation context
+- {Fore.GREEN}/current_plan{Style.RESET_ALL}: Show the current execution plan
 
 {Fore.CYAN}Available tools:{Style.RESET_ALL}
 {tools_list}
@@ -110,6 +113,9 @@ def display_help():
 - {Fore.GREEN}/tools{Style.RESET_ALL}: List all available tools
 - {Fore.GREEN}/cache{Style.RESET_ALL}: Show cached data
 - {Fore.GREEN}/tool_history{Style.RESET_ALL}: Show recently used tools
+- {Fore.GREEN}/plans{Style.RESET_ALL}: Show recent planning steps
+- {Fore.GREEN}/context{Style.RESET_ALL}: Show current conversation context
+- {Fore.GREEN}/current_plan{Style.RESET_ALL}: Show the current execution plan
 
 {Fore.CYAN}Available tools:{Style.RESET_ALL}
 {tools_list}
@@ -220,6 +226,51 @@ def handle_command(command: str, graph = None) -> (bool, bool):
                     print(f"   Result: {call['result_summary']}")
             else:
                 print(f"{Fore.YELLOW}No tool history found.{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Memory system not initialized.{Style.RESET_ALL}")
+        return True, False  # Command handled, should not exit
+    
+    elif command.lower() == "/plans":
+        if memory_system:
+            plan_history = memory_system.get_plan_history()
+            if plan_history:
+                print(f"{Fore.YELLOW}Planning History (most recent first):{Style.RESET_ALL}")
+                for i, plan_record in enumerate(reversed(plan_history)):
+                    print(f"\n{i+1}. Plan from {plan_record['timestamp']}:")
+                    plan = plan_record['plan']
+                    if "reasoning" in plan:
+                        print(f"   Reasoning: {plan['reasoning']}")
+                    if "steps" in plan and plan["steps"]:
+                        print("   Steps:")
+                        for step in plan["steps"]:
+                            print(f"   - {step}")
+                    if "required_tools" in plan and plan["required_tools"]:
+                        print("   Tools:")
+                        for tool in plan["required_tools"]:
+                            print(f"   - {tool}")
+            else:
+                print(f"{Fore.YELLOW}No planning history found.{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}Memory system not initialized.{Style.RESET_ALL}")
+        return True, False  # Command handled, should not exit
+    
+    elif command.lower() == "/context":
+        if memory_system:
+            from interface import print_conversation_context
+            context = memory_system.get_context()
+            print_conversation_context(context)
+        else:
+            print(f"{Fore.RED}Memory system not initialized.{Style.RESET_ALL}")
+        return True, False  # Command handled, should not exit
+    
+    elif command.lower() == "/current_plan":
+        if memory_system:
+            current_plan = memory_system.get_current_plan()
+            if current_plan:
+                from interface import print_planning_step
+                print_planning_step(current_plan)
+            else:
+                print(f"{Fore.YELLOW}No active plan.{Style.RESET_ALL}")
         else:
             print(f"{Fore.RED}Memory system not initialized.{Style.RESET_ALL}")
         return True, False  # Command handled, should not exit

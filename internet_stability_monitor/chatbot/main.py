@@ -11,12 +11,14 @@ from typing import Optional, List, Dict, Any, Tuple
 # Import from other modules
 from internet_stability_monitor.chatbot.memory import ChatbotMemory
 from internet_stability_monitor.chatbot.tools import get_tools, set_memory_system
-from internet_stability_monitor.chatbot.commands import handle_command, set_dependencies, help_menu_and_list_tools, check_cache
+from internet_stability_monitor.chatbot.commands import handle_command, set_dependencies
 from internet_stability_monitor.chatbot.interface import (
     print_welcome_message, get_user_input, 
-    print_ai_thinking, print_ai_message, print_error
+    print_ai_thinking, print_ai_message, print_error,
+    print_planning_step, print_execution_step, print_synthesis
 )
-from internet_stability_monitor.chatbot.agent import ChatbotAgent
+from internet_stability_monitor.chatbot.agent import EnhancedChatbotAgent
+from internet_stability_monitor.chatbot.planning import PlanningSystem
 
 # Import for ollama check
 import check_ollama_status
@@ -44,8 +46,11 @@ def main(silent: bool = False, polite: bool = True):
     # Set dependencies for commands
     set_dependencies(memory, tools)
     
-    # Initialize the agent
-    agent = ChatbotAgent(tools=tools, memory_system=memory)
+    # Initialize the planning system
+    planner = PlanningSystem()
+    
+    # Initialize the enhanced agent
+    agent = EnhancedChatbotAgent(tools=tools, memory_system=memory)
     
     # Print welcome message
     print_welcome_message()
@@ -70,12 +75,23 @@ def main(silent: bool = False, polite: bool = True):
                         continue
                 
                 # Process user input
+                print_ai_thinking("Planning approach...")
                 response = agent.process_input(user_input)
                 
                 # Process the response
-                if response and "messages" in response:
-                    # Pretty print the last message
-                    agent.pretty_print_message(response["messages"][-1])
+                if response:
+                    # Show planning if available
+                    if "plan" in response:
+                        print_planning_step(response["plan"])
+                    
+                    # Show execution steps if available
+                    if "results" in response:
+                        for result in response["results"]:
+                            print_execution_step(result["tool"], result["result"])
+                    
+                    # Show final response
+                    if "messages" in response:
+                        agent.pretty_print_message(response["messages"][-1])
                 
             except KeyboardInterrupt:
                 print("\nExiting...")
