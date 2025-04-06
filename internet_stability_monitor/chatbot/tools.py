@@ -163,7 +163,10 @@ def get_local_ip() -> str:
 
 @tool
 def get_external_ip() -> str:
-    """Use this to get our external ip address.
+    """
+    Use this to get the external ip address this computer is currently using to access the internet.
+    The external ip address is the ip address of the router or modem that is connected to the internet.
+    The external ip address is also known as the public ip address and is assigned by the ISP.
 
     Returns: str: our external ip address
     """
@@ -248,8 +251,11 @@ def check_dns_resolvers() -> str:
 
 @tool
 def check_websites() -> str:
-    """Use this to check the reachability of several important websites.
-
+    """
+    Use this to check the reachability of several important websites from a hardcoded list of significant websites. 
+    The list of websites it will check includes major tech companies, governments around the world, news organizations,
+    social media platforms, and more. You can think of this tool as checking if the 'web' is healthy and working.
+    
     Returns: str: The website monitoring report
     """
     result = web_check_main(silent=True, polite=False)
