@@ -238,6 +238,28 @@ class ChatbotAgent:
                             
                         # Create an AgentAction manually
                         debug_print(f"Manually extracted action: {tool_name} with input: {action_input_dict}")
+                        
+                        # Fix specific issues with ping_target tool - it expects a string as target
+                        if tool_name == "ping_target" and isinstance(action_input_dict, dict):
+                            if not action_input_dict or action_input_dict.get('input') == '{}':
+                                debug_print(f"Error: ping_target requires a target parameter. Fixing by using fallback.")
+                                # Prevent executing ping with invalid arguments
+                                result = AgentFinish(
+                                    return_values={"output": "I need a specific hostname or IP address to ping. Can you please provide one?"},
+                                    log="Fixed invalid ping_target call"
+                                )
+                                return result
+                            elif 'input' in action_input_dict and isinstance(action_input_dict['input'], str):
+                                # Extract target from the input string if possible
+                                if action_input_dict['input'].strip() in ['{}', '()', '[]', '']:
+                                    debug_print(f"Error: ping_target requires a target parameter. Fixing by using fallback.")
+                                    # Prevent executing ping with invalid arguments
+                                    result = AgentFinish(
+                                        return_values={"output": "I need a specific hostname or IP address to ping. Can you please provide one?"},
+                                        log="Fixed invalid ping_target call"
+                                    )
+                                    return result
+                        
                         result = AgentAction(tool=tool_name, tool_input=action_input_dict, log=raw_output)
                     else:
                         # No action found, look for final answer
@@ -523,6 +545,9 @@ class ChatbotAgent:
                 debug_print(f"Error retrieving cached last_state: {e}")
                 last_state = None
                 
+        # Initialize user_input_lower here to ensure it's always available
+        user_input_lower = user_input.lower().strip()
+        
         if last_state and isinstance(last_state, dict):
             last_question = last_state.get("last_question")
             pending_tools = last_state.get("pending_tools", [])
@@ -533,8 +558,6 @@ class ChatbotAgent:
                 # Check for affirmative responses
                 affirmative_responses = ["yes", "yes please", "sure", "okay", "ok", "yep", "yeah", "please do", "go ahead"]
                 negative_responses = ["no", "no thanks", "nope", "don't", "do not"]
-                
-                user_input_lower = user_input.lower().strip()
                 
                 if any(user_input_lower == resp for resp in affirmative_responses):
                     is_continuing_conversation = True
@@ -562,13 +585,23 @@ class ChatbotAgent:
                     modified_input = f"No, I don't want to {', '.join([t.replace('_', ' ') for t in pending_tools])}. Please continue."
                     debug_print(f"Modified negative input: '{modified_input}'")
                     
-            # Add the last question to the context even if it's not a yes/no response
-            # This helps maintain conversation context
+            # Handle special commands to reset context
+            elif user_input_lower in ["/reset", "reset context", "start over", "forget previous"]:
+                # Clear the last state and pending tools
+                self.memory.update_cache("last_state", None)
+                debug_print("Reset conversation context and memory")
+                modified_input = "Let's start a new conversation. Previous context has been reset."
+                
+            # Only add context if it's clearly a continuation of the conversation
+            # Simply starting a new question shouldn't add the previous context
             elif last_question and user_input_lower not in ["help", "/help", "exit", "/exit", "quit", "/quit"]:
-                # Add context from the last question to ensure continuity
-                question_summary = last_question.split("\n")[0][:50]  # Take first line, truncate if too long
-                modified_input = f"Regarding your question about '{question_summary}', my response is: {user_input}"
-                debug_print(f"Added context to user input: '{modified_input}'")
+                # Check if this appears to be a direct follow-up to the last question
+                if (user_input_lower.startswith(("yes", "no", "ok", "sure", "can you", "what about", "how about"))
+                    or any(ref in user_input_lower for ref in ["that", "this", "it", "those", "these", "what you mentioned", "your suggestion"])):
+                    # Add context from the last question to ensure continuity
+                    question_summary = last_question.split("\n")[0][:50]  # Take first line, truncate if too long
+                    modified_input = f"Regarding your question about '{question_summary}', my response is: {user_input}"
+                    debug_print(f"Added context to user input: '{modified_input}'")
                     
         # Prepare initial state
         initial_state = State(
