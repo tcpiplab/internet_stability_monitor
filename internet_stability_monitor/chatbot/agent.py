@@ -16,6 +16,10 @@ from typing_extensions import TypedDict, Annotated
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import re
+import os
+
+# Disable LangSmith warning by setting empty API key
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
 from colorama import Fore, Style
 from langchain_core.tools import BaseTool, tool
@@ -42,7 +46,7 @@ class ToolExecutor:
             raise ValueError(f"Tool {tool_name} not found. Available tools: {list(self.tools.keys())}")
         return tool.invoke(input_dict)
 from langchain.agents import AgentExecutor
-from langchain.memory import ConversationBufferMemory
+# Removed deprecated ConversationBufferMemory import
 from langchain.agents.agent import AgentFinish, AgentAction
 from langchain import hub
 from langchain.agents import create_react_agent
@@ -116,12 +120,8 @@ class ChatbotAgent:
         # Set up the base model
         self.model = ChatOllama(model=model_name)
         
-        # Create the LangChain memory
-        self.langchain_memory = ConversationBufferMemory(
-            return_messages=True,
-            output_key="output",
-            input_key="input"
-        )
+        # We're using our own memory system instead of deprecated ConversationBufferMemory
+        # This aligns with the LangGraph approach recommended in the migration guide
         
         # Get the ReAct prompt
         prompt = hub.pull("hwchase17/react-chat")
@@ -667,13 +667,8 @@ class ChatbotAgent:
                     "pending_tools": final_state.get("pending_tools", [])
                 }
                 
-                # Save to LangChain memory
-                self.langchain_memory.save_context(
-                    {"input": user_input},
-                    {"output": final_response_message}
-                )
-                
                 # Save to our custom memory system
+                # This replaces the deprecated ConversationBufferMemory approach
                 self.memory.add_interaction(user_input, final_response_message)
                 
                 # Store last state in the direct memory cache
