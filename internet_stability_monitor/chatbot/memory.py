@@ -9,8 +9,22 @@ import os
 import json
 import datetime
 from typing import Dict, Any, Optional, List, Union
+from colorama import Fore, Style
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+# Helper functions for colored output
+def debug_print(message: str) -> None:
+    """Print a debug message in gray color."""
+    print(f"{Style.DIM}DEBUG: {message}{Style.RESET_ALL}")
+
+def thinking_print(message: str) -> None:
+    """Print a thinking message in gray color."""
+    print(f"{Style.DIM}Chatbot (thinking): {message}{Style.RESET_ALL}")
+    
+def error_print(message: str) -> None:
+    """Print an error message in red color."""
+    print(f"{Fore.RED}ERROR: {message}{Style.RESET_ALL}")
 
 # Cache file path
 CACHE_FILE = os.path.expanduser("~/.instability_cache.json")
@@ -40,13 +54,13 @@ class ChatbotMemory:
             if os.path.exists(self.cache_file):
                 with open(self.cache_file, 'r') as f:
                     cache = json.load(f)
-                print(f"Chatbot (thinking): Cache loaded from {self.cache_file}")
+                thinking_print(f"Cache loaded from {self.cache_file}")
                 return cache
             else:
-                print(f"Chatbot (thinking): No cache file found at {self.cache_file}, creating a new one.")
+                thinking_print(f"No cache file found at {self.cache_file}, creating a new one.")
                 return {}
         except Exception as e:
-            print(f"Chatbot (thinking): Error loading cache: {e}")
+            error_print(f"loading cache: {e}")
             return {}
     
     def save_cache(self) -> None:
@@ -58,7 +72,7 @@ class ChatbotMemory:
             with open(self.cache_file, 'w') as f:
                 json.dump(self.cache, f, indent=2)
         except Exception as e:
-            print(f"Chatbot (thinking): Error saving cache: {e}")
+            error_print(f"saving cache: {e}")
     
     def update_cache(self, key: str, value: Any) -> Dict[str, Any]:
         """Update a value in the cache."""
@@ -218,12 +232,14 @@ class ChatbotMemory:
                         content = getattr(msg, "content", str(msg))[:50]
                         output_lines.append(f"{msg_type}: {content}...")
             except Exception as e:
-                output_lines.append(f"\nError getting message history: {e}")
+                error_print(f"getting message history: {e}")
+                output_lines.append("\nFailed to retrieve message history")
             
             return "\n".join(output_lines)
             
         except Exception as e:
-            return f"Error retrieving conversation history: {e}"
+            error_print(f"retrieving conversation history: {e}")
+            return "Failed to retrieve conversation history"
     
     def get_direct_history(self) -> Dict[str, Any]:
         """Get history directly from the graph through an invoke call."""
@@ -239,7 +255,7 @@ class ChatbotMemory:
             
             return memgraph_history
         except Exception as e:
-            print(f"DEBUG: Error getting direct history: {e}")
+            error_print(f"getting direct history: {e}")
             
             # Try to get last_state from cache as a fallback
             last_state = self.get_cached_value("last_state")
