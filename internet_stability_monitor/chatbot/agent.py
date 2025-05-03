@@ -11,10 +11,11 @@ The agent includes:
 4. Error handling and debug logging
 """
 
-from typing import Dict, Any, List, Callable, Optional, TypeVar, Protocol
+from typing import Dict, Any, List, Callable, Optional, TypeVar, Protocol, Pattern
 from typing_extensions import TypedDict, Annotated
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+import re
 
 from langchain_core.tools import BaseTool, tool
 from langchain_ollama import ChatOllama
@@ -70,10 +71,14 @@ class State:
     tool_input: Optional[Dict[str, Any]] = None
     tool_output: Optional[str] = None
     intermediate_steps: List[tuple] = None
+    last_question: Optional[str] = None  # The last question asked by the bot
+    pending_tools: List[str] = None  # Tools mentioned in the last question
     
     def __post_init__(self):
         if self.intermediate_steps is None:
             self.intermediate_steps = []
+        if self.pending_tools is None:
+            self.pending_tools = []
 
 class ChatbotAgent:
     """Enhanced LangGraph agent with extensible tool support."""
@@ -142,8 +147,106 @@ class ChatbotAgent:
                 "intermediate_steps": state.intermediate_steps # Add intermediate_steps directly
             }
 
-            # Get agent response using invoke
-            result = self.agent.invoke(agent_inputs)
+            # Custom wrapper to handle mixed output with both actions and final answers
+            try:
+                # First attempt with standard parser
+                result = self.agent.invoke(agent_inputs)
+            except Exception as e:
+                if "Parsing LLM output produced both a final answer and a parse-able action" in str(e):
+                    print("DEBUG: Detected mixed output with both action and final answer")
+                    
+                    # Get the raw LLM output directly from the error message
+                    # The error should contain the full output that caused the parsing issue
+                    # If not, we need to examine it via debug methods
+                    
+                    # Since we can't easily get the raw output from the LLM response that caused the error,
+                    # we'll manually recreate the output based on the patterns the parser is using
+                    raw_output = str(e)
+                    
+                    # If we can't extract useful information from the error message,
+                    # call the LLM directly with a more explicit instruction
+                    if "Parsing LLM output" in raw_output and len(raw_output) < 200:
+                        print("DEBUG: Error message doesn't contain full output, making direct LLM call")
+                        # Create a simpler prompt to get a direct response
+                        direct_messages = [
+                            SystemMessage(content="You are a network diagnostics assistant that can use tools to help users."),
+                            HumanMessage(content=f"Previous conversation: {state.messages[:-1]}\n\nUser question: {state.messages[-1].content}\n\nYou have these tools available: {[tool.name for tool in self.tools]}\n\nRespond in ReAct format with EITHER an Action OR a Final Answer, not both.")
+                        ]
+                        raw_output = self.model.invoke(direct_messages).content
+                        print(f"DEBUG: Direct LLM response: {raw_output}")
+                    
+                    # Get the patterns directly in case the parser doesn't expose the methods we need
+                    action_pattern = r"Action: (.*?)[\n]*Action Input:[\s]*(.*)"
+                    final_answer_pattern = r"Final Answer: (.*)"
+                    
+                    # Try to extract action first - this makes the agent more proactive
+                    action_match = re.search(action_pattern, raw_output, re.DOTALL)
+                    
+                    try:
+                        # Try to use the agent's parser methods if available
+                        if hasattr(self.agent.output_parser, "get_action_match"):
+                            action_match = self.agent.output_parser.get_action_match(raw_output)
+                    except Exception as parser_error:
+                        print(f"DEBUG: Couldn't use agent parser methods: {parser_error}")
+                    
+                    if action_match:
+                        # There's an action, prioritize it over the final answer
+                        tool_name = action_match.group(1).strip()
+                        
+                        # Extract action input, providing empty dict as fallback
+                        action_input = "{}"
+                        try:
+                            # Try to use the output parser's method if available
+                            if hasattr(self.agent.output_parser, "get_action_input_match"):
+                                action_input_match = self.agent.output_parser.get_action_input_match(raw_output)
+                                if action_input_match:
+                                    action_input = action_input_match.group(1).strip()
+                            else:
+                                # Use our own regex as fallback
+                                action_input = action_match.group(2).strip() if len(action_match.groups()) > 1 else "{}"
+                        except Exception as input_error:
+                            print(f"DEBUG: Error extracting action input: {input_error}")
+                        
+                        # Parse action input to dict if possible
+                        try:
+                            if hasattr(self.agent.output_parser, "parse_action_input"):
+                                action_input_dict = self.agent.output_parser.parse_action_input(action_input)
+                            else:
+                                # Simple parsing fallback
+                                import json
+                                try:
+                                    action_input_dict = json.loads(action_input)
+                                except json.JSONDecodeError:
+                                    action_input_dict = {"input": action_input}
+                        except Exception:
+                            # If parsing fails, use the raw string
+                            action_input_dict = {"input": action_input}
+                            
+                        # Create an AgentAction manually
+                        print(f"DEBUG: Manually extracted action: {tool_name} with input: {action_input_dict}")
+                        result = AgentAction(tool=tool_name, tool_input=action_input_dict, log=raw_output)
+                    else:
+                        # No action found, look for final answer
+                        final_answer_match = re.search(final_answer_pattern, raw_output, re.DOTALL)
+                        
+                        try:
+                            # Try to use the agent's parser methods if available
+                            if hasattr(self.agent.output_parser, "get_final_answer_match"):
+                                final_answer_match = self.agent.output_parser.get_final_answer_match(raw_output)
+                        except Exception as parser_error:
+                            print(f"DEBUG: Couldn't use agent parser methods: {parser_error}")
+                        
+                        if final_answer_match:
+                            answer = final_answer_match.group(1).strip()
+                            print(f"DEBUG: Manually extracted final answer: {answer}")
+                            result = AgentFinish(return_values={"output": answer}, log=raw_output)
+                        else:
+                            # Neither found clearly - default to treating as a final answer
+                            print(f"DEBUG: Could not extract action or answer cleanly, treating as final answer")
+                            result = AgentFinish(return_values={"output": raw_output}, log=raw_output)
+                else:
+                    # Re-raise if it's a different error
+                    raise
 
             # --- Define tools known to take NO arguments ---
             no_arg_tools = {
@@ -168,13 +271,52 @@ class ChatbotAgent:
 
             # Handle the result (keep AgentFinish/AgentAction logic)
             if isinstance(result, AgentFinish):
-                # Final response - mark as complete
+                # Extract the output content
+                output_content = result.return_values["output"]
+                
+                # Check if the response contains a question that might need follow-up
+                question_markers = [
+                    "would you like me to", "would you like to", "do you want me to",
+                    "should i", "shall i", "do you want to", "would you prefer",
+                    "would you like", "do you want", "should we", "shall we"
+                ]
+                
+                # List of tools that might be mentioned in questions
+                tool_names = [
+                    "get_external_ip", "get_local_ip", "check_external_ip_change", 
+                    "check_internet_connection", "check_layer_three_network",
+                    "check_dns_resolvers", "check_websites", "check_dns_root_servers_reachability",
+                    "check_local_layer_two_network", "check_cdn_reachability", "check_whois_servers",
+                    "check_tls_ca_servers", "check_smtp_servers", "run_mac_speed_test"
+                ]
+                
+                # Convert tool names to more readable format for text matching
+                readable_tool_names = [name.replace("_", " ").replace("check ", "").replace("get ", "") for name in tool_names]
+                
+                # Look for question patterns
+                output_lower = output_content.lower()
+                is_question = False
+                pending_tools = []
+                
+                if "?" in output_content:
+                    for marker in question_markers:
+                        if marker in output_lower:
+                            is_question = True
+                            # Try to identify mentioned tools
+                            for i, readable_name in enumerate(readable_tool_names):
+                                if readable_name in output_lower:
+                                    pending_tools.append(tool_names[i])
+                            break
+                
+                # Final response - mark as complete, but track if it's a question
                 return {
-                    "messages": state.messages + [AIMessage(content=result.return_values["output"])],
+                    "messages": state.messages + [AIMessage(content=output_content)],
                     "intermediate_steps": state.intermediate_steps,
                     "current_tool": None,
                     "tool_input": None,
-                    "tool_output": None
+                    "tool_output": None,
+                    "last_question": output_content if is_question else None,
+                    "pending_tools": pending_tools
                 }
             elif isinstance(result, AgentAction):
                 # --- Intercept and correct tool input if necessary ---
@@ -200,7 +342,9 @@ class ChatbotAgent:
                     "intermediate_steps": state.intermediate_steps,
                     "current_tool": result.tool,
                     "tool_input": actual_tool_input, # Use the corrected input
-                    "tool_output": None
+                    "tool_output": None,
+                    "last_question": state.last_question,  # Preserve last question
+                    "pending_tools": state.pending_tools  # Preserve pending tools
                 }
             else:
                 # Unexpected result type - mark as complete
@@ -210,15 +354,22 @@ class ChatbotAgent:
                     "intermediate_steps": state.intermediate_steps,
                     "current_tool": None,
                     "tool_input": None,
-                    "tool_output": None
+                    "tool_output": None,
+                    "last_question": None,  # No question in error case
+                    "pending_tools": []  # No pending tools in error case
                 }
         
         def tool_node(state: State) -> Dict[str, Any]:
             """Execute the selected tool."""
             if not state.current_tool or state.tool_input is None:
+                # Include last_question and pending_tools in the returned state
                 return {
                     **state.__dict__,
-                    "current_tool": None, "tool_input": None, "tool_output": None
+                    "current_tool": None, 
+                    "tool_input": None, 
+                    "tool_output": None,
+                    "last_question": state.last_question,
+                    "pending_tools": state.pending_tools
                 }
             
             # Prepare tool input, handling potential placeholders from the agent
@@ -255,7 +406,9 @@ class ChatbotAgent:
                     "intermediate_steps": new_steps,
                     "current_tool": None,
                     "tool_input": None,
-                    "tool_output": str(result)
+                    "tool_output": str(result),
+                    "last_question": state.last_question,  # Preserve last question
+                    "pending_tools": state.pending_tools  # Preserve pending tools
                 }
             except Exception as e:
                 print(f"ERROR: Error executing tool {state.current_tool} with input {actual_tool_input}: {e}") 
@@ -271,7 +424,9 @@ class ChatbotAgent:
                     "intermediate_steps": new_steps,
                     "current_tool": None,
                     "tool_input": None,
-                    "tool_output": None
+                    "tool_output": None,
+                    "last_question": None,  # No question in error case
+                    "pending_tools": []  # No pending tools in error case
                 }
         
         # Build the graph
@@ -328,14 +483,85 @@ class ChatbotAgent:
     
     def process_input(self, user_input: str) -> Dict[str, Any]:
         """Process user input using the LangGraph agent."""
-        # Load history (if needed - LangChain memory might handle this)
-        # self.langchain_memory.load_memory_variables({})
-        # chat_history = self.langchain_memory.buffer_as_messages
+        # Get the last conversation state if available from memory
+        last_state = None
+        try:
+            history = self.memory.get_direct_history()
+            if history and isinstance(history, dict) and "last_state" in history:
+                last_state = history["last_state"]
+        except Exception as e:
+            print(f"DEBUG: Error retrieving last state: {e}")
+            last_state = None
         
+        # Check if the user's response is a simple yes/no to a previous question
+        is_continuing_conversation = False
+        pending_tools = []
+        modified_input = user_input
+        
+        # Try to get the last_state from memory cache
+        if not last_state:
+            try:
+                cached_last_state = self.memory.get_cached_value("last_state")
+                if cached_last_state and isinstance(cached_last_state, dict):
+                    print("DEBUG: Retrieved last_state from cache")
+                    last_state = cached_last_state
+            except Exception as e:
+                print(f"DEBUG: Error retrieving cached last_state: {e}")
+                last_state = None
+                
+        if last_state and isinstance(last_state, dict):
+            last_question = last_state.get("last_question")
+            pending_tools = last_state.get("pending_tools", [])
+            
+            print(f"DEBUG: Last question: {last_question is not None}, Pending tools: {pending_tools}")
+            
+            if last_question and pending_tools:
+                # Check for affirmative responses
+                affirmative_responses = ["yes", "yes please", "sure", "okay", "ok", "yep", "yeah", "please do", "go ahead"]
+                negative_responses = ["no", "no thanks", "nope", "don't", "do not"]
+                
+                user_input_lower = user_input.lower().strip()
+                
+                if any(user_input_lower == resp for resp in affirmative_responses):
+                    is_continuing_conversation = True
+                    
+                    # For tool-specific responses we'll directly run the tools
+                    if len(pending_tools) == 1:
+                        # If only one tool is pending, we'll call it directly
+                        print(f"DEBUG: Directly executing tool: {pending_tools[0]}")
+                        modified_input = f"Please run the {pending_tools[0].replace('_', ' ')} tool and tell me the results."
+                    elif len(pending_tools) == 2:
+                        # If two tools are pending, we'll call both with comparison
+                        print(f"DEBUG: Directly comparing tools: {pending_tools}")
+                        tool_names = " and ".join([t.replace("_", " ") for t in pending_tools])
+                        modified_input = f"Please run the {tool_names} tools and compare the results."
+                    else:
+                        # If multiple tools, create a more general request
+                        tool_names = ", ".join([t.replace("_", " ") for t in pending_tools])
+                        modified_input = f"Yes, please run {tool_names} as you suggested in your previous message."
+                    
+                    print(f"DEBUG: Modified input: '{modified_input}'")
+                    
+                elif any(user_input_lower == resp for resp in negative_responses):
+                    # This is a negative response - we should acknowledge it but not run any tools
+                    # Just pass through the original input with context
+                    modified_input = f"No, I don't want to {', '.join([t.replace('_', ' ') for t in pending_tools])}. Please continue."
+                    print(f"DEBUG: Modified negative input: '{modified_input}'")
+                    
+            # Add the last question to the context even if it's not a yes/no response
+            # This helps maintain conversation context
+            elif last_question and user_input_lower not in ["help", "/help", "exit", "/exit", "quit", "/quit"]:
+                # Add context from the last question to ensure continuity
+                question_summary = last_question.split("\n")[0][:50]  # Take first line, truncate if too long
+                modified_input = f"Regarding your question about '{question_summary}', my response is: {user_input}"
+                print(f"DEBUG: Added context to user input: '{modified_input}'")
+                    
         # Prepare initial state
         initial_state = State(
-            messages=[HumanMessage(content=user_input)],
-            intermediate_steps=[] # Ensure intermediate_steps is initialized as empty list
+            messages=[HumanMessage(content=modified_input)],
+            intermediate_steps=[],  # Ensure intermediate_steps is initialized as empty list
+            last_question=None,  # Reset the last question
+            pending_tools=[]  # Reset pending tools
         )
         
         final_state: Optional[Dict[str, Any]] = None
@@ -346,12 +572,22 @@ class ChatbotAgent:
             final_state = self.graph.invoke(initial_state, config={"recursion_limit": self.max_iterations + 5})
             print(f"DEBUG: Graph invocation complete. Final state type: {type(final_state)}") # Debug print
         except Exception as e:
-            print(f"ERROR: Error invoking graph: {e}") # Log graph errors
-            # Handle graph invocation error, return an error response
-            return {
-                 "response": f"An error occurred during graph processing: {e}",
-                 "intermediate_steps": []
-            }
+            error_str = str(e)
+            print(f"ERROR: Error invoking graph: {error_str}") # Log graph errors
+            
+            if "Parsing LLM output produced both a final answer and a parse-able action" in error_str:
+                # This error is now handled by our custom parser, but provide a helpful message
+                # if the error somehow propagates up to here
+                return {
+                    "response": "I noticed you asked about something that required me to both provide information and take an action. Let me try that again more carefully.",
+                    "intermediate_steps": []
+                }
+            else:
+                # Other errors
+                return {
+                    "response": f"An error occurred during graph processing: {error_str}",
+                    "intermediate_steps": []
+                }
 
         final_response_message = "No response generated."
         final_intermediate_steps = []
@@ -377,13 +613,32 @@ class ChatbotAgent:
             # Save context only if processing was potentially successful (even if no response generated)
             try:
                 print("DEBUG: Saving context to memory...") # Debug print
+                
+                # Save the conversation state with last_question and pending_tools
+                last_state = {
+                    "last_question": final_state.get("last_question"),
+                    "pending_tools": final_state.get("pending_tools", [])
+                }
+                
+                # Save to LangChain memory
                 self.langchain_memory.save_context(
                     {"input": user_input},
                     {"output": final_response_message}
                 )
-                self.memory.add_interaction(user_input, final_response_message) # Assuming add_interaction exists
-                self.memory.save_cache() # Save custom cache
-                print("DEBUG: Context saved.") # Debug print
+                
+                # Save to our custom memory system
+                self.memory.add_interaction(user_input, final_response_message)
+                
+                # Store last state in the direct memory cache
+                # We're using the cache system built into ChatbotMemory instead of the MemorySaver put_tuple
+                self.memory.update_cache("last_state", last_state)
+                
+                # Save the cache
+                self.memory.save_cache()
+                
+                print(f"DEBUG: Context saved with last_question: {last_state['last_question'] is not None}")
+                if last_state["last_question"]:
+                    print(f"DEBUG: Pending tools: {last_state['pending_tools']}")
             except Exception as e:
                  print(f"ERROR: Error saving context to memory: {e}") # Log memory errors
 

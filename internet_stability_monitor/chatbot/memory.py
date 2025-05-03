@@ -229,6 +229,21 @@ class ChatbotMemory:
         """Get history directly from the graph through an invoke call."""
         config = self.get_config()
         try:
-            return self.memory.get_tuple(config) or {"messages": []}
-        except Exception:
+            memgraph_history = self.memory.get_tuple(config) or {"messages": []}
+            
+            # Ensure we include the last state if it's in the cache 
+            # This helps with context tracking
+            last_state = self.get_cached_value("last_state")
+            if last_state:
+                memgraph_history["last_state"] = last_state
+            
+            return memgraph_history
+        except Exception as e:
+            print(f"DEBUG: Error getting direct history: {e}")
+            
+            # Try to get last_state from cache as a fallback
+            last_state = self.get_cached_value("last_state")
+            if last_state:
+                return {"messages": [], "last_state": last_state}
+            
             return {"messages": []}
