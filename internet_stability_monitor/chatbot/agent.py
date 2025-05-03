@@ -484,18 +484,46 @@ class ChatbotAgent:
                     state.messages.append(AIMessage(content=f"Reached max iterations ({self.max_iterations}). Finishing."))
                     return END
                 
-                # Check for repetitive tool calls (infinite loop detection)
+                # Enhanced tool loop detection with multiple patterns
                 if len(state.intermediate_steps) >= 3:
-                    # Get the last 3 tool calls
-                    recent_tools = [step[0].tool for step in state.intermediate_steps[-3:]]
+                    # Get recent tool calls (more than 3 to detect more complex patterns)
+                    recent_tools = [step[0].tool for step in state.intermediate_steps[-6:]] if len(state.intermediate_steps) >= 6 else [step[0].tool for step in state.intermediate_steps]
                     
-                    # Check if it's the same tool being called repeatedly
-                    if len(set(recent_tools)) == 1 and recent_tools[0] == state.current_tool:
-                        # We have detected the same tool being called 3+ times in a row
+                    # 1. Check for the same tool being called consecutively (original check)
+                    if len(recent_tools) >= 3 and len(set(recent_tools[-3:])) == 1 and recent_tools[-1] == state.current_tool:
                         warning_msg = f"Detected repetitive calls to the same tool '{state.current_tool}'. This might indicate an infinite loop. Stopping execution."
                         warning_print(warning_msg)
                         state.messages.append(AIMessage(content=warning_msg))
                         return END
+                    
+                    # 2. Check for ping-pong pattern between two tools (ABAB pattern)
+                    if len(recent_tools) >= 4:
+                        # Check if there's a repeating pattern of 2 tools
+                        tool_pairs = zip(recent_tools[::2], recent_tools[1::2]) # Group tools in pairs
+                        tool_pairs = list(tool_pairs)
+                        
+                        if len(tool_pairs) >= 2:
+                            # If the pairs are identical, we've found a ping-pong pattern
+                            if tool_pairs[0] == tool_pairs[1] and (tool_pairs[0][0] == state.current_tool or tool_pairs[0][1] == state.current_tool):
+                                tools_involved = list(set(tool_pairs[0]))
+                                warning_msg = f"Detected ping-pong pattern between tools {tools_involved}. This might indicate an infinite loop. Stopping execution."
+                                warning_print(warning_msg)
+                                state.messages.append(AIMessage(content=warning_msg))
+                                return END
+                    
+                    # 3. Check for a tool being called too many times overall
+                    if len(recent_tools) >= 5:
+                        tool_counts = {}
+                        for tool in recent_tools:
+                            tool_counts[tool] = tool_counts.get(tool, 0) + 1
+                        
+                        # If any tool (including current) is being called more than 50% of the time
+                        for tool, count in tool_counts.items():
+                            if count >= len(recent_tools) * 0.5 and tool == state.current_tool:
+                                warning_msg = f"Tool '{tool}' has been called {count} times in the last {len(recent_tools)} steps. This might indicate an infinite loop. Stopping execution."
+                                warning_print(warning_msg)
+                                state.messages.append(AIMessage(content=warning_msg))
+                                return END
                 
                 return "tool"
             else:
