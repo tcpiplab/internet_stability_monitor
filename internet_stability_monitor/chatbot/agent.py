@@ -5,199 +5,377 @@ This module sets up the LangGraph agent that powers the chatbot, including
 the system prompt, model configuration, and graph structure.
 """
 
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional, TypeVar, Protocol
 from typing_extensions import TypedDict, Annotated
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
-from langchain_core.tools import tool
+from langchain_core.tools import BaseTool, tool
 from langchain_ollama import ChatOllama
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
+
+# Create our own ToolExecutor since it seems to be missing
+class ToolExecutor:
+    """Tool executor class."""
+    
+    def __init__(self, tools):
+        """Initialize with a list of tools."""
+        self.tools = {tool.name: tool for tool in tools}
+    
+    def invoke(self, input_dict):
+        """Invoke a tool with inputs."""
+        tool_name = input_dict.pop("tool_name")
+        tool = self.tools.get(tool_name)
+        if tool is None:
+            raise ValueError(f"Tool {tool_name} not found. Available tools: {list(self.tools.keys())}")
+        return tool.invoke(input_dict)
 from langchain.agents import AgentExecutor
-from langchain.agents.format_scratchpad import format_log_to_messages
 from langchain.memory import ConversationBufferMemory
+from langchain.agents.agent import AgentFinish, AgentAction
+from langchain import hub
+from langchain.agents import create_react_agent
+from langchain.agents.format_scratchpad import format_log_to_str
 
-from .planning import PlanningSystem
-from .interface import print_ai_message
+# Type for tool results
+ToolResult = TypeVar('ToolResult')
 
-# Enhanced system prompt that encourages reasoning
-ENHANCED_SYSTEM_PROMPT = """
-You are an intelligent network diagnostics assistant that combines technical expertise with strong reasoning capabilities.
+class ToolProvider(Protocol):
+    """Protocol for tool providers that can be added to the agent."""
+    
+    @property
+    def tools(self) -> List[BaseTool]:
+        """Get the tools provided by this provider."""
+        ...
+    
+    @property
+    def name(self) -> str:
+        """Get the name of this tool provider."""
+        ...
 
-CAPABILITIES:
-1. Analyze user questions deeply to understand their real needs
-2. Plan multi-step approaches to complex problems
-3. Use tools strategically and combine their outputs
-4. Provide explanations that connect technical details to user understanding
-
-APPROACH:
-1. First, understand the underlying question or problem
-2. Plan what information you need and which tools might help
-3. Execute tools thoughtfully, explaining your choices
-4. Synthesize all information into a clear, complete answer
-
-You can use multiple tools if needed and should explain your reasoning throughout.
-"""
-
-class State(TypedDict):
+@dataclass
+class State:
     """State type for the LangGraph agent."""
-    messages: Annotated[list, add_messages]
-    plan: Dict[str, Any]
-    results: List[Dict[str, Any]]
+    messages: List[BaseMessage]
+    current_tool: Optional[str] = None
+    tool_input: Optional[Dict[str, Any]] = None
+    tool_output: Optional[str] = None
+    intermediate_steps: List[tuple] = None
+    
+    def __post_init__(self):
+        if self.intermediate_steps is None:
+            self.intermediate_steps = []
 
-class EnhancedChatbotAgent:
-    """Enhanced LangGraph agent with planning capabilities."""
+class ChatbotAgent:
+    """Enhanced LangGraph agent with extensible tool support."""
     
     def __init__(self, 
-                 tools: List[Callable], 
-                 memory_system,
+                 tool_providers: List[ToolProvider],
+                 memory_system: Any,
                  model_name: str = "qwen2.5",
-                 system_prompt: str = ENHANCED_SYSTEM_PROMPT):
-        """Initialize the enhanced chatbot agent."""
-        self.tools = tools
+                 max_iterations: int = 10) -> None:
+        """Initialize the chatbot agent."""
+        self.tool_providers = tool_providers
         self.memory = memory_system
         self.model_name = model_name
-        self.system_prompt = system_prompt
+        self.max_iterations = max_iterations
         
-        # Initialize the planning system
-        self.planner = PlanningSystem()
+        # Collect all tools from providers
+        self.tools: List[BaseTool] = []
+        for provider in tool_providers:
+            self.tools.extend(provider.tools)
         
         # Set up the base model
         self.model = ChatOllama(model=model_name)
         
-        # Create a LangChain memory instance using the new format
+        # Create the LangChain memory
         self.langchain_memory = ConversationBufferMemory(
             return_messages=True,
             output_key="output",
             input_key="input"
         )
         
-        # Create the agent executor
-        self.agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=self.model.bind_tools(tools),
-            tools=tools,
-            memory=self.langchain_memory,
-            handle_parsing_errors=True,
-            max_iterations=5
+        # Get the ReAct prompt
+        prompt = hub.pull("hwchase17/react-chat")
+        
+        # Create the agent using create_react_agent
+        self.agent = create_react_agent(
+            llm=self.model,
+            tools=self.tools,
+            prompt=prompt
         )
         
-        # Create the enhanced graph
-        self.graph = self._create_enhanced_graph()
+        # Create the graph
+        self.graph = self._create_graph()
     
-    def _create_enhanced_graph(self):
-        """Create an enhanced LangGraph with planning capabilities."""
+    def _create_system_prompt(self) -> str:
+        # This method can potentially be removed or adapted if needed for ReAct prompt customization
+        return ""
+
+    def _create_graph(self) -> StateGraph:
+        """Create the LangGraph execution graph."""
+        # Create tool executor
+        tool_executor = ToolExecutor(tools=self.tools)
         
-        def planning_node(state: State):
-            """Plan the approach for the current query."""
-            messages = state["messages"]
-            last_message = messages[-1]
+        # Define graph nodes
+        def agent_node(state: State) -> Dict[str, Any]:
+            """Run the agent to decide the next action."""
             
-            if isinstance(last_message, HumanMessage):
-                # Create a plan for the query
-                context = self.memory.get_context()
-                plan = self.planner.create_plan(last_message.content, context)
-                return {"plan": plan, "messages": messages}
-            return {"plan": state.get("plan", {}), "messages": messages}
-        
-        def execution_node(state: State):
-            """Execute tools based on the plan."""
-            plan = state["plan"]
-            required_tools = self.planner.evaluate_tool_needs(plan)
-            
-            results = []
-            for tool_name in required_tools:
-                if tool_name in [t.name for t in self.tools]:
-                    try:
-                        tool = next(t for t in self.tools if t.name == tool_name)
-                        result = tool.invoke({"input": ""})
-                        results.append({"tool": tool_name, "result": result})
-                    except Exception as e:
-                        print(f"Error executing tool {tool_name}: {e}")
-            
-            return {
-                "results": results,
-                "messages": state["messages"],
-                "plan": plan
+            # --- ADJUST FOR REACT AGENT ---
+            # Format intermediate steps for the ReAct agent scratchpad
+            scratchpad = format_log_to_str(state.intermediate_steps)
+
+            # Prepare input for agent.invoke
+            agent_inputs = {
+                "input": state.messages[-1].content,
+                "chat_history": state.messages[:-1],
+                "agent_scratchpad": scratchpad,
+                "intermediate_steps": state.intermediate_steps # Add intermediate_steps directly
             }
-        
-        def synthesis_node(state: State):
-            """Synthesize results into a coherent response."""
-            synthesis = self.planner.synthesize_results(
-                state["results"],
-                state["messages"][-1].content if state["messages"] else ""
-            )
-            
-            # Add the synthesis as an AI message
-            messages = state["messages"] + [AIMessage(content=synthesis)]
-            
-            return {
-                "messages": messages,
-                "results": state["results"],
-                "plan": state["plan"]
+
+            # Get agent response using invoke
+            result = self.agent.invoke(agent_inputs)
+
+            # --- Define tools known to take NO arguments ---
+            no_arg_tools = {
+                "get_external_ip",
+                "get_local_ip",
+                "get_isp_location",
+                "check_external_ip_change",
+                "check_internet_connection",
+                "check_layer_three_network",
+                "check_dns_resolvers",
+                "check_ollama",
+                "get_os",
+                "check_cdn_reachability",
+                "check_whois_servers",
+                "check_tls_ca_servers",
+                "check_smtp_servers",
+                "run_mac_speed_test", # Technically takes args, but often called without by agent
+                "check_dns_root_servers_reachability",
+                "check_local_layer_two_network",
+                "check_websites"
             }
+
+            # Handle the result (keep AgentFinish/AgentAction logic)
+            if isinstance(result, AgentFinish):
+                # Final response - mark as complete
+                return {
+                    "messages": state.messages + [AIMessage(content=result.return_values["output"])],
+                    "intermediate_steps": state.intermediate_steps,
+                    "current_tool": None,
+                    "tool_input": None,
+                    "tool_output": None
+                }
+            elif isinstance(result, AgentAction):
+                # --- Intercept and correct tool input if necessary ---
+                agent_tool_input = result.tool_input
+                actual_tool_input = agent_tool_input # Default to agent's provided input
+
+                if result.tool in no_arg_tools:
+                    # If the target tool takes no args, force input to {}
+                    # regardless of what the agent provided (null, (), etc.)
+                    print(f"DEBUG: Overriding input for no-arg tool '{result.tool}'. Agent provided: {agent_tool_input}")
+                    actual_tool_input = {}
+                elif isinstance(agent_tool_input, dict) and list(agent_tool_input.keys()) == ['input']:
+                    # Handle cases where agent might wrap a single string argument 
+                    # in {'input': 'some_value'} for tools that expect a direct string.
+                    # This might need refinement based on tool specifics.
+                    print(f"DEBUG: Unwrapping potential single string input for tool '{result.tool}'. Agent provided: {agent_tool_input}")
+                    actual_tool_input = agent_tool_input['input'] 
+                # Note: If tool expects complex dict input, ensure agent provides it correctly
+
+                # Next action - use the potentially corrected actual_tool_input
+                return {
+                    "messages": state.messages, # Keep messages as is
+                    "intermediate_steps": state.intermediate_steps,
+                    "current_tool": result.tool,
+                    "tool_input": actual_tool_input, # Use the corrected input
+                    "tool_output": None
+                }
+            else:
+                # Unexpected result type - mark as complete
+                error_msg = f"Unexpected agent result type: {type(result)}"
+                return {
+                    "messages": state.messages + [AIMessage(content=error_msg)],
+                    "intermediate_steps": state.intermediate_steps,
+                    "current_tool": None,
+                    "tool_input": None,
+                    "tool_output": None
+                }
         
-        # Build the enhanced graph
-        graph = StateGraph(State)
+        def tool_node(state: State) -> Dict[str, Any]:
+            """Execute the selected tool."""
+            if not state.current_tool or state.tool_input is None:
+                return {
+                    **state.__dict__,
+                    "current_tool": None, "tool_input": None, "tool_output": None
+                }
+            
+            # Prepare tool input, handling potential placeholders from the agent
+            actual_tool_input = state.tool_input
+            if isinstance(actual_tool_input, dict) and list(actual_tool_input.keys()) == ['input'] and actual_tool_input['input'] == '()':
+                 # Check if the actual tool (from self.tools) expects arguments. 
+                 # This is complex, so for now, assume empty dict if input is '()' placeholder
+                 print(f"DEBUG: Tool {state.current_tool} received placeholder input {actual_tool_input}, assuming no args needed.")
+                 actual_tool_input = {} 
+
+            print(f"DEBUG: Executing tool: {state.current_tool} with processed input: {actual_tool_input}")
+            
+            # Execute the tool
+            try:
+                # Pass the processed input
+                tool_executor_input = {"tool_name": state.current_tool, **actual_tool_input}
+                result = tool_executor.invoke(tool_executor_input)
+                print(f"DEBUG: Tool {state.current_tool} result: {result}")
+                
+                # Record the tool call in memory
+                self.memory.record_tool_call(state.current_tool, actual_tool_input, result)
+                
+                # Create the success action tuple for intermediate steps
+                action_tuple = (AgentAction(tool=state.current_tool, tool_input=actual_tool_input, log=""), str(result))
+                new_steps = state.intermediate_steps + [action_tuple]
+
+                return {
+                    "messages": state.messages,
+                    "intermediate_steps": new_steps,
+                    "current_tool": None,
+                    "tool_input": None,
+                    "tool_output": str(result)
+                }
+            except Exception as e:
+                print(f"ERROR: Error executing tool {state.current_tool} with input {actual_tool_input}: {e}") 
+                error_msg = f"Error executing {state.current_tool}: {str(e)}"
+                
+                # Create the failure action tuple safely
+                # Use the potentially modified actual_tool_input
+                failed_action_tuple = (AgentAction(tool=state.current_tool, tool_input=actual_tool_input, log=f"Tool execution failed: {error_msg}"), f"Tool execution failed: {error_msg}")
+                new_steps = state.intermediate_steps + [failed_action_tuple]
+                
+                return {
+                    "messages": state.messages + [AIMessage(content=error_msg)],
+                    "intermediate_steps": new_steps,
+                    "current_tool": None,
+                    "tool_input": None,
+                    "tool_output": None
+                }
+        
+        # Build the graph
+        workflow = StateGraph(State)
         
         # Add nodes
-        graph.add_node("planner", planning_node)
-        graph.add_node("executor", execution_node)
-        graph.add_node("synthesizer", synthesis_node)
+        workflow.add_node("agent", agent_node)
+        workflow.add_node("tool", tool_node)
         
-        # Add edges with conditional routing
-        def route_after_planning(state: State) -> str:
-            """Determine next step after planning."""
-            plan = state.get("plan", {})
-            if plan.get("needs_tools", False):
-                return "executor"
-            return "synthesizer"
+        # Set entry point
+        workflow.set_entry_point("agent")
         
-        graph.add_conditional_edges(
-            "planner",
-            route_after_planning,
+        # Define conditional routing logic
+        def route_agent(state: State) -> str:
+            """Determine the next step after the agent node."""
+            if state.current_tool:
+                if len(state.intermediate_steps) >= self.max_iterations:
+                    state.messages.append(AIMessage(content=f"Reached max iterations ({self.max_iterations}). Finishing."))                    
+                    return END
+                return "tool"
+            else:
+                return END
+        
+        # Add conditional edges from agent node
+        workflow.add_conditional_edges(
+            "agent",
+            route_agent,
             {
-                "executor": "executor",
-                "synthesizer": "synthesizer"
+                "tool": "tool",
+                END: END
             }
         )
         
-        graph.add_edge("executor", "synthesizer")
-        graph.add_edge("synthesizer", END)
-        graph.add_edge(START, "planner")
+        # Add edge from tool node back to agent node
+        workflow.add_edge("tool", "agent")
         
-        # Compile the graph with the LangGraph memory system
-        return graph.compile()  # Remove the checkpointer parameter since we're using LangChain memory
+        # Compile the graph
+        return workflow.compile()
     
     def process_input(self, user_input: str) -> Dict[str, Any]:
-        """Process user input through the enhanced system."""
-        # Initialize state
-        initial_state = {
-            "messages": [HumanMessage(content=user_input)],
-            "plan": {},
-            "results": []
-        }
+        """Process user input using the LangGraph agent."""
+        # Load history (if needed - LangChain memory might handle this)
+        # self.langchain_memory.load_memory_variables({})
+        # chat_history = self.langchain_memory.buffer_as_messages
         
-        # Process through the graph
-        result = self.graph.invoke(initial_state)
-        
-        # Update both memory systems
-        self.memory.add_interaction(user_input, str(result.get("messages", [])))
-        self.langchain_memory.save_context(
-            {"input": user_input},
-            {"output": str(result.get("messages", []))}
+        # Prepare initial state
+        initial_state = State(
+            messages=[HumanMessage(content=user_input)],
+            intermediate_steps=[] # Ensure intermediate_steps is initialized as empty list
         )
         
-        return result
+        final_state: Optional[Dict[str, Any]] = None
+        try:
+            # Invoke the graph
+            # Set recursion_limit slightly higher to allow the graph to reach END naturally
+            print("DEBUG: Invoking graph...") # Debug print
+            final_state = self.graph.invoke(initial_state, config={"recursion_limit": self.max_iterations + 5})
+            print(f"DEBUG: Graph invocation complete. Final state type: {type(final_state)}") # Debug print
+        except Exception as e:
+            print(f"ERROR: Error invoking graph: {e}") # Log graph errors
+            # Handle graph invocation error, return an error response
+            return {
+                 "response": f"An error occurred during graph processing: {e}",
+                 "intermediate_steps": []
+            }
+
+        final_response_message = "No response generated."
+        final_intermediate_steps = []
+
+        if final_state: # Check if final_state is not None and is a dict (implicitly checked by .get)
+            print(f"DEBUG: Processing final state: {final_state}") # Debug print
+            messages = final_state.get('messages', []) # Use .get() for safety
+            if messages:
+                 # Ensure messages is a list before proceeding
+                 if isinstance(messages, list):
+                     ai_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
+                     if ai_messages:
+                         final_response_message = ai_messages[-1].content
+                 else:
+                     print(f"WARNING: Expected 'messages' to be a list, but got {type(messages)}")
+            else:
+                 print("DEBUG: No 'messages' key found in final state or it was empty.")
+
+            final_intermediate_steps = final_state.get('intermediate_steps', []) # Use .get()
+            print(f"DEBUG: Final response: {final_response_message}") # Debug print
+            print(f"DEBUG: Final intermediate steps: {final_intermediate_steps}") # Debug print
+
+            # Save context only if processing was potentially successful (even if no response generated)
+            try:
+                print("DEBUG: Saving context to memory...") # Debug print
+                self.langchain_memory.save_context(
+                    {"input": user_input},
+                    {"output": final_response_message}
+                )
+                self.memory.add_interaction(user_input, final_response_message) # Assuming add_interaction exists
+                self.memory.save_cache() # Save custom cache
+                print("DEBUG: Context saved.") # Debug print
+            except Exception as e:
+                 print(f"ERROR: Error saving context to memory: {e}") # Log memory errors
+
+        else:
+             print("WARNING: final_state was None after graph invocation.")
+
+        return {
+            "response": final_response_message,
+            "intermediate_steps": final_intermediate_steps
+        }
     
     def pretty_print_message(self, message: BaseMessage) -> None:
-        """Pretty print a message from the agent."""
-        if not message or not hasattr(message, "content"):
-            return
-            
-        # Skip system messages
-        if hasattr(message, "type") and message.type == "system":
-            return
-            
-        print_ai_message(message.content)
+        """Pretty print a message based on its type."""
+        if isinstance(message, HumanMessage):
+            print(f"User: {message.content}")
+        elif isinstance(message, AIMessage):
+            print(f"Chatbot: {message.content}")
+        elif isinstance(message, SystemMessage):
+            print(f"System: {message.content}")
+        else:
+            print(message)

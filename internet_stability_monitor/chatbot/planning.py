@@ -272,4 +272,19 @@ class PlanningSystem:
     
     def get_current_results(self) -> List[Dict[str, Any]]:
         """Get the current tool execution results."""
-        return self.current_results 
+        return self.current_results
+
+    def route_agent(self, state: State) -> str:
+        """Determine the next step after the agent node."""
+        if state.current_tool:
+            # Check recursion limit before executing tool
+            if len(state.intermediate_steps) >= self.max_iterations:
+                 # Force end if max iterations reached, add a message
+                 # Note: Modifying state directly here might not be ideal,
+                 # consider adding the message in the agent_node or main loop
+                 state.messages.append(AIMessage(content=f"Reached max iterations ({self.max_iterations}). Finishing."))
+                 return END
+            return "tool"
+        else:
+            # Agent generated AgentFinish, go to END
+            return END

@@ -18,10 +18,15 @@ CACHE_FILE = os.path.expanduser("~/.instability_cache.json")
 class ChatbotMemory:
     """Memory management for the chatbot, handling both LangGraph memory and the cache system."""
     
-    def __init__(self, thread_id: str = "1"):
-        """Initialize the memory system with the given thread ID."""
-        self.thread_id = thread_id
+    def __init__(self, cache_file: Optional[str] = None):
+        """Initialize the memory system.
+        
+        Args:
+            cache_file: Optional path to the cache file. If not provided, uses the default path.
+        """
+        self.thread_id = "1"  # Default thread ID
         self.memory = MemorySaver()
+        self.cache_file = cache_file or CACHE_FILE
         self.cache = self._load_cache()
         self._is_first_message = True
         self._tool_history = []
@@ -32,13 +37,13 @@ class ChatbotMemory:
     def _load_cache(self) -> Dict[str, Any]:
         """Load the cache from the cache file."""
         try:
-            if os.path.exists(CACHE_FILE):
-                with open(CACHE_FILE, 'r') as f:
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, 'r') as f:
                     cache = json.load(f)
-                print(f"Chatbot (thinking): Cache loaded from {CACHE_FILE}")
+                print(f"Chatbot (thinking): Cache loaded from {self.cache_file}")
                 return cache
             else:
-                print(f"Chatbot (thinking): No cache file found at {CACHE_FILE}, creating a new one.")
+                print(f"Chatbot (thinking): No cache file found at {self.cache_file}, creating a new one.")
                 return {}
         except Exception as e:
             print(f"Chatbot (thinking): Error loading cache: {e}")
@@ -50,7 +55,7 @@ class ChatbotMemory:
             # Update the last updated timestamp
             self.cache["cache_last_updated"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            with open(CACHE_FILE, 'w') as f:
+            with open(self.cache_file, 'w') as f:
                 json.dump(self.cache, f, indent=2)
         except Exception as e:
             print(f"Chatbot (thinking): Error saving cache: {e}")

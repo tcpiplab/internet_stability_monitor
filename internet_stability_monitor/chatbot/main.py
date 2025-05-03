@@ -1,111 +1,91 @@
 """
 Main entry point for the chatbot.
 
-This module initializes and runs the chatbot, connecting all the components.
+This module handles the main chat loop and command processing.
 """
 
 import sys
-import traceback
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional
 
-# Import from other modules
-from internet_stability_monitor.chatbot.memory import ChatbotMemory
-from internet_stability_monitor.chatbot.tools import get_tools, set_memory_system
-from internet_stability_monitor.chatbot.commands import handle_command, set_dependencies
-from internet_stability_monitor.chatbot.interface import (
-    print_welcome_message, get_user_input, 
-    print_ai_thinking, print_ai_message, print_error,
-    print_planning_step, print_execution_step, print_synthesis
+from .agent import ChatbotAgent
+from .memory import ChatbotMemory
+from .commands import handle_command, set_dependencies
+from .interface import (
+    print_welcome_message,
+    get_user_input,
+    print_ai_message,
+    print_error
 )
-from internet_stability_monitor.chatbot.agent import EnhancedChatbotAgent
-from internet_stability_monitor.chatbot.planning import PlanningSystem
+from .tool_providers import get_default_providers
 
-# Import for ollama check
-import check_ollama_status
-
-def main(silent: bool = False, polite: bool = True):
-    """
-    Run the chatbot.
+def main(cache_file: Optional[str] = None) -> None:
+    """Run the main chatbot loop.
     
     Args:
-        silent: Whether to run in silent mode (no TTS)
-        polite: Whether to run in polite mode (less detailed error messages)
+        cache_file: Optional path to the cache file
     """
-    # Initialize the memory system
-    memory = ChatbotMemory()
-    
-    # Initialize tools and commands
-    tools = get_tools()
-    set_memory_system(memory)
-    
-    # Also add command-related tools that should be available to the model
-    from internet_stability_monitor.chatbot.commands import help_menu_and_list_tools, check_cache, get_local_date_time_and_timezone
-    # Make these tools available to the model but handle them separately in UI when needed
-    tools.extend([check_cache, get_local_date_time_and_timezone])
-    
-    # Set dependencies for commands
-    set_dependencies(memory, tools)
-    
-    # Initialize the planning system
-    planner = PlanningSystem()
-    
-    # Initialize the enhanced agent
-    agent = EnhancedChatbotAgent(tools=tools, memory_system=memory)
-    
-    # Print welcome message
-    print_welcome_message()
-    
-    # Main loop
-    while True:
-        if not check_ollama_status.is_ollama_process_running():
-            print_error("Ollama process is not running. Please start the Ollama service.")
-            check_ollama_status.find_ollama_executable()
-            break
-        else:
+    try:
+        # Initialize memory
+        memory = ChatbotMemory(cache_file)
+        
+        # Initialize the agent with default tool providers
+        agent = ChatbotAgent(
+            tool_providers=get_default_providers(),
+            memory_system=memory
+        )
+        
+        # Set up command dependencies
+        set_dependencies(memory, agent.tools)
+        
+        # Print welcome message
+        print_welcome_message()
+        
+        # Main chat loop
+        while True:
             try:
                 # Get user input
                 user_input = get_user_input()
                 
-                # Check for commands
-                handled, should_exit = handle_command(user_input)
-                if handled:
-                    if should_exit:
-                        break  # Exit the loop if the command indicates we should exit
-                    else:
-                        continue
-                
-                # Process user input
-                print_ai_thinking("Planning approach...")
-                response = agent.process_input(user_input)
-                
-                # Process the response
-                if response:
-                    # Show planning if available
-                    if "plan" in response:
-                        print_planning_step(response["plan"])
+                # Check for exit command
+                if user_input.lower() in ["/exit", "/quit"]:
+                    break
                     
-                    # Show execution steps if available
-                    if "results" in response:
-                        for result in response["results"]:
-                            print_execution_step(result["tool"], result["result"])
-                    
-                    # Show final response
-                    if "messages" in response:
-                        agent.pretty_print_message(response["messages"][-1])
+                # Handle commands
+                if user_input.startswith("/"):
+                    handle_command(user_input, memory)
+                    continue
                 
+                # Process through agent
+                result = agent.process_input(user_input)
+                
+                # Print the agent's final response
+                if result and 'response' in result:
+                    # Use the interface function for consistent AI output formatting
+                    print_ai_message(result['response'])
+                    
+                    # Optionally, print intermediate steps for debugging/user info
+                    # if 'intermediate_steps' in result and result['intermediate_steps']:
+                    #    print("\n--- Intermediate Steps ---")
+                    #    for step in result['intermediate_steps']:
+                    #        print(step)
+                    #    print("------------------------\n")
+                else:
+                    # Handle cases where agent might not return a response (e.g., error during processing)
+                    print_error("Chatbot did not provide a response.")
+                    
             except KeyboardInterrupt:
-                print("\nExiting...")
-                memory.save_cache()
-                print("Exiting and saving cache...")
-                break
-            except EOFError:
-                print("\nExiting...")
-                memory.save_cache()
-                print("Exiting and saving cache...")
-                break
+                print("\nUse /exit to quit")
             except Exception as e:
-                print_error(f"An error occurred: {e}")
-                traceback.print_exc()
+                print_error(f"Error processing input: {e}")
+                
+    except KeyboardInterrupt:
+        print("\nSaving cache and exiting...")
+    except Exception as e:
+        print_error(f"Fatal error: {e}")
+    finally:
+        # Save cache before exiting
+        if memory:
+            memory.save_cache()
 
 if __name__ == "__main__":
     main()

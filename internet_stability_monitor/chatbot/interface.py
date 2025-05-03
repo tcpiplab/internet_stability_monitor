@@ -6,6 +6,7 @@ and formatting.
 """
 
 import platform
+import sys
 from typing import Dict, Any, Callable, List, Optional
 from colorama import init, Fore, Style
 
@@ -38,7 +39,16 @@ def print_welcome_message():
 
 def get_user_input() -> str:
     """Get input from the user with nice formatting."""
-    return input(f"{Fore.CYAN}\nUser: {Style.RESET_ALL}")
+    try:
+        return input(f"{Fore.CYAN}\nUser: {Style.RESET_ALL}")
+    except EOFError:
+        # Handle EOF errors properly
+        print("\nDetected EOF, exiting...")
+        sys.exit(0)
+    except KeyboardInterrupt:
+        # Handle Ctrl+C
+        print("\nDetected keyboard interrupt, exiting...")
+        sys.exit(0)
 
 def print_ai_thinking(message: str):
     """Print an AI thinking message."""
