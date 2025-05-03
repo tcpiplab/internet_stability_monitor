@@ -3,6 +3,12 @@ LangGraph agent setup and configuration.
 
 This module sets up the LangGraph agent that powers the chatbot, including
 the system prompt, model configuration, and graph structure.
+
+The agent includes:
+1. ReAct-based reasoning for network diagnostics
+2. Tool providers for organizing available tools
+3. Anti-recursion detection to prevent infinite loops (see route_agent function)
+4. Error handling and debug logging
 """
 
 from typing import Dict, Any, List, Callable, Optional, TypeVar, Protocol
@@ -238,6 +244,11 @@ class ChatbotAgent:
                 # Create the success action tuple for intermediate steps
                 action_tuple = (AgentAction(tool=state.current_tool, tool_input=actual_tool_input, log=""), str(result))
                 new_steps = state.intermediate_steps + [action_tuple]
+                
+                # Add debug logging to help detect patterns in tool usage
+                if len(new_steps) >= 2:
+                    prev_tool = new_steps[-2][0].tool if len(new_steps) >= 2 else "none"
+                    print(f"DEBUG: Tool sequence: {prev_tool} -> {state.current_tool}")
 
                 return {
                     "messages": state.messages,
@@ -277,9 +288,24 @@ class ChatbotAgent:
         def route_agent(state: State) -> str:
             """Determine the next step after the agent node."""
             if state.current_tool:
+                # Check maximum iterations
                 if len(state.intermediate_steps) >= self.max_iterations:
-                    state.messages.append(AIMessage(content=f"Reached max iterations ({self.max_iterations}). Finishing."))                    
+                    state.messages.append(AIMessage(content=f"Reached max iterations ({self.max_iterations}). Finishing."))
                     return END
+                
+                # Check for repetitive tool calls (infinite loop detection)
+                if len(state.intermediate_steps) >= 3:
+                    # Get the last 3 tool calls
+                    recent_tools = [step[0].tool for step in state.intermediate_steps[-3:]]
+                    
+                    # Check if it's the same tool being called repeatedly
+                    if len(set(recent_tools)) == 1 and recent_tools[0] == state.current_tool:
+                        # We have detected the same tool being called 3+ times in a row
+                        warning_msg = f"Detected repetitive calls to the same tool '{state.current_tool}'. This might indicate an infinite loop. Stopping execution."
+                        print(f"WARNING: {warning_msg}")
+                        state.messages.append(AIMessage(content=warning_msg))
+                        return END
+                
                 return "tool"
             else:
                 return END
