@@ -18,8 +18,14 @@ from abc import ABC, abstractmethod
 import re
 import os
 
-# Disable LangSmith warning by setting empty API key
+# Disable LangSmith warning by setting the tracing flag to false
+# and suppressing related warnings
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["LANGCHAIN_CALLBACKS_BACKGROUND"] = "false"
+
+# Suppress specific warnings
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="langsmith.client")
 
 from colorama import Fore, Style
 from langchain_core.tools import BaseTool, tool
