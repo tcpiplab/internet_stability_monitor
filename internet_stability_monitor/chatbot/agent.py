@@ -17,17 +17,26 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import re
 import os
-
-# Disable LangSmith warning by setting the tracing flag to false
-# and suppressing related warnings
-os.environ["LANGCHAIN_TRACING_V2"] = "false"
-os.environ["LANGCHAIN_CALLBACKS_BACKGROUND"] = "false"
-
-# Suppress specific warnings
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="langsmith.client")
-
+import datetime
 from colorama import Fore, Style
+
+# LangSmith integration
+# If LANGCHAIN_TRACING_V2 is set to true in environment variables, this will enable LangSmith tracing
+# If you've already configured LangSmith env vars in your ~/.zshrc, you don't need to set them here
+# Required env vars: LANGCHAIN_API_KEY, LANGCHAIN_PROJECT, LANGCHAIN_ENDPOINT (optional)
+langsmith_enabled = os.environ.get("LANGCHAIN_TRACING_V2", "false").lower() == "true"
+
+# Only import langsmith if tracing is enabled
+if langsmith_enabled:
+    from langsmith import Client
+    client = Client()
+    print(f"{Style.DIM}LangSmith tracing enabled for project: {os.environ.get('LANGCHAIN_PROJECT', 'default')}{Style.RESET_ALL}")
+else:
+    # If not using LangSmith, disable warnings
+    os.environ["LANGCHAIN_TRACING_V2"] = "false"
+    os.environ["LANGCHAIN_CALLBACKS_BACKGROUND"] = "false"
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning, module="langsmith.client")
 from langchain_core.tools import BaseTool, tool
 from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
@@ -54,7 +63,7 @@ class ToolExecutor:
 from langchain.agents import AgentExecutor
 # Removed deprecated ConversationBufferMemory import
 from langchain.agents.agent import AgentFinish, AgentAction
-from langchain import hub
+# Removed hub import since we're using a local prompt template
 from langchain.agents import create_react_agent
 from langchain.agents.format_scratchpad import format_log_to_str
 
@@ -73,6 +82,39 @@ def warning_print(message: str) -> None:
 def error_print(message: str) -> None:
     """Print an error message in red color."""
     print(f"{Fore.RED}ERROR: {message}{Style.RESET_ALL}")
+
+def trace_in_langsmith(name: str, func, *args, run_type: str = "chain", tags: List[str] = None, metadata: Dict[str, Any] = None, **kwargs):
+    """Helper function to trace arbitrary code in LangSmith if enabled.
+    
+    Args:
+        name: Name of the trace
+        func: Function to trace
+        run_type: Type of run (chain, llm, tool, etc)
+        tags: List of tags to apply to the trace
+        metadata: Dictionary of metadata to add to the trace
+        args, kwargs: Arguments to pass to the function
+        
+    Returns:
+        The result of calling func with the provided arguments
+    """
+    if not langsmith_enabled:
+        return func(*args, **kwargs)
+    
+    try:
+        from langsmith import trace
+        with trace(
+            name=name,
+            run_type=run_type,
+            tags=tags or [],
+            metadata=metadata or {}
+        ) as run:
+            result = func(*args, **kwargs)
+            if result:
+                run.add_output({"output": str(result)[:1000] if isinstance(result, str) else str(result)})
+            return result
+    except Exception as ls_error:
+        debug_print(f"LangSmith tracing error in {name}: {ls_error}")
+        return func(*args, **kwargs)  # Fall back to running without tracing
 
 class ToolProvider(Protocol):
     """Protocol for tool providers that can be added to the agent."""
@@ -129,15 +171,62 @@ class ChatbotAgent:
         # We're using our own memory system instead of deprecated ConversationBufferMemory
         # This aligns with the LangGraph approach recommended in the migration guide
         
-        # Get the ReAct prompt
-        prompt = hub.pull("hwchase17/react-chat")
+        # Create a local ReAct prompt template instead of pulling from the hub
+        # This ensures the chatbot can function without internet access
+        react_prompt = ChatPromptTemplate.from_messages([
+            ("system", """Assistant is a network diagnostics specialist built to help troubleshoot connectivity issues.
+
+Assistant is designed to help diagnose and resolve network connectivity and stability problems. It has knowledge of networking concepts, protocols, and common issues that can affect internet connections. As a network specialist, Assistant can analyze various aspects of a network connection, identify potential issues, and recommend solutions.
+
+Assistant can evaluate different layers of network connectivity, from physical connections to application-level services. It can help troubleshoot problems with DNS, latency, packet loss, and other networking issues. Assistant is especially skilled at interpreting the results of diagnostic tools and explaining them in an understandable way.
+
+TOOLS:
+------
+
+Assistant has access to the following tools:
+
+{tools}
+
+To use a tool, please use the following format:
+
+```
+Thought: Do I need to use a tool? Yes
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+```
+
+When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
+
+```
+Thought: Do I need to use a tool? No
+Final Answer: [your response here]
+```
+
+Begin!
+
+Previous conversation history:
+{chat_history}
+
+New input: {input}
+{agent_scratchpad}"""),
+        ])
         
-        # Create the agent using create_react_agent
+        # Create the agent using create_react_agent with our local prompt
         self.agent = create_react_agent(
             llm=self.model,
             tools=self.tools,
-            prompt=prompt
+            prompt=react_prompt
         )
+        
+        # Set tracing tags for LangSmith if enabled
+        self.tracing_tags = None
+        if langsmith_enabled:
+            self.tracing_tags = {
+                "agent_type": "internet_stability_chatbot",
+                "model": self.model_name,
+                "project": os.environ.get("LANGCHAIN_PROJECT", "default")
+            }
         
         # Create the graph
         self.graph = self._create_graph()
@@ -434,6 +523,26 @@ class ChatbotAgent:
                 # Record the tool call in memory
                 self.memory.record_tool_call(state.current_tool, actual_tool_input, result)
                 
+                # Log successful tool execution to LangSmith if enabled
+                if langsmith_enabled:
+                    try:
+                        # Create a trace for this specific tool call
+                        from langsmith import trace
+                        with trace(
+                            name=f"Tool: {state.current_tool}",
+                            run_type="tool",
+                            tags=["tool_execution", state.current_tool],
+                            metadata={
+                                "tool_name": state.current_tool,
+                                "tool_input": str(actual_tool_input),
+                                "tool_output_preview": str(result)[:100] if result else ""
+                            }
+                        ) as run:
+                            # Add the full output as a child run
+                            run.add_output({"output": str(result)})
+                    except Exception as ls_error:
+                        debug_print(f"LangSmith tool tracing error: {ls_error}")
+                
                 # Create the success action tuple for intermediate steps
                 action_tuple = (AgentAction(tool=state.current_tool, tool_input=actual_tool_input, log=""), str(result))
                 new_steps = state.intermediate_steps + [action_tuple]
@@ -650,7 +759,24 @@ class ChatbotAgent:
             # Invoke the graph
             # Set recursion_limit slightly higher to allow the graph to reach END naturally
             debug_print("Invoking graph...")
-            final_state = self.graph.invoke(initial_state, config={"recursion_limit": self.max_iterations + 5})
+            
+            # Configure graph invocation with LangSmith tracing if enabled
+            config = {"recursion_limit": self.max_iterations + 5}
+            
+            # Add LangSmith metadata if tracing is enabled
+            if langsmith_enabled and self.tracing_tags:
+                run_name = f"Chatbot Run - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                config["configurable"] = {
+                    "tags": self.tracing_tags,
+                    "metadata": {
+                        "user_input": modified_input,
+                        "is_continuation": is_continuing_conversation
+                    },
+                    "run_name": run_name
+                }
+                
+            # Invoke the graph with the configured settings
+            final_state = self.graph.invoke(initial_state, config=config)
             debug_print(f"Graph invocation complete. Final state type: {type(final_state)}")
         except Exception as e:
             error_str = str(e)
