@@ -102,16 +102,21 @@ def trace_in_langsmith(name: str, func, *args, run_type: str = "chain", tags: Li
     
     try:
         from langsmith import trace
+        result = None
+        
+        # Execute the function within the trace context
         with trace(
             name=name,
             run_type=run_type,
             tags=tags or [],
             metadata=metadata or {}
-        ) as run:
+        ):
             result = func(*args, **kwargs)
-            if result:
-                run.add_output({"output": str(result)[:1000] if isinstance(result, str) else str(result)})
-            return result
+            
+            # Optionally add the result to metadata if needed in the future
+            # Note: We don't use add_output anymore as it's not supported
+        
+        return result
     except Exception as ls_error:
         debug_print(f"LangSmith tracing error in {name}: {ls_error}")
         return func(*args, **kwargs)  # Fall back to running without tracing
@@ -187,7 +192,7 @@ Assistant has access to the following tools:
 
 {tools}
 
-To use a tool, please use the following format:
+To use a tool, please use the following format EXACTLY - DO NOT use any other format or tags like <think>:
 
 ```
 Thought: Do I need to use a tool? Yes
@@ -196,12 +201,18 @@ Action Input: the input to the action
 Observation: the result of the action
 ```
 
-When you have a response to say to the Human, or if you do not need to use a tool, you MUST use the format:
+When you have a response to say to the Human, or if you do not need to use a tool, you MUST use THIS EXACT format and NO other format:
 
 ```
 Thought: Do I need to use a tool? No
 Final Answer: [your response here]
 ```
+
+IMPORTANT:
+1. ALWAYS use the exact formats above - never use <think> tags or any other format
+2. ALWAYS prefix your thoughts with "Thought:", actions with "Action:", and final answers with "Final Answer:"
+3. Keep your thoughts focused on determining which tool to use or interpreting results
+4. For the ping_target tool, provide the hostname or IP directly as the input
 
 Begin!
 
@@ -335,20 +346,34 @@ New input: {input}
                         debug_print(f"Manually extracted action: {tool_name} with input: {action_input_dict}")
                         
                         # Fix specific issues with ping_target tool - it expects a string as target
-                        if tool_name == "ping_target" and isinstance(action_input_dict, dict):
-                            if not action_input_dict or action_input_dict.get('input') == '{}':
-                                debug_print(f"Error: ping_target requires a target parameter. Fixing by using fallback.")
-                                # Prevent executing ping with invalid arguments
-                                result = AgentFinish(
-                                    return_values={"output": "I need a specific hostname or IP address to ping. Can you please provide one?"},
-                                    log="Fixed invalid ping_target call"
-                                )
-                                return result
-                            elif 'input' in action_input_dict and isinstance(action_input_dict['input'], str):
-                                # Extract target from the input string if possible
-                                if action_input_dict['input'].strip() in ['{}', '()', '[]', '']:
+                        if tool_name == "ping_target":
+                            # For ping_target specifically, handle various input formats
+                            if isinstance(action_input_dict, dict):
+                                if not action_input_dict or action_input_dict.get('input') == '{}' or action_input_dict == {}:
                                     debug_print(f"Error: ping_target requires a target parameter. Fixing by using fallback.")
                                     # Prevent executing ping with invalid arguments
+                                    result = AgentFinish(
+                                        return_values={"output": "I need a specific hostname or IP address to ping. Can you please provide one?"},
+                                        log="Fixed invalid ping_target call"
+                                    )
+                                    return result
+                                elif 'input' in action_input_dict and isinstance(action_input_dict['input'], str):
+                                    # Extract target from the input string if possible
+                                    if action_input_dict['input'].strip() in ['{}', '()', '[]', '']:
+                                        debug_print(f"Error: ping_target requires a target parameter. Fixing by using fallback.")
+                                        # Prevent executing ping with invalid arguments
+                                        result = AgentFinish(
+                                            return_values={"output": "I need a specific hostname or IP address to ping. Can you please provide one?"},
+                                            log="Fixed invalid ping_target call"
+                                        )
+                                        return result
+                                    # If input contains a valid string that looks like an IP or hostname, transform to direct string
+                                    valid_input = action_input_dict['input'].strip()
+                                    # Leave as is - the tool execution will handle this correctly now
+                            elif isinstance(action_input_dict, str):
+                                # For direct string input, leave as is - handled by the tool execution now
+                                if action_input_dict.strip() in ['{}', '()', '[]', '']:
+                                    debug_print(f"Error: ping_target requires a valid target parameter.")
                                     result = AgentFinish(
                                         return_values={"output": "I need a specific hostname or IP address to ping. Can you please provide one?"},
                                         log="Fixed invalid ping_target call"
@@ -515,8 +540,23 @@ New input: {input}
             
             # Execute the tool
             try:
-                # Pass the processed input
-                tool_executor_input = {"tool_name": state.current_tool, **actual_tool_input}
+                # Prepare the input based on its type - handling strings specially
+                if isinstance(actual_tool_input, str):
+                    # For string inputs, create appropriate parameter mapping
+                    if state.current_tool == "ping_target":
+                        # The ping_target tool expects a "target" parameter
+                        tool_executor_input = {"tool_name": state.current_tool, "target": actual_tool_input}
+                    else:
+                        # For other tools receiving a string, use "input" as default parameter
+                        tool_executor_input = {"tool_name": state.current_tool, "input": actual_tool_input}
+                elif isinstance(actual_tool_input, dict):
+                    # For dict inputs, use them directly
+                    tool_executor_input = {"tool_name": state.current_tool, **actual_tool_input}
+                else:
+                    # For other types (should be rare), convert to string
+                    tool_executor_input = {"tool_name": state.current_tool, "input": str(actual_tool_input)}
+                
+                debug_print(f"Final tool input: {tool_executor_input}")
                 result = tool_executor.invoke(tool_executor_input)
                 debug_print(f"Tool {state.current_tool} result: {result}")
                 
@@ -535,11 +575,11 @@ New input: {input}
                             metadata={
                                 "tool_name": state.current_tool,
                                 "tool_input": str(actual_tool_input),
-                                "tool_output_preview": str(result)[:100] if result else ""
+                                "tool_output": str(result)[:1000] if result else ""
                             }
                         ) as run:
-                            # Add the full output as a child run
-                            run.add_output({"output": str(result)})
+                            # Note: previously we were using run.add_output() but this is no longer supported
+                            pass
                     except Exception as ls_error:
                         debug_print(f"LangSmith tool tracing error: {ls_error}")
                 
