@@ -256,7 +256,7 @@ def handle_command(command: str, graph = None) -> (bool, bool):
     
     elif command.lower() == "/context":
         if memory_system:
-            from interface import print_conversation_context
+            from .interface import print_conversation_context
             context = memory_system.get_context()
             print_conversation_context(context)
         else:
@@ -267,7 +267,7 @@ def handle_command(command: str, graph = None) -> (bool, bool):
         if memory_system:
             current_plan = memory_system.get_current_plan()
             if current_plan:
-                from interface import print_planning_step
+                from .interface import print_planning_step
                 print_planning_step(current_plan)
             else:
                 print(f"{Fore.YELLOW}No active plan.{Style.RESET_ALL}")
