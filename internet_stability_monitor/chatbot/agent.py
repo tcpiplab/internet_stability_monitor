@@ -104,7 +104,7 @@ class ChatbotAgent:
     def __init__(self, 
                  tool_providers: List[ToolProvider],
                  memory_system: Any,
-                 model_name: str = "qwen2.5",
+                 model_name: str = "qwen3:8b",
                  max_iterations: int = 10) -> None:
         """Initialize the chatbot agent."""
         self.tool_providers = tool_providers
