@@ -25,3 +25,6 @@ When creating network monitoring tools:
 - Add main function with silent/polite params
 - Register tool in instability.py
 - Create LangChain tools for chatbot integration
+
+## Working Methods
+- Rather than having Claude directly test my chatbot after source code modifications, I always prefer to test my chatbot manually in a separate terminal and then I'll tell you the outcome of the testing.
