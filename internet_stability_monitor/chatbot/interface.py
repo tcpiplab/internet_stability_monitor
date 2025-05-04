@@ -5,6 +5,7 @@ This module handles the terminal-based UI for the chatbot, including input, outp
 and formatting.
 """
 
+import os
 import platform
 import sys
 from typing import Dict, Any, Callable, List, Optional
@@ -32,7 +33,19 @@ if readline and platform.system() != "Windows":
 
 def print_welcome_message():
     """Print a welcome message to the user."""
-    print(f"{Fore.GREEN}Welcome to the Internet Stability Monitor Chatbot!{Style.RESET_ALL}")
+    # Read and print the ASCII header
+    try:
+        # Use a relative path from the current file to the root of the project
+        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        header_path = os.path.join(current_dir, 'Instability_ASCII_Header.txt')
+        
+        with open(header_path, 'r') as f:
+            header = f.read()
+            print(f"{Fore.GREEN}{header}{Style.RESET_ALL}")
+    except Exception as e:
+        # Fallback if file can't be read
+        print(f"{Fore.GREEN}Welcome to the Internet Stability Monitor Chatbot!{Style.RESET_ALL}")
+    
     print(f"Type {Fore.CYAN}/help{Style.RESET_ALL} to see available commands or {Fore.CYAN}/exit{Style.RESET_ALL} to quit.")
     print(f"You can ask questions about your network and internet stability.")
     print(f"I'll explain my thinking process and planning as I help you diagnose issues.")
