@@ -163,7 +163,7 @@ class ChatbotAgent:
     def __init__(self, 
                  tool_providers: List[ToolProvider],
                  memory_system: Any,
-                 model_name: str = "qwen3:8b",
+                 model_name: str = "qwen3:1.7b",
                  max_iterations: int = 10) -> None:
         """Initialize the chatbot agent."""
         self.tool_providers = tool_providers
@@ -185,7 +185,7 @@ class ChatbotAgent:
         # Create a local ReAct prompt template instead of pulling from the hub
         # This ensures the chatbot can function without internet access
         react_prompt = ChatPromptTemplate.from_messages([
-            ("system", """Assistant is a network diagnostics specialist built to help troubleshoot connectivity issues.
+            ("system", """Assistant is a network diagnostics specialist built to help troubleshoot connectivity issues. /no_think
 
 Assistant is designed to help diagnose and resolve network connectivity and stability problems. It has knowledge of networking concepts, protocols, and common issues that can affect internet connections. As a network specialist, Assistant can analyze various aspects of a network connection, identify potential issues, and recommend solutions.
 

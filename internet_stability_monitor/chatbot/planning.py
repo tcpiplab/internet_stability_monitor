@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 from langchain_core.messages import BaseMessage
 from langchain_ollama import ChatOllama
 
-SYNTHESIS_PROMPT = """You are a network diagnostics expert. Analyze the following information and provide a very concise, natural, informative response.
+SYNTHESIS_PROMPT = """You are a network diagnostics expert. Analyze the following information and provide a very concise, natural, informative response. /no_think
 
 Query: {query}
 
@@ -34,7 +34,7 @@ class PlanningSystem:
         """Initialize the planning system."""
         self.current_plan = None
         self.current_results = []
-        self.llm = ChatOllama(model="qwen2.5")
+        self.llm = ChatOllama(model="qwen3:1.7b")
         self.result_history = []
     
     def create_plan(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
