@@ -41,14 +41,15 @@ def print_welcome_message():
         
         with open(header_path, 'r') as f:
             header = f.read()
+            print("")
             print(f"{Fore.GREEN}{header}{Style.RESET_ALL}")
     except Exception as e:
         # Fallback if file can't be read
         print(f"{Fore.GREEN}Welcome to the Internet Stability Monitor Chatbot!{Style.RESET_ALL}")
     
-    print(f"Type {Fore.CYAN}/help{Style.RESET_ALL} to see available commands or {Fore.CYAN}/exit{Style.RESET_ALL} to quit.")
-    print(f"You can ask questions about your network and internet stability.")
-    print(f"I'll explain my thinking process and planning as I help you diagnose issues.")
+    print(f"\n{Fore.LIGHTBLUE_EX}{Style.BRIGHT}Chatbot: {Style.RESET_ALL}Type {Fore.CYAN}/help{Style.RESET_ALL} to see available commands or {Fore.CYAN}/exit{Style.RESET_ALL} to quit.")
+    # print(f"You can ask questions about your network and internet stability.")
+    # print(f"I'll explain my thinking process and planning as I help you diagnose issues.")
 
 def get_user_input() -> str:
     """Get input from the user with nice formatting."""

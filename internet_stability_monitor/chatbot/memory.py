@@ -54,7 +54,7 @@ class ChatbotMemory:
             if os.path.exists(self.cache_file):
                 with open(self.cache_file, 'r') as f:
                     cache = json.load(f)
-                thinking_print(f"Cache loaded from {self.cache_file}")
+                # thinking_print(f"Cache loaded from {self.cache_file}")
                 return cache
             else:
                 thinking_print(f"No cache file found at {self.cache_file}, creating a new one.")
