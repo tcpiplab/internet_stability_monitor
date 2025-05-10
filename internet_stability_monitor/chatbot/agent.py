@@ -209,10 +209,9 @@ Observation: the result of the action
 
 When you have a response to say to the Human, or if you do not need to use a tool, you MUST use THIS EXACT format and NO other format:
 
-```
 Thought: Do I need to use a tool? No
 Final Answer: [your response here]
-```
+
 
 IMPORTANT:
 1. ALWAYS use the exact formats above - never use <think> tags or any other format
