@@ -59,6 +59,9 @@ class ToolExecutor:
         tool = self.tools.get(tool_name)
         if tool is None:
             raise ValueError(f"Tool {tool_name} not found. Available tools: {list(self.tools.keys())}")
+
+        print(f"{Fore.LIGHTBLUE_EX}Chatbot (Executing tool):{Fore.RESET} Invoking {tool_name} with input: {input_dict}")
+
         return tool.invoke(input_dict)
 from langchain.agents import AgentExecutor
 # Removed deprecated ConversationBufferMemory import
