@@ -65,7 +65,7 @@ def get_user_input() -> str:
 
 def print_ai_thinking(message: str):
     """Print an AI thinking message."""
-    print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot (thinking):{Style.RESET_ALL} {message}")
+    print(f"{Fore.BLUE}{Style.BRIGHT}Chatbot (thinking):{Style.RESET_ALL} {Style.DIM}{message}{Style.RESET_ALL}\n")
 
 def print_ai_message(message: str):
     """Print an AI message to the console."""

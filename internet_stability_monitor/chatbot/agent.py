@@ -73,7 +73,9 @@ ToolResult = TypeVar('ToolResult')
 # Helper functions for colored output
 def debug_print(message: str) -> None:
     """Print a debug message in gray color."""
-    print(f"{Style.DIM}DEBUG: {message}{Style.RESET_ALL}")
+    # Disable debug prints for cleaner output
+    # print(f"{Style.DIM}DEBUG: {message}{Style.RESET_ALL}")
+    pass
 
 def warning_print(message: str) -> None:
     """Print a warning message in yellow color."""
@@ -89,7 +91,7 @@ def trace_in_langsmith(name: str, func, *args, run_type: str = "chain", tags: Li
     Args:
         name: Name of the trace
         func: Function to trace
-        run_type: Type of run (chain, llm, tool, etc)
+        run_type: Type of run (chain, llm, tool, etc.)
         tags: List of tags to apply to the trace
         metadata: Dictionary of metadata to add to the trace
         args, kwargs: Arguments to pass to the function
@@ -144,7 +146,8 @@ class State:
     intermediate_steps: List[tuple] = None
     last_question: Optional[str] = None  # The last question asked by the bot
     pending_tools: List[str] = None  # Tools mentioned in the last question
-    
+    raw_thinking: Optional[str] = None  # Raw thinking steps from the model
+
     def __post_init__(self):
         if self.intermediate_steps is None:
             self.intermediate_steps = []
@@ -269,8 +272,44 @@ New input: {input}
 
             # Custom wrapper to handle mixed output with both actions and final answers
             try:
-                # First attempt with standard parser
+                # Capture raw model output with thinking before parsing
+                raw_thinking = None
+                try:
+                    # Create a direct prompt based on the ReactPrompt
+                    direct_prompt = {"input": agent_inputs["input"],
+                                    "chat_history": agent_inputs["chat_history"],
+                                    "agent_scratchpad": agent_inputs["agent_scratchpad"]}
+
+                    # Get raw LLM response with the same inputs
+                    raw_response = self.model.invoke([
+                        SystemMessage(content=f"""You are a network diagnostics assistant that helps troubleshoot connectivity issues.
+                        When answering, FIRST put your detailed thinking process inside <think>...</think> tags.
+                        THEN use the ReAct format as specified. Available tools: {[tool.name for tool in self.tools]}"""),
+                        HumanMessage(content=f"User question: {agent_inputs['input']}\n\nPrevious conversation: {agent_inputs['chat_history']}")
+                    ])
+
+                    if raw_response and hasattr(raw_response, 'content'):
+                        raw_thinking = raw_response.content
+
+                        # Print thinking immediately, instead of waiting until the end
+                        think_match = re.search(r"<think>(.*?)</think>", raw_thinking, re.DOTALL)
+                        if think_match:
+                            from .interface import print_ai_thinking
+                            print_ai_thinking(think_match.group(1).strip())
+
+                        # Still store for later reference
+                        state.raw_thinking = raw_thinking
+                except Exception as think_err:
+                    debug_print(f"Failed to capture raw thinking: {think_err}")
+
+                # Standard parser attempt
                 result = self.agent.invoke(agent_inputs)
+
+                # Store the thinking in the log property
+                if hasattr(result, 'log') and raw_thinking:
+                    # For AgentAction and AgentFinish, include the raw thinking
+                    result.log = f"<think>{raw_thinking}</think>\n\n{result.log}" if result.log else f"<think>{raw_thinking}</think>"
+
             except Exception as e:
                 if "Parsing LLM output produced both a final answer and a parse-able action" in str(e):
                     debug_print("Detected mixed output with both action and final answer")
@@ -293,7 +332,12 @@ New input: {input}
                             HumanMessage(content=f"Previous conversation: {state.messages[:-1]}\n\nUser question: {state.messages[-1].content}\n\nYou have these tools available: {[tool.name for tool in self.tools]}\n\nRespond in ReAct format with EITHER an Action OR a Final Answer, not both.")
                         ]
                         raw_output = self.model.invoke(direct_messages).content
-                        debug_print(f"Direct LLM response: {raw_output}")
+
+                        # Try to extract and display thinking from the direct call
+                        think_match = re.search(r"<think>(.*?)</think>", raw_output, re.DOTALL)
+                        if think_match:
+                            from .interface import print_ai_thinking
+                            print_ai_thinking(think_match.group(1).strip())
                     
                     # Get the patterns directly in case the parser doesn't expose the methods we need
                     action_pattern = r"Action: (.*?)[\n]*Action Input:[\s]*(.*)"
@@ -472,7 +516,8 @@ New input: {input}
                     "tool_input": None,
                     "tool_output": None,
                     "last_question": output_content if is_question else None,
-                    "pending_tools": pending_tools
+                    "pending_tools": pending_tools,
+                    "raw_thinking": state.raw_thinking  # Ensure raw_thinking is passed through
                 }
             elif isinstance(result, AgentAction):
                 # --- Intercept and correct tool input if necessary ---
@@ -512,7 +557,8 @@ New input: {input}
                     "tool_input": None,
                     "tool_output": None,
                     "last_question": None,  # No question in error case
-                    "pending_tools": []  # No pending tools in error case
+                    "pending_tools": [],  # No pending tools in error case
+                    "raw_thinking": state.raw_thinking
                 }
         
         def tool_node(state: State) -> Dict[str, Any]:
@@ -521,11 +567,12 @@ New input: {input}
                 # Include last_question and pending_tools in the returned state
                 return {
                     **state.__dict__,
-                    "current_tool": None, 
-                    "tool_input": None, 
+                    "current_tool": None,
+                    "tool_input": None,
                     "tool_output": None,
                     "last_question": state.last_question,
-                    "pending_tools": state.pending_tools
+                    "pending_tools": state.pending_tools,
+                    "raw_thinking": state.raw_thinking
                 }
             
             # Prepare tool input, handling potential placeholders from the agent
@@ -615,7 +662,8 @@ New input: {input}
                             "tool_input": None,
                             "tool_output": str(result),
                             "last_question": None,
-                            "pending_tools": []
+                            "pending_tools": [],
+                            "raw_thinking": state.raw_thinking
                         }
 
                 return {
@@ -625,7 +673,8 @@ New input: {input}
                     "tool_input": None,
                     "tool_output": str(result),
                     "last_question": state.last_question,  # Preserve last question
-                    "pending_tools": state.pending_tools  # Preserve pending tools
+                    "pending_tools": state.pending_tools,  # Preserve pending tools
+                    "raw_thinking": state.raw_thinking
                 }
             except Exception as e:
                 error_print(f"Error executing tool {state.current_tool} with input {actual_tool_input}: {e}") 
@@ -643,7 +692,8 @@ New input: {input}
                     "tool_input": None,
                     "tool_output": None,
                     "last_question": None,  # No question in error case
-                    "pending_tools": []  # No pending tools in error case
+                    "pending_tools": [],  # No pending tools in error case
+                    "raw_thinking": state.raw_thinking
                 }
         
         # Build the graph
@@ -869,6 +919,7 @@ New input: {input}
             debug_print(f"Processing final state: {final_state}")
             messages = final_state.get('messages', []) # Use .get() for safety
             if messages:
+
                  # Ensure messages is a list before proceeding
                  if isinstance(messages, list):
                      ai_messages = [msg for msg in messages if isinstance(msg, AIMessage)]
@@ -913,9 +964,40 @@ New input: {input}
         else:
              warning_print("final_state was None after graph invocation.")
 
+        # Extract thinking from raw LLM output
+        thinking_content = None
+
+        if final_state and hasattr(final_state, 'raw_thinking') and final_state.raw_thinking:
+            # Extract content between <think> tags - using non-greedy match to get the first complete think block
+            think_match = re.search(r"<think>(.*?)</think>", final_state.raw_thinking, re.DOTALL)
+            if think_match:
+                thinking_content = think_match.group(1).strip()
+            else:
+                # Try alternate format with "Thought:" prefix
+                thought_match = re.search(r"Thought:(.*?)(?:Action:|Final Answer:)", final_state.raw_thinking, re.DOTALL)
+                if thought_match:
+                    thinking_content = thought_match.group(1).strip()
+
+        # Fallback to intermediate steps if no raw thinking
+        thinking_steps = []
+
+        if not thinking_content:
+            for step in final_intermediate_steps:
+                # Each step is a tuple of (AgentAction, result)
+                if isinstance(step[0], AgentAction):
+                    # Extract thought portion from the log (everything before Action:)
+                    log = step[0].log
+                    thought_match = re.search(r"Thought:(.*?)(?:Action:|$)", log, re.DOTALL)
+                    if thought_match:
+                        thinking = thought_match.group(1).strip()
+                        if thinking:
+                            thinking_steps.append(thinking)
+
         return {
             "response": final_response_message,
-            "intermediate_steps": final_intermediate_steps
+            "intermediate_steps": final_intermediate_steps,
+            "thinking": thinking_content,
+            "thinking_steps": thinking_steps
         }
     
     def pretty_print_message(self, message: BaseMessage) -> None:
