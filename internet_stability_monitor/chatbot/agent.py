@@ -592,6 +592,32 @@ New input: {input}
                     prev_tool = new_steps[-2][0].tool if len(new_steps) >= 2 else "none"
                     debug_print(f"Tool sequence: {prev_tool} -> {state.current_tool}")
 
+                    # Define tools that commonly get stuck in loops and their response templates
+                    direct_result_tools = {
+                        "get_os": "We are running {result}.",
+                        "get_external_ip": "Our external IP address is {result}.",
+                        "get_local_ip": "Our local IP address is {result}.",
+                        "check_internet_connection": "Internet connection status: {result}.",
+                        "check_layer_three_network": "Layer 3 network status: {result}."
+                    }
+
+                    # Check if current tool is in the list and the same one was called previously
+                    if state.current_tool in direct_result_tools and prev_tool == state.current_tool:
+                        # Get the appropriate response template and format with the result
+                        response_template = direct_result_tools[state.current_tool]
+                        response_message = response_template.format(result=result)
+
+                        debug_print(f"Detected repeated {state.current_tool} calls, returning result directly")
+                        return {
+                            "messages": state.messages + [AIMessage(content=response_message)],
+                            "intermediate_steps": new_steps,
+                            "current_tool": None,
+                            "tool_input": None,
+                            "tool_output": str(result),
+                            "last_question": None,
+                            "pending_tools": []
+                        }
+
                 return {
                     "messages": state.messages,
                     "intermediate_steps": new_steps,
