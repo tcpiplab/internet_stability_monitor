@@ -45,6 +45,9 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
+# Make chat_history global so we can save chat histories to it
+chat_history = []
+
 # Create our own ToolExecutor since it seems to be missing
 class ToolExecutor:
     """Tool executor class."""
@@ -87,6 +90,7 @@ def warning_print(message: str) -> None:
 def error_print(message: str) -> None:
     """Print an error message in red color."""
     print(f"{Fore.RED}ERROR: {message}{Style.RESET_ALL}")
+
 
 def trace_in_langsmith(name: str, func, *args, run_type: str = "chain", tags: List[str] = None, metadata: Dict[str, Any] = None, **kwargs):
     """Helper function to trace arbitrary code in LangSmith if enabled.
@@ -265,25 +269,37 @@ New input: {input}
             # Format intermediate steps for the ReAct agent scratchpad
             scratchpad = format_log_to_str(state.intermediate_steps)
 
+            # user_chat_history_string = f"User question: {state.messages[0].content}\n\n"
+
+            # Print out the chat history for debugging
+            # debug_print(f"Chat history: {state.messages[0].content}, {state.messages[1].content}")
+
             # Prepare input for agent.invoke
             agent_inputs = {
                 "input": state.messages[-1].content,
-                "chat_history": state.messages[:-1],
+                "chat_history": state.messages,
                 "agent_scratchpad": scratchpad,
                 "intermediate_steps": state.intermediate_steps # Add intermediate_steps directly
             }
 
             # Custom wrapper to handle mixed output with both actions and final answers
+            # NOTE: This code works with the tool sequence detection logic below to prevent
+            # duplicate tool calls. This is a two-part solution:
+            # 1. Preventing duplicate model calls that could lead to the same tool choice
+            # 2. Detecting and preventing sequential duplicate tool executions if they occur
             try:
                 # Capture raw model output with thinking before parsing
                 raw_thinking = None
+                cleaned_content = None
                 try:
                     # Create a direct prompt based on the ReactPrompt
                     direct_prompt = {"input": agent_inputs["input"],
                                     "chat_history": agent_inputs["chat_history"],
                                     "agent_scratchpad": agent_inputs["agent_scratchpad"]}
 
-                    # Get raw LLM response with the same inputs
+                    # Get raw LLM response with the same inputs - only make ONE model call
+                    # Previously we were making two separate model calls, which could lead to the model
+                    # deciding to run the same tool twice. Now we only make one call and reuse the content.
                     raw_response = self.model.invoke([
                         SystemMessage(content=f"""You are a network diagnostics assistant that helps troubleshoot connectivity issues.
                         When answering, FIRST put your detailed thinking process inside <think>...</think> tags.
@@ -293,6 +309,7 @@ New input: {input}
 
                     if raw_response and hasattr(raw_response, 'content'):
                         raw_thinking = raw_response.content
+                        cleaned_content = raw_response.content  # Use the same content for both purposes
 
                         # Print thinking immediately, instead of waiting until the end
                         think_match = re.search(r"<think>(.*?)</think>", raw_thinking, re.DOTALL)
@@ -308,17 +325,10 @@ New input: {input}
                 # Preprocess agent inputs before standard parser attempt
                 # We need to intercept the raw LLM output before it gets to the LangChain parser
                 try:
-                    # Make direct LLM call to get raw response
-                    raw_response = self.model.invoke([
-                        SystemMessage(content=f"""You are a network diagnostics assistant that helps troubleshoot connectivity issues.
-                        When answering, use the ReAct format as specified. Available tools: {[tool.name for tool in self.tools]}"""),
-                        HumanMessage(content=f"User question: {agent_inputs['input']}\n\nPrevious conversation: {agent_inputs['chat_history']}")
-                    ])
-
-                    # Clean up the content to make it compatible with LangChain's parser
-                    if raw_response and hasattr(raw_response, 'content'):
-                        cleaned_content = raw_response.content
-
+                    # Instead of making a second direct LLM call, use the content from the first call
+                    # This prevents the issue where the model might decide to run the same tool
+                    # twice if called separately for thinking and action extraction
+                    if cleaned_content:
                         # If the content has <think> tags, extract and transform to proper ReAct format
                         if "<think>" in cleaned_content:
                             debug_print("Detected <think> tags in model output, preprocessing...")
@@ -751,7 +761,9 @@ New input: {input}
                 action_tuple = (AgentAction(tool=state.current_tool, tool_input=actual_tool_input, log=""), str(result))
                 new_steps = state.intermediate_steps + [action_tuple]
                 
-                # Add debug logging to help detect patterns in tool usage
+                # IMPORTANT: This section detects and prevents tools from being called twice in a row
+                # This is crucial to prevent infinite loops or unnecessary duplicate tool executions
+                # when the model decides to call the same tool again without user input
                 if len(new_steps) >= 2:
                     prev_tool = new_steps[-2][0].tool if len(new_steps) >= 2 else "none"
                     debug_print(f"Tool sequence: {prev_tool} -> {state.current_tool}")
@@ -762,16 +774,32 @@ New input: {input}
                         "get_external_ip": "Our external IP address is {result}.",
                         "get_local_ip": "Our local IP address is {result}.",
                         "check_internet_connection": "Internet connection status: {result}.",
-                        "check_layer_three_network": "Layer 3 network status: {result}."
+                        "check_layer_three_network": "Layer 3 network status: {result}.",
+                        "run_mac_speed_test": "Network speed test results: {result}",
+                        "check_dns_resolvers": "DNS resolver status: {result}",
+                        "check_websites": "Website connectivity status: {result}",
+                        "check_dns_root_servers_reachability": "DNS root server reachability: {result}",
+                        "check_local_layer_two_network": "Local network status: {result}",
+                        "check_cdn_reachability": "CDN reachability status: {result}",
+                        "check_whois_servers": "WHOIS server status: {result}",
+                        "check_tls_ca_servers": "TLS CA server status: {result}",
+                        "check_smtp_servers": "SMTP server status: {result}",
+                        "check_ollama": "Ollama status: {result}",
+                        "check_external_ip_change": "External IP change check: {result}"
                     }
 
-                    # Check if current tool is in the list and the same one was called previously
-                    if state.current_tool in direct_result_tools and prev_tool == state.current_tool:
-                        # Get the appropriate response template and format with the result
-                        response_template = direct_result_tools[state.current_tool]
-                        response_message = response_template.format(result=result)
+                    # First check if the same tool was called twice in a row
+                    if prev_tool == state.current_tool:
+                        # Get the appropriate response template if available, or use a generic one
+                        if state.current_tool in direct_result_tools:
+                            response_template = direct_result_tools[state.current_tool]
+                        else:
+                            # Generic response template for any other tools
+                            response_template = "Results from {tool}: {result}"
 
-                        debug_print(f"Detected repeated {state.current_tool} calls, returning result directly")
+                        response_message = response_template.format(tool=state.current_tool, result=result)
+
+                        debug_print(f"Detected repeated {state.current_tool} calls, preventing duplicate execution and returning result directly")
                         return {
                             "messages": state.messages + [AIMessage(content=response_message)],
                             "intermediate_steps": new_steps,
@@ -1009,6 +1037,7 @@ New input: {input}
                 }
                 
             # Invoke the graph with the configured settings
+            debug_print(f"Graph invocation with config: {config}")
             final_state = self.graph.invoke(initial_state, config=config)
             debug_print(f"Graph invocation complete. Final state type: {type(final_state)}")
         except Exception as e:
@@ -1064,7 +1093,10 @@ New input: {input}
                 # Save to our custom memory system
                 # This replaces the deprecated ConversationBufferMemory approach
                 self.memory.add_interaction(user_input, final_response_message)
-                
+
+                # final_state["chat_history"] = self.memory.get_direct_history()
+                # self.memory.add_interaction(final_response_message, final_state.get("chat_history", []))
+
                 # Store last state in the direct memory cache
                 # We're using the cache system built into ChatbotMemory instead of the MemorySaver put_tuple
                 self.memory.update_cache("last_state", last_state)

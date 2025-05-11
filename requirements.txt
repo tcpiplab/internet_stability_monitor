@@ -16,3 +16,5 @@ langgraph~=0.2.60
 langchain-openai~=0.2.14
 ipython~=8.12.3
 langchain-ollama
+typing_extensions~=4.12.2
+langsmith~=0.2.4
