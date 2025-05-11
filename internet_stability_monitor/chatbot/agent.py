@@ -305,7 +305,45 @@ New input: {input}
                 except Exception as think_err:
                     debug_print(f"Failed to capture raw thinking: {think_err}")
 
-                # Standard parser attempt
+                # Preprocess agent inputs before standard parser attempt
+                # We need to intercept the raw LLM output before it gets to the LangChain parser
+                try:
+                    # Make direct LLM call to get raw response
+                    raw_response = self.model.invoke([
+                        SystemMessage(content=f"""You are a network diagnostics assistant that helps troubleshoot connectivity issues.
+                        When answering, use the ReAct format as specified. Available tools: {[tool.name for tool in self.tools]}"""),
+                        HumanMessage(content=f"User question: {agent_inputs['input']}\n\nPrevious conversation: {agent_inputs['chat_history']}")
+                    ])
+
+                    # Clean up the content to make it compatible with LangChain's parser
+                    if raw_response and hasattr(raw_response, 'content'):
+                        cleaned_content = raw_response.content
+
+                        # If the content has <think> tags, extract and transform to proper ReAct format
+                        if "<think>" in cleaned_content:
+                            debug_print("Detected <think> tags in model output, preprocessing...")
+
+                            # Extract content inside <think> tags
+                            think_match = re.search(r"<think>(.*?)</think>", cleaned_content, re.DOTALL)
+                            if think_match:
+                                think_content = think_match.group(1).strip()
+
+                                # Extract action from inside <think> tags
+                                action_match = re.search(r"Action:\s*(.*?)(?:$|[\n]*Action Input:[\s]*(.*))", think_content, re.DOTALL)
+                                if action_match:
+                                    tool_name = action_match.group(1).strip()
+
+                                    # Construct proper ReAct format
+                                    proper_format = f"Thought: Do I need to use a tool? Yes\nAction: {tool_name}\nAction Input: {{}}"
+
+                                    # Replace agent_inputs scratchpad with our proper_format
+                                    agent_inputs["agent_scratchpad"] = proper_format
+                                    debug_print(f"Preprocessed to: {proper_format}")
+
+                except Exception as preprocess_err:
+                    debug_print(f"Error preprocessing model output: {preprocess_err}")
+
+                # Now try with standard parser
                 result = self.agent.invoke(agent_inputs)
 
                 # Store the thinking in the log property
@@ -314,8 +352,60 @@ New input: {input}
                     result.log = f"<think>{raw_thinking}</think>\n\n{result.log}" if result.log else f"<think>{raw_thinking}</think>"
 
             except Exception as e:
-                if "Parsing LLM output produced both a final answer and a parse-able action" in str(e):
+                error_msg = str(e)
+                if "Parsing LLM output produced both a final answer and a parse-able action" in error_msg:
                     debug_print("Detected mixed output with both action and final answer")
+
+                elif "Could not parse LLM output" in error_msg and "<think>" in error_msg:
+                    debug_print("Detected unparseable output with <think> tags")
+
+                    # Extract actions from inside think tags - use a very specific pattern
+                    think_tag_content = re.search(r"<think>\s*(.*?)\s*`", error_msg, re.DOTALL)
+                    if think_tag_content:
+                        think_content = think_tag_content.group(1).strip()
+                        debug_print(f"Extracted think content: {think_content}")
+
+                        # Use a very strict pattern that matches only the tool name without any additional content
+                        # This pattern will match word characters plus underscore only, stopping at any other character
+                        action_match = re.search(r"Action:\s*([\w_]+)", think_content, re.DOTALL)
+                        if action_match:
+                            tool_name = action_match.group(1).strip()
+                            # Double check that the tool name is clean and valid
+                            if '`' in tool_name or 'For troubleshooting' in tool_name:
+                                tool_name = re.match(r"^([\w_]+)", tool_name).group(1)
+                            debug_print(f"Extracted clean tool name: {tool_name}")
+                            debug_print(f"Successfully extracted tool: {tool_name} from think tags")
+
+                            # Handle tool input if present
+                            tool_input = {}
+                            if len(action_match.groups()) > 1 and action_match.group(2) and action_match.group(2).strip():
+                                tool_input_str = action_match.group(2).strip()
+                                try:
+                                    import json
+                                    tool_input = json.loads(tool_input_str)
+                                except:
+                                    tool_input = {"input": tool_input_str}
+
+                            # Create AgentAction manually
+                            result = AgentAction(
+                                tool=tool_name,
+                                tool_input=tool_input,
+                                log=think_content
+                            )
+                            debug_print(f"Created AgentAction manually: {tool_name}")
+                        else:
+                            # No action found, create generic error response
+                            debug_print("No action found in think tags, returning error")
+                            result = AgentFinish(
+                                return_values={"output": "I encountered an error processing your request. Let me try a different approach."},
+                                log="Failed to parse action from think tags"
+                            )
+                    else:
+                        debug_print("Could not extract content from think tags, returning error")
+                        result = AgentFinish(
+                            return_values={"output": "I encountered an error processing your request. Let me try a different approach."},
+                            log="Failed to extract content from think tags"
+                        )
                     
                     # Get the raw LLM output directly from the error message
                     # The error should contain the full output that caused the parsing issue
@@ -345,16 +435,20 @@ New input: {input}
                     # Get the patterns directly in case the parser doesn't expose the methods we need
                     action_pattern = r"Action: (.*?)[\n]*Action Input:[\s]*(.*)"
                     final_answer_pattern = r"Final Answer: (.*)"
-                    
+
+                    # Also look for actions inside <think> tags - simpler pattern to match the exact error case
+                    think_action_pattern = r"<think>.*?Thought:.*?Action:\s*(.*?)(?:$|[\n]*Action Input:[\s]*(.*)|\s*</think>)"
+
                     # Try to extract action first - this makes the agent more proactive
                     action_match = re.search(action_pattern, raw_output, re.DOTALL)
+
+                    # If no action found in standard format, look inside <think> tags
+                    if not action_match:
+                        action_match = re.search(think_action_pattern, raw_output, re.DOTALL)
                     
-                    try:
-                        # Try to use the agent's parser methods if available
-                        if hasattr(self.agent.output_parser, "get_action_match"):
-                            action_match = self.agent.output_parser.get_action_match(raw_output)
-                    except Exception as parser_error:
-                        debug_print(f"Couldn't use agent parser methods: {parser_error}")
+                    # Don't try to access agent.output_parser since it doesn't exist in current LangChain
+                    # Instead, rely solely on our regex pattern which is more reliable
+                    debug_print("Using regex pattern for action extraction")
                     
                     if action_match:
                         # There's an action, prioritize it over the final answer
@@ -363,35 +457,46 @@ New input: {input}
                         # Extract action input, providing empty dict as fallback
                         action_input = "{}"
                         try:
-                            # Try to use the output parser's method if available
-                            if hasattr(self.agent.output_parser, "get_action_input_match"):
-                                action_input_match = self.agent.output_parser.get_action_input_match(raw_output)
-                                if action_input_match:
-                                    action_input = action_input_match.group(1).strip()
-                            else:
-                                # Use our own regex as fallback
-                                action_input = action_match.group(2).strip() if len(action_match.groups()) > 1 else "{}"
+                            # Use our own regex directly - don't try to access output_parser
+                            action_input = action_match.group(2).strip() if len(action_match.groups()) > 1 else "{}"
+
+                            # Special handling for no-arg tools
+                            if action_input == "" or action_input == "{}":
+                                # Get the clean tool name
+                                clean_tool_name = action_match.group(1).strip()
+                                debug_print(f"Checking if {clean_tool_name} is a no-arg tool")
+
+                                # For all no-arg tools, provide empty dict
+                                for no_arg_tool in no_arg_tools:
+                                    if clean_tool_name == no_arg_tool:
+                                        debug_print(f"Setting empty dict input for no-arg tool {no_arg_tool}")
+                                        action_input = "{}"
+                                        break
                         except Exception as input_error:
                             debug_print(f"Error extracting action input: {input_error}")
                         
-                        # Parse action input to dict if possible
+                        # Parse action input to dict if possible - don't use output_parser
                         try:
-                            if hasattr(self.agent.output_parser, "parse_action_input"):
-                                action_input_dict = self.agent.output_parser.parse_action_input(action_input)
-                            else:
-                                # Simple parsing fallback
-                                import json
-                                try:
-                                    action_input_dict = json.loads(action_input)
-                                except json.JSONDecodeError:
-                                    action_input_dict = {"input": action_input}
+                            # Simple parsing
+                            import json
+                            try:
+                                action_input_dict = json.loads(action_input)
+                            except json.JSONDecodeError:
+                                action_input_dict = {"input": action_input}
                         except Exception:
                             # If parsing fails, use the raw string
                             action_input_dict = {"input": action_input}
                             
-                        # Create an AgentAction manually
+                        # Ensure tool_name doesn't contain error message text
+                        # Clean any remnants of text after backticks or troubleshooting URLs
+                        if '`' in tool_name:
+                            tool_name = tool_name.split('`')[0].strip()
+                        if 'For troubleshooting' in tool_name:
+                            tool_name = tool_name.split('For troubleshooting')[0].strip()
+
+                        debug_print(f"Final cleaned tool name: {tool_name}")
                         debug_print(f"Manually extracted action: {tool_name} with input: {action_input_dict}")
-                        
+
                         # Fix specific issues with ping_target tool - it expects a string as target
                         if tool_name == "ping_target":
                             # For ping_target specifically, handle various input formats
@@ -433,11 +538,10 @@ New input: {input}
                         final_answer_match = re.search(final_answer_pattern, raw_output, re.DOTALL)
                         
                         try:
-                            # Try to use the agent's parser methods if available
-                            if hasattr(self.agent.output_parser, "get_final_answer_match"):
-                                final_answer_match = self.agent.output_parser.get_final_answer_match(raw_output)
+                            # Don't try to use agent's parser methods since they don't exist in current LangChain
+                            pass
                         except Exception as parser_error:
-                            debug_print(f"Couldn't use agent parser methods: {parser_error}")
+                            debug_print(f"Error in final answer processing: {parser_error}")
                         
                         if final_answer_match:
                             answer = final_answer_match.group(1).strip()
@@ -606,6 +710,16 @@ New input: {input}
                     # For other types (should be rare), convert to string
                     tool_executor_input = {"tool_name": state.current_tool, "input": str(actual_tool_input)}
                 
+                # Sanitize the tool name one last time before execution
+                if 'tool_name' in tool_executor_input:
+                    tool_name = tool_executor_input['tool_name']
+                    if '`' in tool_name or 'For troubleshooting' in tool_name:
+                        # If tool name has error message text, clean it
+                        clean_name = re.match(r"^([\w_]+)", tool_name)
+                        if clean_name:
+                            tool_executor_input['tool_name'] = clean_name.group(1)
+                            debug_print(f"Sanitized tool name to: {tool_executor_input['tool_name']}")
+
                 debug_print(f"Final tool input: {tool_executor_input}")
                 result = tool_executor.invoke(tool_executor_input)
                 debug_print(f"Tool {state.current_tool} result: {result}")
@@ -990,11 +1104,28 @@ New input: {input}
                 if isinstance(step[0], AgentAction):
                     # Extract thought portion from the log (everything before Action:)
                     log = step[0].log
-                    thought_match = re.search(r"Thought:(.*?)(?:Action:|$)", log, re.DOTALL)
-                    if thought_match:
-                        thinking = thought_match.group(1).strip()
-                        if thinking:
-                            thinking_steps.append(thinking)
+
+                    # First check for thoughts inside <think> tags
+                    think_tag_match = re.search(r"<think>(.*?)</think>", log, re.DOTALL)
+                    if think_tag_match:
+                        # Try to extract specific Thought: section from within tags
+                        thought_in_tag = re.search(r"Thought:(.*?)(?:Action:|$)", think_tag_match.group(1), re.DOTALL)
+                        if thought_in_tag:
+                            thinking = thought_in_tag.group(1).strip()
+                            if thinking:
+                                thinking_steps.append(thinking)
+                        else:
+                            # Use the entire tag content if no specific Thought: marker
+                            thinking = think_tag_match.group(1).strip()
+                            if thinking:
+                                thinking_steps.append(thinking)
+                    else:
+                        # Fall back to looking for Thought: directly in the log
+                        thought_match = re.search(r"Thought:(.*?)(?:Action:|$)", log, re.DOTALL)
+                        if thought_match:
+                            thinking = thought_match.group(1).strip()
+                            if thinking:
+                                thinking_steps.append(thinking)
 
         return {
             "response": final_response_message,
