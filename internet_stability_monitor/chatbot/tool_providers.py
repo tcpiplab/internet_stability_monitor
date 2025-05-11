@@ -54,7 +54,7 @@ class NetworkToolProvider:
 
             # Performance
             ping_target,
-            run_mac_speed_test
+            run_mac_speed_test,
         ]
 
 class SystemToolProvider:
