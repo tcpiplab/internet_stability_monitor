@@ -5,6 +5,8 @@ This module defines all the LangChain tools that the chatbot can use to
 diagnose network issues and retrieve system information.
 """
 
+import os
+import requests  # Need to add this import for API calls
 from typing import List, Dict, Any, Optional
 import socket
 import subprocess
@@ -288,6 +290,139 @@ def check_local_layer_two_network() -> str:
         memory_system.record_tool_call("check_local_layer_two_network", {}, result)
     return result
 
+
+@tool
+def check_ip_reputation(ip_address: str = None, input: str = None) -> str:
+    """
+    Use this to check the reputation of an IP address using AbuseIPDB.
+
+    Args:
+        ip_address (str): The IP address to check.
+        input (str): An alternative parameter name for the IP address.
+
+    Returns:
+        str: A report on the IP's reputation including abuse confidence score, country info, and recent reports.
+    """
+    # Handle parameter name variation (support both 'input' and 'ip_address')
+    actual_ip = ip_address or input
+    if not actual_ip:
+        return "Error: No IP address provided"
+
+    print(f"Checking IP reputation for: {actual_ip}")
+
+    try:
+        # Try to get API key from memory, environment, or 1Password
+        api_key = None
+
+        if memory_system and memory_system.get_cached_value("abuseipdb_api_key"):
+            api_key = memory_system.get_cached_value("abuseipdb_api_key")
+
+        if not api_key and "ABUSEIPDB_API_KEY" in os.environ:
+            api_key = os.environ["ABUSEIPDB_API_KEY"]
+
+        if not api_key:
+            try:
+                # Try to get API key from 1Password CLI if available
+                import subprocess
+                api_key = subprocess.check_output(
+                    ["/opt/homebrew/bin/op", "read", "op://Private/AbuseIPDB/AbuseIPDB_API_KEY"]).decode(
+                    'utf-8').strip()
+                # Cache the API key for future use
+                if memory_system:
+                    memory_system.update_cache("abuseipdb_api_key", api_key)
+            except:
+                result = "AbuseIPDB API key not found. Please set the ABUSEIPDB_API_KEY environment variable."
+                if memory_system:
+                    memory_system.record_tool_call("check_ip_reputation", {"ip_address": ip_address}, result)
+                return result
+
+        # Query AbuseIPDB
+        url = 'https://api.abuseipdb.com/api/v2/check'
+        querystring = {
+            'ipAddress': actual_ip,
+            'maxAgeInDays': '90',
+            'verbose': 'true'
+        }
+        headers = {
+            'Accept': 'application/json',
+            'Key': api_key
+        }
+
+        response = requests.get(url, headers=headers, params=querystring)
+        response.raise_for_status()
+        reputation_data = response.json()
+
+        # Analyze and format the result
+        result = _analyze_ip_reputation(reputation_data)
+
+        if memory_system:
+            memory_system.record_tool_call("check_ip_reputation", {"ip_address": ip_address}, result)
+
+        return result
+
+    except requests.exceptions.RequestException as e:
+        result = f"Error communicating with AbuseIPDB: {e}"
+        if memory_system:
+            memory_system.record_tool_call("check_ip_reputation", {"ip_address": ip_address}, result)
+        return result
+    except Exception as e:
+        result = f"Error checking IP reputation: {e}"
+        if memory_system:
+            memory_system.record_tool_call("check_ip_reputation", {"ip_address": ip_address}, result)
+        return result
+
+
+def _analyze_ip_reputation(data: dict) -> str:
+    """
+    Helper function to analyze the reputation of an IP address from the AbuseIPDB response.
+
+    Args:
+        data (dict): Parsed JSON response from AbuseIPDB.
+
+    Returns:
+        str: The analysis results as a formatted string.
+    """
+    if not data or "data" not in data:
+        return "Invalid or empty data received."
+
+    ip_info = data["data"]
+    ip_reputation_string = ""
+
+    # Basic Information
+    ip_reputation_string += f"IP Address: {ip_info['ipAddress']}\n"
+    ip_reputation_string += f"Abuse Confidence Score: {ip_info['abuseConfidenceScore']} (High risk if > 50)\n"
+    ip_reputation_string += f"Country: {ip_info['countryName']} ({ip_info['countryCode']})\n"
+    ip_reputation_string += f"ISP: {ip_info.get('isp', 'Unknown')} ({ip_info.get('domain', 'No domain')})\n"
+    ip_reputation_string += f"Usage Type: {ip_info.get('usageType', 'Unknown')}\n"
+    ip_reputation_string += f"Total Reports: {ip_info['totalReports']} from {ip_info['numDistinctUsers']} distinct users\n"
+
+    # Check if the IP is whitelisted
+    if ip_info["isWhitelisted"]:
+        ip_reputation_string += "This IP is whitelisted by the Abuse IPDB.\n"
+    else:
+        ip_reputation_string += "This IP is NOT whitelisted by the Abuse IPDB.\n"
+
+    # Tor Detection
+    if ip_info["isTor"]:
+        ip_reputation_string += "Warning: This IP is associated with a Tor exit node.\n"
+
+    # Last Report Information
+    last_reported = ip_info.get("lastReportedAt")
+    if last_reported:
+        ip_reputation_string += f"Last Reported At: {last_reported}\n"
+
+    # Detailed Report Comments
+    if "reports" in ip_info and ip_info["reports"]:
+        ip_reputation_string += "\nRecent Reports:\n"
+        for report in ip_info["reports"]:
+            ip_reputation_string += f"  - Reported At: {report['reportedAt']}\n"
+            ip_reputation_string += f"    Comment: {report['comment']}\n"
+            ip_reputation_string += f"    Categories: {report['categories']}\n"
+            ip_reputation_string += f"    Reporter Country: {report['reporterCountryName']} ({report['reporterCountryCode']})\n\n"
+
+    return ip_reputation_string
+
+
 # Create a function to get all tools
 def get_tools():
     """Get all available diagnostic tools."""
@@ -310,6 +445,7 @@ def get_tools():
         check_cdn_reachability,
         run_mac_speed_test,
         check_smtp_servers,
+        check_ip_reputation,
     ]
 
 # Function to directly invoke a tool (for command handlers)
