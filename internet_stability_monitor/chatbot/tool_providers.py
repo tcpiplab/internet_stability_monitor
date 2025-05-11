@@ -13,7 +13,8 @@ from .tools import (
     check_tls_ca_servers, get_os, get_local_ip, get_external_ip,
     check_external_ip_change, get_isp_location, check_internet_connection,
     check_layer_three_network, check_dns_resolvers, check_websites,
-    check_dns_root_servers_reachability, check_local_layer_two_network
+    check_dns_root_servers_reachability, check_local_layer_two_network,
+    check_ip_reputation
 )
 
 class NetworkToolProvider:
@@ -47,7 +48,10 @@ class NetworkToolProvider:
             check_whois_servers,
             check_tls_ca_servers,
             check_smtp_servers,
-            
+
+            # IP and security checks
+            check_ip_reputation,
+
             # Performance
             ping_target,
             run_mac_speed_test

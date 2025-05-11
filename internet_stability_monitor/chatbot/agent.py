@@ -77,8 +77,8 @@ ToolResult = TypeVar('ToolResult')
 def debug_print(message: str) -> None:
     """Print a debug message in gray color."""
     # Disable debug prints for cleaner output
-    # print(f"{Style.DIM}DEBUG: {message}{Style.RESET_ALL}")
-    pass
+    print(f"{Style.DIM}DEBUG: {message}{Style.RESET_ALL}")
+    # pass
 
 def warning_print(message: str) -> None:
     """Print a warning message in yellow color."""
@@ -185,7 +185,7 @@ class ChatbotAgent:
         # Create a local ReAct prompt template instead of pulling from the hub
         # This ensures the chatbot can function without internet access
         react_prompt = ChatPromptTemplate.from_messages([
-            ("system", """Assistant is a network diagnostics specialist built to help troubleshoot connectivity issues. /no_think
+            ("system", """Assistant is a network diagnostics specialist built to help troubleshoot connectivity issues. 
 
 Assistant is designed to help diagnose and resolve network connectivity and stability problems. It has knowledge of networking concepts, protocols, and common issues that can affect internet connections. As a network specialist, Assistant can analyze various aspects of a network connection, identify potential issues, and recommend solutions.
 
@@ -198,7 +198,7 @@ Assistant has access to the following tools:
 
 {tools}
 
-To use a tool, please use the following format EXACTLY - DO NOT use any other format or tags like <think>:
+To use a tool, please use the following format EXACTLY - DO NOT use any other format:
 
 ```
 Thought: Do I need to use a tool? Yes
@@ -214,10 +214,11 @@ Final Answer: [your response here]
 
 
 IMPORTANT:
-1. ALWAYS use the exact formats above - never use <think> tags or any other format
+1. ALWAYS use the exact formats above - never use any other format
 2. ALWAYS prefix your thoughts with "Thought:", actions with "Action:", and final answers with "Final Answer:"
 3. Keep your thoughts focused on determining which tool to use or interpreting results
 4. For the ping_target tool, provide the hostname or IP directly as the input
+5. For the check_ip_reputation tool, provide the IP address directly as the input
 
 Begin!
 
