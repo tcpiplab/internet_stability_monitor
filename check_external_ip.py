@@ -8,6 +8,10 @@ from os_utils import get_os_type
 import shutil
 import os
 from summary_utils import add_to_combined_summaries
+from colorama import Fore, Style, init
+
+# Initialize colorama for cross-platform color support
+init(autoreset=True)
 
 
 def main(silent=False, polite=False):
@@ -37,17 +41,25 @@ def main(silent=False, polite=False):
         elif get_os_type() == "Linux":
             op_path = "/usr/local/bin/op"
         else:
-            raise FileNotFoundError("The `op` command could not be found. Ensure it is installed and in your PATH.")
+            raise FileNotFoundError(f"{Fore.RED}The `op` command could not be found. Ensure it is installed and in your PATH.{Style.RESET_ALL}")
 
     try:
-        AbuseIPDB_API_KEY = subprocess.check_output([op_path, "read", "op://Private/AbuseIPDB/AbuseIPDB_API_KEY"]).decode('utf-8').strip()
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to read the AbuseIPDB API key.")
-        print(f"Maybe 1Password is not running, not unlocked, or the item is missing.")
-        print(f"Error: {e}")
+        # Get the $ABUSEIPDB_API_KEY from the environment variable
+        # or from 1Password
 
-        speak_text("Failed to read the AbuseIPDB API key. Please check the 1Password app.")
-        speak_text("Make sure it is running, unlocked, and the API key item is available.")
+        AbuseIPDB_API_KEY = os.environ.get("ABUSEIPDB_API_KEY")
+
+        if not AbuseIPDB_API_KEY:
+            # If the environment variable is not set, read from 1Password
+            AbuseIPDB_API_KEY = subprocess.check_output([op_path, "read", "op://Shared/AbuseIPDB/AbuseIPDB_API_KEY"]).decode('utf-8').strip()
+
+    except subprocess.CalledProcessError as e:
+        print(f"{Fore.RED}Failed to read the AbuseIPDB API key.{Style.RESET_ALL}")
+        print(f"{Fore.RED}Maybe 1Password is not running, not unlocked, or the item is missing.{Style.RESET_ALL}")
+        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
+
+        # speak_text("Failed to read the AbuseIPDB API key. Please check the 1Password app.")
+        # speak_text("Make sure it is running, unlocked, and the API key item is available.")
         return
 
     # external_ip = get_current_external_ip(args.silent)  # Get the current external IP
@@ -66,25 +78,25 @@ def main(silent=False, polite=False):
             # print("IP Reputation Analysis Output:", ip_reputation_output)
 
         except Exception as e:
-            print("Failed to analyze IP reputation data.")
-            print(f"{e}")
+            print(f"{Fore.RED}Failed to analyze IP reputation data.{Style.RESET_ALL}")
+            print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
 
         try:
             ip_reputation_summary = summarize_service_check_output(ip_reputation_output)
-            print(f"Received AI reputation summary: '{ip_reputation_summary}'")
+            print(f"{Style.DIM}Received AI reputation summary: '{ip_reputation_summary}'{Style.RESET_ALL}")
 
             # Add the summary to the combined summaries
             add_to_combined_summaries(ip_reputation_summary)
 
-            if not args.silent:
-                speak_text(f"{ip_reputation_summary}")
+            # if not args.silent:
+            #     speak_text(f"{ip_reputation_summary}")
         except Exception as e:
-            print("Failed to summarize service check output.")
-            print(f"{e}")
+            print(f"{Fore.RED}Failed to summarize service check output.{Style.RESET_ALL}")
+            print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
 
 
     else:
-        print("Failed to retrieve reputation data from Abuse IPDB API.")
+        print(f"{Fore.RED}Failed to retrieve reputation data from Abuse IPDB API.{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     main()
