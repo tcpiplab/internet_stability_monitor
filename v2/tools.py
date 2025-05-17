@@ -321,7 +321,7 @@ def run_macos_speed_test() -> str:
             ["networkQuality", "-p", "-s"],
             capture_output=True,
             text=True,
-            timeout=30  # Network quality tests can take time
+            timeout=90  # Network quality tests can take time
         )
         
         # Check for errors
@@ -339,7 +339,7 @@ def run_macos_speed_test() -> str:
     except FileNotFoundError:
         return "Error: networkQuality command not found. This requires macOS 12 (Monterey) or later."
     except subprocess.TimeoutExpired:
-        return "Network quality test timed out after 30 seconds."
+        return "Network quality test timed out after 90 seconds."
     except Exception as e:
         return f"Error running network quality test: {str(e)}"
 
