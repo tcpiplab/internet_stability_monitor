@@ -24,7 +24,16 @@ WARNING_COLOR = Fore.YELLOW
 THINKING_COLOR = Style.DIM
 
 # ASCII Art for the welcome header
-WELCOME_HEADER = r"""
+# Load from the ASCII art file
+ASCII_HEADER_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Instability_ASCII_Header_v2.txt")
+
+# Try to load the ASCII header from file, or use fallback if file not found
+try:
+    with open(ASCII_HEADER_FILE, 'r') as f:
+        WELCOME_HEADER = f.read()
+except FileNotFoundError:
+    # Fallback ASCII art if file is not found
+    WELCOME_HEADER = r"""
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
 ║             INSTABILITY NETWORK DIAGNOSTICS v2               ║
