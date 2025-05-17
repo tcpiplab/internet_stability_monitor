@@ -138,14 +138,26 @@ def check_dns_resolvers() -> str:
     return "\n".join(results)
 
 
-def ping_target(host: str = "8.8.8.8") -> str:
-    """Ping a target host and measure response time"""
+def ping_target(host: str = "8.8.8.8", target: str = None, count: int = 4) -> str:
+    """Ping a target host and measure response time
+    
+    Args:
+        host: Target host to ping (default: 8.8.8.8)
+        target: Alternative parameter name for host (for compatibility)
+        count: Number of ping packets to send (default: 4)
+    
+    Returns:
+        String containing ping results
+    """
     try:
+        # Allow either 'host' or 'target' parameter (target takes precedence if both are provided)
+        destination = target if target is not None else host
+        
         # Determine command based on operating system
         if platform.system().lower() == "windows":
-            cmd = ["ping", "-n", "4", host]
+            cmd = ["ping", "-n", str(count), destination]
         else:
-            cmd = ["ping", "-c", "4", host]
+            cmd = ["ping", "-c", str(count), destination]
 
         # Run the ping command
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -165,9 +177,9 @@ def ping_target(host: str = "8.8.8.8") -> str:
         else:
             return f"Ping failed with exit code {result.returncode}: {result.stderr}"
     except subprocess.TimeoutExpired:
-        return f"Ping to {host} timed out after 10 seconds"
+        return f"Ping to {destination} timed out after 10 seconds"
     except Exception as e:
-        return f"Error pinging {host}: {e}"
+        return f"Error pinging {destination}: {e}"
 
 
 def check_dns_root_servers() -> str:
