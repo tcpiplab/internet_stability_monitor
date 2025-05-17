@@ -49,7 +49,7 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-DEFAULT_MODEL = "qwen2.5"
+DEFAULT_MODEL = "qwen3:8b"
 CACHE_FILE = os.path.expanduser("~/.instability_v2_cache.json")
 HISTORY_FILE = os.path.expanduser("~/.instability_v2_history")
 MAX_CONVERSATION_LENGTH = 20  # Maximum number of messages to keep in history

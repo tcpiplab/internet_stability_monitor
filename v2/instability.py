@@ -96,13 +96,13 @@ def run_test_mode():
         print(f"{Fore.GREEN}Ollama is available{Style.RESET_ALL}")
         print(f"Available models: {', '.join([m['name'] for m in models['models']])}")
 
-        # Check for qwen3:1.7b model
-        has_qwen = any(m['name'] == 'qwen3:1.7b' for m in models['models'])
+        # Check for qwen3:8b model
+        has_qwen = any(m['name'] == 'qwen3:8b' for m in models['models'])
         if has_qwen:
-            print(f"{Fore.GREEN}qwen3:1.7b model is available{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}qwen3:8b model is available{Style.RESET_ALL}")
         else:
             print(
-                f"{Fore.YELLOW}qwen3:1.7b model not found. You can install it with: ollama pull qwen3:1.7b{Style.RESET_ALL}")
+                f"{Fore.YELLOW}qwen3:8b model not found. You can install it with: ollama pull qwen3:8b{Style.RESET_ALL}")
     except ImportError:
         print(f"{Fore.RED}Ollama Python package not installed.{Style.RESET_ALL}")
         print(f"Install with: pip install ollama")

@@ -26,7 +26,7 @@ Instability v2 is a complete rewrite of the original network diagnostic chatbot,
 
 - Python 3.7 or higher
 - [Ollama](https://ollama.ai/) installed and running locally
-- The `qwen3:1.7b` model installed in Ollama
+- The `qwen3:8b` model installed in Ollama
 
 ### Setting Up
 
@@ -49,10 +49,10 @@ pip install -r requirements.txt
 ollama serve
 ```
 
-4. Make sure the qwen3:1.7b model is available:
+4. Make sure the qwen3:8b model is available:
 
 ```bash
-ollama pull qwen3:1.7b
+ollama pull qwen3:8b
 ```
 
 ## Usage
@@ -148,7 +148,7 @@ The tool will automatically be available to both the chatbot and the manual mode
 If you encounter issues connecting to Ollama:
 
 1. Ensure Ollama is running with `ollama serve`
-2. Verify the qwen3:1.7b model is installed with `ollama list`
+2. Verify the qwen3:8b model is installed with `ollama list`
 3. Check for any firewalls blocking localhost connections
 
 ### Command History Not Working
