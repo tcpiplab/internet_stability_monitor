@@ -70,7 +70,7 @@ The Instability Chatbot v2 is a terminal-based network diagnostic tool that prov
 ### 4.1 Ollama Integration
 - Direct use of Ollama Python API
 - Utilization of Ollama's context parameter for conversation tracking
-- Support for different Ollama models (primarily qwen3:1.7b by default)
+- Support for different Ollama models (primarily qwen3:8b by default)
 
 ### 4.2 Tool Execution Framework
 - Simple function-based tool registry

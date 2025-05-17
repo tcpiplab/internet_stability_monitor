@@ -302,6 +302,158 @@ def check_whois_servers() -> str:
     return "\n".join(results)
 
 
+def run_speed_test() -> str:
+    """Use this tool to run a speed test.
+    This speed test tool will first check to make sure we are running macOS, also called Darwin.
+    This means that it is not necessary to first run the get_os_info tool because this tool will do that for you.
+    
+    This tool uses the built-in networkQuality command on macOS 12 (Monterey) 
+    or later to measure network speed, latency, and responsiveness.
+    
+    Returns:
+        Formatted string with network quality metrics
+    """
+    # Check if running on macOS
+    if platform.system().lower() != "darwin":
+        return "This tool only works on macOS 12 (Monterey) or later."
+    
+    try:
+        # Run the networkQuality command
+        process = subprocess.run(
+            ["networkQuality", "-p", "-s"],
+            capture_output=True,
+            text=True,
+            timeout=90  # Network quality tests can take time
+        )
+        
+        # Check for errors
+        if process.returncode != 0:
+            return f"Error running network quality test: {process.stderr}"
+        
+        # Parse the output
+        result = parse_network_quality_output(process.stdout)
+        
+        if result:
+            return generate_speed_test_report(result)
+        else:
+            return "Could not parse network quality test results."
+            
+    except FileNotFoundError:
+        return "Error: networkQuality command not found. This requires macOS 12 (Monterey) or later."
+    except subprocess.TimeoutExpired:
+        return "Network quality test timed out after 90 seconds."
+    except Exception as e:
+        return f"Error running network quality test: {str(e)}"
+
+
+def parse_network_quality_output(output: str) -> dict:
+    """Parse the output of the networkQuality command
+    
+    Args:
+        output: Raw output from the networkQuality command
+        
+    Returns:
+        Dictionary with parsed results
+    """
+    lines = output.splitlines()
+    summary = {}
+
+    for line in lines:
+        if "Uplink capacity" in line:
+            summary['uplink_capacity'] = line.split(': ')[1]
+        elif "Downlink capacity" in line:
+            summary['downlink_capacity'] = line.split(': ')[1]
+        elif "Uplink Responsiveness" in line:
+            summary['uplink_responsiveness'] = line.split(': ')[1]
+        elif "Downlink Responsiveness" in line:
+            summary['downlink_responsiveness'] = line.split(': ')[1]
+        elif "Idle Latency" in line:
+            summary['idle_latency'] = line.split(': ')[1]
+
+    return summary
+
+
+def generate_speed_test_report(summary: dict) -> str:
+    """Generate a human-readable report from speed test results
+    
+    Args:
+        summary: Dictionary with parsed network quality results
+        
+    Returns:
+        Formatted string with results and comparisons
+    """
+    # Extract speeds (handle potential format issues gracefully)
+    try:
+        uplink_mbps = float(summary.get('uplink_capacity', '0 Mbps').split(' ')[0])
+        downlink_mbps = float(summary.get('downlink_capacity', '0 Mbps').split(' ')[0])
+        
+        # Generate comparison sentences
+        uplink_comparison = compare_speed_to_telecom(uplink_mbps) if uplink_mbps > 0 else "uplink capacity could not be measured"
+        downlink_comparison = compare_speed_to_telecom(downlink_mbps) if downlink_mbps > 0 else "downlink capacity could not be measured"
+    except (ValueError, IndexError):
+        uplink_comparison = "uplink capacity format could not be parsed"
+        downlink_comparison = "downlink capacity format could not be parsed"
+    
+    # Format the report
+    report = [
+        "Network Quality Test Results:",
+        "-----------------------------",
+        f"Upload speed: {summary.get('uplink_capacity', 'unknown')}",
+        f"Download speed: {summary.get('downlink_capacity', 'unknown')}",
+        f"Upload responsiveness: {summary.get('uplink_responsiveness', 'unknown')}",
+        f"Download responsiveness: {summary.get('downlink_responsiveness', 'unknown')}",
+        f"Idle latency: {summary.get('idle_latency', 'unknown')}",
+        "",
+        "Speed Comparisons:",
+        f"Upload: {uplink_comparison}",
+        f"Download: {downlink_comparison}"
+    ]
+    
+    return "\n".join(report)
+
+
+def compare_speed_to_telecom(speed_mbps: float) -> str:
+    """Compare a network speed to common telecom reference points
+    
+    Args:
+        speed_mbps: Speed in Megabits per second
+        
+    Returns:
+        String describing how the speed compares to common standards
+    """
+    telecom_speeds = [
+        (0.064, "an ISDN line (single channel)"),
+        (0.128, "a dual-channel ISDN line"),
+        (0.384, "basic DSL at 384 kbps"),
+        (1.0, "roughly one Mbps"),
+        (1.544, "a single T-1 line"),
+        (0.772, "half a T-1 line"),
+        (2.0, "DSL2 at 2 Mbps"),
+        (3.0, "typical DSL speeds"),
+        (5.0, "a basic cable internet connection or ADSL"),
+        (10.0, "ten T-1 bonded lines, or old school Ethernet"),
+        (22.368, "about 15 bonded T-1 lines"),
+        (45.0, "a DS-3 line or T-3 line"),
+        (22.5, "half a T-3 line"),
+        (100.0, "Fast Ethernet"),
+        (155.0, "an OC-3 circuit"),
+        (310.0, "two OC-3 circuits"),
+        (622.0, "an OC-12 circuit"),
+        (1244.0, "two OC-12 circuits"),
+        (2488.0, "an OC-48 circuit"),
+        (4976.0, "two OC-48 circuits"),
+        (10000.0, "10 Gigabit Ethernet"),
+        (40000.0, "40 Gigabit Ethernet"),
+        (100000.0, "100 Gigabit Ethernet"),
+    ]
+
+    # Find the closest telecom speed
+    closest_speed = min(telecom_speeds, key=lambda x: abs(speed_mbps - x[0]))
+
+    # Generate the sentence fragment
+    return f"this speed is similar to {closest_speed[1]}"
+
+
 # Tool registry - dict mapping tool names to functions
 def get_available_tools() -> Dict[str, Callable]:
     """
@@ -320,7 +472,8 @@ def get_available_tools() -> Dict[str, Callable]:
         "check_dns_root_servers": check_dns_root_servers,
         "check_websites": check_websites,
         "check_local_network": check_local_network,
-        "check_whois_servers": check_whois_servers
+        "check_whois_servers": check_whois_servers,
+        "run_speed_test": run_speed_test
     }
 
     # Add more original tools if available - example of how to add more
