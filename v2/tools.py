@@ -302,9 +302,10 @@ def check_whois_servers() -> str:
     return "\n".join(results)
 
 
-def run_macos_speed_test() -> str:
+def run_speed_test() -> str:
     """Use this tool to run a speed test.
     This speed test tool will first check to make sure we are running macOS, also called Darwin.
+    This means that it is not necessary to first run the get_os_info tool because this tool will do that for you.
     
     This tool uses the built-in networkQuality command on macOS 12 (Monterey) 
     or later to measure network speed, latency, and responsiveness.
@@ -472,7 +473,7 @@ def get_available_tools() -> Dict[str, Callable]:
         "check_websites": check_websites,
         "check_local_network": check_local_network,
         "check_whois_servers": check_whois_servers,
-        "run_macos_speed_test": run_macos_speed_test
+        "run_speed_test": run_speed_test
     }
 
     # Add more original tools if available - example of how to add more
