@@ -342,7 +342,7 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                 response = ollama.chat(
                     model=model_name,
                     messages=conversation,
-                    options={"temperature": 0.2}  # Lower temperature for more deterministic responses
+                    options={"temperature": 0.1}  # Lower temperature for more deterministic responses
                 )
 
                 # Get the response content
@@ -391,7 +391,7 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                             follow_up = ollama.chat(
                                 model=model_name,
                                 messages=conversation,
-                                options={"temperature": 0.2}
+                                options={"temperature": 0.1}
                             )
 
                             # Add and display follow-up
