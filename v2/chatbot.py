@@ -29,6 +29,9 @@ try:
         READLINE_AVAILABLE = False
 except ImportError:
     READLINE_AVAILABLE = False
+    
+# Import utility functions
+from utils import print_welcome_header
 
 # Try to import ollama - this is a required dependency for the chatbot mode
 try:
@@ -133,9 +136,12 @@ def save_cache(cache: Dict[str, Any]) -> None:
 
 # Helper functions for the chatbot
 def print_welcome():
-    """Print the welcome message"""
-    print(f"\n{ASSISTANT_COLOR}{Style.BRIGHT}Instability Chatbot v2{Style.RESET_ALL}")
-    print(f"A network diagnostic assistant that works even during network outages")
+    """Print the welcome message with ASCII art header"""
+    # Print the ASCII art banner from the utility function
+    print_welcome_header()
+    
+    # Print additional information
+    print(f"{ASSISTANT_COLOR}A network diagnostic assistant that works even during network outages{Style.RESET_ALL}")
     print(
         f"Type {USER_COLOR}/help{Style.RESET_ALL} for available commands or {USER_COLOR}/exit{Style.RESET_ALL} to quit\n")
 
