@@ -303,7 +303,8 @@ def check_whois_servers() -> str:
 
 
 def run_macos_speed_test() -> str:
-    """Run macOS network quality test (macOS 12+ only)
+    """Use this tool to run a speed test.
+    This speed test tool will first check to make sure we are running macOS, also called Darwin.
     
     This tool uses the built-in networkQuality command on macOS 12 (Monterey) 
     or later to measure network speed, latency, and responsiveness.
