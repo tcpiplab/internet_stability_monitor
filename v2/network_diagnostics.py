@@ -18,7 +18,7 @@ from typing import Dict, Any, Callable, Optional, List
 from colorama import Fore, Style
 
 # Import migrated tools from network_tools package
-from network_tools import check_external_ip_main, get_public_ip
+from network_tools import check_external_ip_main, get_public_ip, web_check_main
 
 # Add parent directory to path to allow importing from original modules
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,11 +29,10 @@ if parent_dir not in sys.path:
 ORIGINAL_TOOLS_AVAILABLE = False
 try:
     # Import core modules from original codebase
-    # Note: check_external_ip has been migrated to network_tools package
+    # Note: check_external_ip and web_check have been migrated to network_tools package
     from check_if_external_ip_changed import did_external_ip_change
     from resolver_check import monitor_dns_resolvers
     from dns_check import main as dns_check_main
-    from web_check import main as web_check_main
     from check_layer_two_network import report_link_status_and_type
     from whois_check import main as whois_check_main
     from os_utils import get_os_type
@@ -199,37 +198,37 @@ def check_dns_root_servers() -> str:
 
 def check_websites() -> str:
     """Check if major websites are reachable"""
-    if ORIGINAL_TOOLS_AVAILABLE:
-        try:
-            return web_check_main(silent=True, polite=False)
-        except Exception as e:
-            print(f"{Fore.YELLOW}Error using original website check: {e}{Style.RESET_ALL}")
+    # Use the migrated web_check module
+    try:
+        return web_check_main(silent=True, polite=False)
+    except Exception as e:
+        print(f"{Fore.YELLOW}Error using migrated website check: {e}{Style.RESET_ALL}")
+        
+        # Fallback implementation if the migrated module fails
+        websites = [
+            "google.com",
+            "amazon.com",
+            "cloudflare.com",
+            "microsoft.com",
+            "apple.com",
+            "github.com"
+        ]
 
-    # Fallback implementation
-    websites = [
-        "google.com",
-        "amazon.com",
-        "cloudflare.com",
-        "microsoft.com",
-        "apple.com",
-        "github.com"
-    ]
+        results = []
+        for site in websites:
+            try:
+                # Try DNS resolution
+                ip = socket.gethostbyname(site)
 
-    results = []
-    for site in websites:
-        try:
-            # Try DNS resolution
-            ip = socket.gethostbyname(site)
+                # Try connecting to port 80 (HTTP)
+                socket.create_connection((site, 80), timeout=2)
+                results.append(f"{site} ({ip}): Reachable")
+            except socket.gaierror:
+                results.append(f"{site}: DNS resolution failed")
+            except Exception as e:
+                results.append(f"{site}: Error - {str(e)}")
 
-            # Try connecting to port 80 (HTTP)
-            socket.create_connection((site, 80), timeout=2)
-            results.append(f"{site} ({ip}): Reachable")
-        except socket.gaierror:
-            results.append(f"{site}: DNS resolution failed")
-        except Exception as e:
-            results.append(f"{site}: Error - {str(e)}")
-
-    return "\n".join(results)
+        return "\n".join(results)
 
 
 def check_local_network() -> str:
