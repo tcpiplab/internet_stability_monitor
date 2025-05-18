@@ -148,13 +148,19 @@ def save_cache(cache: Dict[str, Any]) -> None:
 # Helper functions for the chatbot
 def print_welcome():
     """Print the welcome message with ASCII art header"""
+
+    # Clear the terminal screen before printing the welcome message
+    os.system('cls' if os.name == 'nt' else 'clear')
+
     # Print the ASCII art banner from the utility function
     print_welcome_header()
     
     # Print additional information
-    print(f"{ASSISTANT_COLOR}A network diagnostic assistant that works even during network outages{Style.RESET_ALL}")
+    print(f"{ASSISTANT_COLOR}A network diagnostic AI chatbot that works even during network outages{Style.RESET_ALL}")
     print(
-        f"Type {USER_COLOR}/help{Style.RESET_ALL} for available commands or {USER_COLOR}/exit{Style.RESET_ALL} to quit\n")
+        f"{Style.DIM}{ASSISTANT_COLOR}Type {USER_COLOR}/help{Style.RESET_ALL} "
+        f"{Style.DIM}{ASSISTANT_COLOR}for available commands or {USER_COLOR}/exit{Style.RESET_ALL} "
+        f"{Style.DIM}{ASSISTANT_COLOR}to quit.\n{Style.RESET_ALL}")
 
 
 def print_thinking(message: str) -> None:

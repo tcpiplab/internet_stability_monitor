@@ -57,9 +57,7 @@ except FileNotFoundError:
 # Output functions
 def print_welcome_header():
     """Print the welcome header with ASCII art"""
-    print(f"{TOOL_COLOR}{WELCOME_HEADER}{Style.RESET_ALL}")
-    print(
-        f"Type {USER_COLOR}/help{Style.RESET_ALL} for available commands or {USER_COLOR}/exit{Style.RESET_ALL} to quit\n")
+    print(f"\n{USER_COLOR}{WELCOME_HEADER}{Style.RESET_ALL}")
 
 
 def print_user_prompt():
