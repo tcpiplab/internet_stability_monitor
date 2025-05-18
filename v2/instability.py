@@ -37,7 +37,7 @@ def start_chatbot_mode():
 def run_manual_mode(tool_name=None):
     """Run specific tools manually"""
     try:
-        from tools import get_available_tools, execute_tool
+        from network_diagnostics import get_available_tools, execute_tool
 
         # Get all available tools
         tools = get_available_tools()
@@ -126,15 +126,15 @@ def run_test_mode():
     except ImportError:
         print(f"{Fore.YELLOW}readline not available. Command history will be limited.{Style.RESET_ALL}")
 
-    # Test tools module
+    # Test network diagnostics module
     try:
-        from tools import get_available_tools
+        from network_diagnostics import get_available_tools
         tools = get_available_tools()
-        print(f"{Fore.GREEN}Tools module is available with {len(tools)} tools{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Network diagnostics module is available with {len(tools)} tools{Style.RESET_ALL}")
     except ImportError:
-        print(f"{Fore.RED}Tools module not found. Make sure tools.py is in the same directory.{Style.RESET_ALL}")
+        print(f"{Fore.RED}Network diagnostics module not found. Make sure network_diagnostics.py is in the same directory.{Style.RESET_ALL}")
     except Exception as e:
-        print(f"{Fore.RED}Error loading tools: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Error loading network diagnostics: {e}{Style.RESET_ALL}")
 
 
 def show_help():

@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Error Handling**: Use try/except blocks with specific exceptions
 - **Logging**: Print statements should use colorama (Fore.COLOR)
 - **Comments**: Minimal comments, focusing on why not what
-- **Functions**: Include docstrings for functions, especially tools
+- **Functions**: Include verbose, thorough docstrings for functions, especially for tools that can be called by the chatbot
 
 ## Project Architecture
 - **Function-based Design**: Project uses procedural programming rather than complex OOP
