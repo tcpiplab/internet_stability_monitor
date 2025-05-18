@@ -70,17 +70,18 @@ def print_thinking(message: str):
     print(f"{ASSISTANT_COLOR}Chatbot (thinking): {Style.RESET_ALL}{THINKING_COLOR}{message}{Style.RESET_ALL}")
 
 
-def print_assistant(message: str):
-    """Print a message from the assistant with Markdown support"""
-    if RICH_AVAILABLE and any(md_marker in message for md_marker in ["```", "*", "_", "##", "`"]):
-        # Print the prefix with colorama
-        print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}", end="")
-        # Use Rich to render the Markdown content
-        md = Markdown(message)
-        console.print(md)
-    else:
-        # Regular text, use normal print
-        print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
+# This function is a duplicate of a function in chatbot.py
+# def print_assistant(message: str):
+#     """Print a message from the assistant with Markdown support"""
+#     if RICH_AVAILABLE and any(md_marker in message for md_marker in ["```", "*", "_", "##", "`"]):
+#         # Print the prefix with colorama
+#         print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}", end="")
+#         # Use Rich to render the Markdown content
+#         md = Markdown(message)
+#         console.print(md)
+#     else:
+#         # Regular text, use normal print
+#         print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
 
 
 def print_tool_execution(tool_name: str):

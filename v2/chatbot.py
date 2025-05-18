@@ -380,28 +380,18 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                 content = response["message"]["content"]
 
                 # Check for thinking patterns in the response
-                # TODO - Replace this redundant code with a call to extract_thinking()
-                thinking = None
-                if "<think>" in content and "</think>" in content:
-                    # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Thinking detected in response.{Style.RESET_ALL}")
-                    thinking_start = content.find("<think>") + len("<think>")
-                    thinking_end = content.find("</think>")
-                    if thinking_end > thinking_start:
-                        thinking = content[thinking_start:thinking_end].strip()
-                        # Remove the thinking section from the response
-                        content = content[:thinking_start - len("<think>")] + content[thinking_end + len(
-                            "</think>"):].strip()
+                thinking, content = extract_thinking(content)
 
                 # Show thinking if available
                 if thinking:
-                    # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Thinking section from response: {thinking}{Style.RESET_ALL}")
+
                     print_thinking(thinking)
 
                 # Check for tool calls
                 tool_name, args = parse_tool_call(content)
 
                 if tool_name:
-                    # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Tool call detected: {tool_name}{Style.RESET_ALL}")
+
                     # Display the assistant's message
                     print_assistant(content)
 
@@ -432,15 +422,11 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                             # Add and display follow-up
                             conversation.append({"role": "assistant", "content": follow_up["message"]["content"]})
 
-                            # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Follow-up response: {follow_up['message']['content']}{Style.RESET_ALL}")
-
                             thinking, content = extract_thinking(follow_up["message"]["content"])
                             if thinking:
                                 print_thinking(thinking)
                             if content:
                                 print_assistant(content)
-
-                            # print_assistant(follow_up["message"]["content"])
 
                         except Exception as e:
 
@@ -465,6 +451,7 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
 
                 # Trim conversation history if too long
                 if len(conversation) > MAX_CONVERSATION_LENGTH + 2:  # +2 for the system messages
+
                     # Keep the first two system messages and the most recent history
                     conversation = conversation[:2] + conversation[-(MAX_CONVERSATION_LENGTH):]
 
@@ -472,9 +459,14 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                 print_error(f"Error generating response: {e}")
 
     except KeyboardInterrupt:
+
         print("\nExiting...")
+
     except Exception as e:
+
         print_error(f"Unexpected error: {e}")
+
     finally:
+
         # Save cache before exiting
         save_cache(cache)
