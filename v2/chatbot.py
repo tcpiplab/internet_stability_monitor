@@ -13,6 +13,16 @@ from utils import extract_thinking
 from typing import Dict, List, Any, Optional, Tuple
 from colorama import Fore, Style
 
+# Import Rich for Markdown rendering
+try:
+    from rich.console import Console
+    from rich.markdown import Markdown
+    RICH_AVAILABLE = True
+    # Create a console instance
+    console = Console()
+except ImportError:
+    RICH_AVAILABLE = False
+
 # Import readline for command history and completion
 try:
     if sys.platform == 'darwin' or sys.platform.startswith('linux'):
@@ -158,8 +168,16 @@ def print_tool_execution(tool_name: str) -> None:
 
 
 def print_assistant(message: str) -> None:
-    """Print the assistant's response"""
-    print(f"{ASSISTANT_COLOR}Chatbot (chatbot.py): {Style.RESET_ALL}{message}")
+    """Print the assistant's response with Markdown support"""
+    if RICH_AVAILABLE and any(md_marker in message for md_marker in ["```", "*", "_", "##", "`"]):
+        # Print the prefix with colorama
+        print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}", end="")
+        # Use Rich to render the Markdown content
+        md = Markdown(message)
+        console.print(md)
+    else:
+        # Regular text, use normal print
+        print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
 
 
 def print_error(message: str) -> None:

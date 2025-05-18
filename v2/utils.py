@@ -12,6 +12,16 @@ import time
 from typing import Dict, Any, Optional, List, Tuple
 from colorama import Fore, Style, init
 
+# Import Rich for Markdown rendering if available
+try:
+    from rich.console import Console
+    from rich.markdown import Markdown
+    RICH_AVAILABLE = True
+    # Create a console instance
+    console = Console()
+except ImportError:
+    RICH_AVAILABLE = False
+
 # Initialize colorama for cross-platform color support
 init(autoreset=True)
 
@@ -63,8 +73,16 @@ def print_thinking(message: str):
 
 
 def print_assistant(message: str):
-    """Print a message from the assistant"""
-    print(f"{ASSISTANT_COLOR}Chatbot (utils.py): {Style.RESET_ALL}{message}")
+    """Print a message from the assistant with Markdown support"""
+    if RICH_AVAILABLE and any(md_marker in message for md_marker in ["```", "*", "_", "##", "`"]):
+        # Print the prefix with colorama
+        print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}", end="")
+        # Use Rich to render the Markdown content
+        md = Markdown(message)
+        console.print(md)
+    else:
+        # Regular text, use normal print
+        print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
 
 
 def print_tool_execution(tool_name: str):
@@ -198,7 +216,7 @@ def truncate_long_output(text: str, max_lines: int = 15, max_chars: int = 1000) 
 
 # String formatting utilities
 def format_tool_result(tool_name: str, result: str) -> str:
-    """Format a tool result in a consistent way
+    """Format a tool result in a consistent way, with Markdown support
 
     Args:
         tool_name: The name of the tool
@@ -210,10 +228,15 @@ def format_tool_result(tool_name: str, result: str) -> str:
     # Truncate very long results
     truncated_result = truncate_long_output(result)
 
-    # Format with consistent style
+    # Format with consistent style and markdown code blocks for monospace output
     formatted = f"Tool: {tool_name}\n"
     formatted += "=" * (len(tool_name) + 6) + "\n"
-    formatted += truncated_result
+    
+    # If the result looks like structured data or code, wrap it in a markdown code block
+    if any(pattern in truncated_result for pattern in ['{', '}', '[', ']', ':', '|', '=', '/']):
+        formatted += f"```\n{truncated_result}\n```"
+    else:
+        formatted += truncated_result
 
     return formatted
 

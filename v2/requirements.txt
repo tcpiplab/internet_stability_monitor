@@ -1,3 +1,4 @@
 ollama
 colorama
+rich
 pyreadline3; platform_system == "Windows"
