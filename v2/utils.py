@@ -59,12 +59,12 @@ def print_user_prompt():
 
 def print_thinking(message: str):
     """Print a thinking/reasoning message from the assistant"""
-    print(f"{ASSISTANT_COLOR}{THINKING_COLOR}Chatbot (thinking): {message}{Style.RESET_ALL}")
+    print(f"{ASSISTANT_COLOR}Chatbot (thinking): {Style.RESET_ALL}{THINKING_COLOR}{message}{Style.RESET_ALL}")
 
 
 def print_assistant(message: str):
     """Print a message from the assistant"""
-    print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
+    print(f"{ASSISTANT_COLOR}Chatbot (utils.py): {Style.RESET_ALL}{message}")
 
 
 def print_tool_execution(tool_name: str):
@@ -74,7 +74,7 @@ def print_tool_execution(tool_name: str):
 
 def print_tool_result(result: str):
     """Print a tool execution result"""
-    print(f"{TOOL_COLOR}Result: {Style.RESET_ALL}{result}")
+    print(f"{ASSISTANT_COLOR}Chatbot (tool completed): {TOOL_COLOR}Result: {Style.RESET_ALL}{result}")
 
 
 def print_error(message: str):
@@ -229,15 +229,15 @@ def extract_thinking(content: str) -> Tuple[Optional[str], str]:
     """
     thinking = None
 
-    # Check for thinking pattern 1: <thinking>...</thinking>
-    if "<thinking>" in content and "</thinking>" in content:
-        thinking_start = content.find("<thinking>") + len("<thinking>")
-        thinking_end = content.find("</thinking>")
+    # Check for thinking pattern 1: <think>...</think>
+    if "<think>" in content and "</think>" in content:
+        thinking_start = content.find("<think>") + len("<think>")
+        thinking_end = content.find("</think>")
 
         if thinking_end > thinking_start:
             thinking = content[thinking_start:thinking_end].strip()
             # Remove thinking tags from content
-            content = content[:thinking_start - len("<thinking>")] + content[thinking_end + len("</thinking>"):].strip()
+            content = content[:thinking_start - len("<think>")] + content[thinking_end + len("</think>"):].strip()
 
     # Check for thinking pattern 2: [thinking]...[/thinking]
     elif "[thinking]" in content and "[/thinking]" in content:

@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+from utils import extract_thinking
 from typing import Dict, List, Any, Optional, Tuple
 from colorama import Fore, Style
 
@@ -148,7 +149,7 @@ def print_welcome():
 
 def print_thinking(message: str) -> None:
     """Print thinking/reasoning from the chatbot"""
-    print(f"{ASSISTANT_COLOR}{THINKING_COLOR}Chatbot (thinking): {message}{Style.RESET_ALL}")
+    print(f"{ASSISTANT_COLOR}Chatbot (thinking): {THINKING_COLOR}{message}{Style.RESET_ALL}")
 
 
 def print_tool_execution(tool_name: str) -> None:
@@ -158,7 +159,7 @@ def print_tool_execution(tool_name: str) -> None:
 
 def print_assistant(message: str) -> None:
     """Print the assistant's response"""
-    print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
+    print(f"{ASSISTANT_COLOR}Chatbot (chatbot.py): {Style.RESET_ALL}{message}")
 
 
 def print_error(message: str) -> None:
@@ -269,7 +270,7 @@ def handle_command(command: str, cache: Dict[str, Any]) -> Tuple[bool, bool]:
             print_tool_execution(tool_name)
             try:
                 result = execute_tool(tool_name)
-                print(f"{TOOL_COLOR}Result:{Style.RESET_ALL} {result}")
+                print(f"{ASSISTANT_COLOR}Chatbot (tool completed): {TOOL_COLOR}Result:{Style.RESET_ALL} {result}")
 
                 # Update cache with the result
                 cache[tool_name] = result
@@ -355,24 +356,28 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                 content = response["message"]["content"]
 
                 # Check for thinking patterns in the response
+                # TODO - Replace this redundant code with a call to extract_thinking()
                 thinking = None
-                if "<thinking>" in content and "</thinking>" in content:
-                    thinking_start = content.find("<thinking>") + len("<thinking>")
-                    thinking_end = content.find("</thinking>")
+                if "<think>" in content and "</think>" in content:
+                    # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Thinking detected in response.{Style.RESET_ALL}")
+                    thinking_start = content.find("<think>") + len("<think>")
+                    thinking_end = content.find("</think>")
                     if thinking_end > thinking_start:
                         thinking = content[thinking_start:thinking_end].strip()
                         # Remove the thinking section from the response
-                        content = content[:thinking_start - len("<thinking>")] + content[thinking_end + len(
-                            "</thinking>"):].strip()
+                        content = content[:thinking_start - len("<think>")] + content[thinking_end + len(
+                            "</think>"):].strip()
 
                 # Show thinking if available
                 if thinking:
+                    # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Thinking section from response: {thinking}{Style.RESET_ALL}")
                     print_thinking(thinking)
 
                 # Check for tool calls
                 tool_name, args = parse_tool_call(content)
 
                 if tool_name:
+                    # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Tool call detected: {tool_name}{Style.RESET_ALL}")
                     # Display the assistant's message
                     print_assistant(content)
 
@@ -383,7 +388,7 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                         try:
                             # Execute the tool
                             tool_result = execute_tool(tool_name, args)
-                            print(f"{TOOL_COLOR}Result:{Style.RESET_ALL} {tool_result}")
+                            print(f"{ASSISTANT_COLOR}Chatbot (tool completed): {TOOL_COLOR}Result: \n{Style.RESET_ALL}{tool_result}")
 
                             # Update cache with result
                             cache[tool_name] = tool_result
@@ -402,18 +407,36 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
 
                             # Add and display follow-up
                             conversation.append({"role": "assistant", "content": follow_up["message"]["content"]})
-                            print_assistant(follow_up["message"]["content"])
+
+                            # print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Follow-up response: {follow_up['message']['content']}{Style.RESET_ALL}")
+
+                            thinking, content = extract_thinking(follow_up["message"]["content"])
+                            if thinking:
+                                print_thinking(thinking)
+                            if content:
+                                print_assistant(content)
+
+                            # print_assistant(follow_up["message"]["content"])
+
                         except Exception as e:
+
                             error_msg = f"Error executing tool {tool_name}: {e}"
                             print_error(error_msg)
                             conversation.append({"role": "system", "content": error_msg})
+
                     else:
+
                         error_msg = f"Tool not found: {tool_name}"
                         print_error(error_msg)
                         conversation.append({"role": "system", "content": error_msg})
+
                 else:
+
                     # No tool call, just display the response
                     conversation.append({"role": "assistant", "content": content})
+
+                    print(f"{Fore.MAGENTA}DEBUG: From chatbot.py. Assistant response (no tool call): {content}{Style.RESET_ALL}")
+
                     print_assistant(content)
 
                 # Trim conversation history if too long
