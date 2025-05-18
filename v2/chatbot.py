@@ -54,9 +54,9 @@ except ImportError:
 
 # Local imports
 try:
-    from tools import get_available_tools, execute_tool
+    from network_diagnostics import get_available_tools, execute_tool
 except ImportError:
-    print(f"{Fore.RED}Error: Tools module not found. Make sure tools.py is in the same directory.{Style.RESET_ALL}")
+    print(f"{Fore.RED}Error: Network diagnostics module not found. Make sure network_diagnostics.py is in the same directory.{Style.RESET_ALL}")
     sys.exit(1)
 
 # Configuration
