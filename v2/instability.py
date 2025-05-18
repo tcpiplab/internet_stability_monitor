@@ -137,6 +137,22 @@ def run_test_mode():
         print(f"{Fore.RED}Error loading network diagnostics: {e}{Style.RESET_ALL}")
 
 
+def run_tests_mode():
+    """Run the test suite"""
+    print(f"{Fore.CYAN}Running test suite...{Style.RESET_ALL}")
+    
+    try:
+        # Import and run the test runner
+        from tests.run_tests import discover_and_run_tests
+        return discover_and_run_tests()
+    except ImportError:
+        print(f"{Fore.RED}Error: Tests module not found. Make sure tests directory exists.{Style.RESET_ALL}")
+        return 1
+    except Exception as e:
+        print(f"{Fore.RED}Error running tests: {e}{Style.RESET_ALL}")
+        return 1
+
+
 def show_help():
     """Display help information"""
     print(f"{Fore.CYAN}Instability.py v2 - Network diagnostic chatbot{Style.RESET_ALL}")
@@ -149,6 +165,8 @@ def show_help():
     print("      Run a specific tool or list available tools")
     print(f"  {Fore.GREEN}python instability.py test{Style.RESET_ALL}")
     print("      Test the environment setup")
+    print(f"  {Fore.GREEN}python instability.py run-tests{Style.RESET_ALL}")
+    print("      Run all test scripts in the tests directory")
     print(f"  {Fore.GREEN}python instability.py help{Style.RESET_ALL}")
     print("      Show this help information")
     print("\nChatbot Commands:")
@@ -161,7 +179,7 @@ def show_help():
 def main():
     """Main entry point for instability.py"""
     parser = argparse.ArgumentParser(add_help=False, description="Network diagnostic chatbot")
-    parser.add_argument('mode', nargs='?', choices=['chatbot', 'manual', 'test', 'help'],
+    parser.add_argument('mode', nargs='?', choices=['chatbot', 'manual', 'test', 'run-tests', 'help'],
                         default='help', help='Mode of operation')
     parser.add_argument('tool_name', nargs='?', help='Specific tool to run in manual mode')
     args = parser.parse_args()
@@ -173,6 +191,8 @@ def main():
         run_manual_mode(args.tool_name)
     elif args.mode == 'test':
         run_test_mode()
+    elif args.mode == 'run-tests':
+        return run_tests_mode()
     elif args.mode == 'help':
         show_help()
     else:
@@ -184,7 +204,9 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        result = main()
+        if result is not None:
+            sys.exit(result)
     except KeyboardInterrupt:
         print("\nExiting...")
     except Exception as e:
