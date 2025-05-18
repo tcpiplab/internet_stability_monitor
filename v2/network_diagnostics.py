@@ -18,7 +18,7 @@ from typing import Dict, Any, Callable, Optional, List
 from colorama import Fore, Style
 
 # Import migrated tools from network_tools package
-from network_tools import check_external_ip_main, get_public_ip, web_check_main
+from network_tools import check_external_ip_main, get_public_ip, web_check_main, resolver_check_main, monitor_dns_resolvers, dns_check_main
 
 # Add parent directory to path to allow importing from original modules
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,10 +29,10 @@ if parent_dir not in sys.path:
 ORIGINAL_TOOLS_AVAILABLE = False
 try:
     # Import core modules from original codebase
-    # Note: check_external_ip and web_check have been migrated to network_tools package
+    # Note: check_external_ip, web_check, resolver_check and dns_check have been migrated to network_tools package
     from check_if_external_ip_changed import did_external_ip_change
-    from resolver_check import monitor_dns_resolvers
-    from dns_check import main as dns_check_main
+    # resolver_check has been migrated to network_tools package
+    # dns_check has been migrated to network_tools package
     from check_layer_two_network import report_link_status_and_type
     from whois_check import main as whois_check_main
     from os_utils import get_os_type
@@ -98,29 +98,29 @@ def check_internet_connection() -> str:
 
 def check_dns_resolvers() -> str:
     """Check if DNS resolvers are working properly"""
-    if ORIGINAL_TOOLS_AVAILABLE:
-        try:
-            return monitor_dns_resolvers()
-        except Exception as e:
-            print(f"{Fore.YELLOW}Error using original DNS check: {e}{Style.RESET_ALL}")
+    # Use the migrated resolver_check module
+    try:
+        return monitor_dns_resolvers()
+    except Exception as e:
+        print(f"{Fore.YELLOW}Error using migrated DNS resolver check: {e}{Style.RESET_ALL}")
+        
+        # Fallback implementation if the migrated module fails
+        resolvers = {
+            "Google Public DNS": "8.8.8.8",
+            "Cloudflare DNS": "1.1.1.1",
+            "Quad9 DNS": "9.9.9.9",
+            "OpenDNS": "208.67.222.222"
+        }
 
-    # Fallback implementation
-    resolvers = {
-        "Google Public DNS": "8.8.8.8",
-        "Cloudflare DNS": "1.1.1.1",
-        "Quad9 DNS": "9.9.9.9",
-        "OpenDNS": "208.67.222.222"
-    }
+        results = []
+        for name, ip in resolvers.items():
+            try:
+                socket.create_connection((ip, 53), timeout=2)
+                results.append(f"{name} ({ip}): Reachable")
+            except Exception:
+                results.append(f"{name} ({ip}): Unreachable")
 
-    results = []
-    for name, ip in resolvers.items():
-        try:
-            socket.create_connection((ip, 53), timeout=2)
-            results.append(f"{name} ({ip}): Reachable")
-        except Exception:
-            results.append(f"{name} ({ip}): Unreachable")
-
-    return "\n".join(results)
+        return "\n".join(results)
 
 
 def ping_target(host: str = "8.8.8.8", target: str = None, count: int = 4) -> str:
@@ -169,31 +169,31 @@ def ping_target(host: str = "8.8.8.8", target: str = None, count: int = 4) -> st
 
 def check_dns_root_servers() -> str:
     """Check if DNS root servers are reachable"""
-    if ORIGINAL_TOOLS_AVAILABLE:
-        try:
-            return dns_check_main(silent=True, polite=False)
-        except Exception as e:
-            print(f"{Fore.YELLOW}Error using original DNS root server check: {e}{Style.RESET_ALL}")
+    # Use the migrated dns_check module
+    try:
+        return dns_check_main(silent=True, polite=False)
+    except Exception as e:
+        print(f"{Fore.YELLOW}Error using migrated DNS root server check: {e}{Style.RESET_ALL}")
+        
+        # Fallback implementation if the migrated module fails
+        root_servers = {
+            "a.root-servers.net": "198.41.0.4",
+            "b.root-servers.net": "199.9.14.201",
+            "c.root-servers.net": "192.33.4.12",
+            "d.root-servers.net": "199.7.91.13",
+            "e.root-servers.net": "192.203.230.10",
+            "f.root-servers.net": "192.5.5.241"
+        }
 
-    # Fallback implementation
-    root_servers = {
-        "a.root-servers.net": "198.41.0.4",
-        "b.root-servers.net": "199.9.14.201",
-        "c.root-servers.net": "192.33.4.12",
-        "d.root-servers.net": "199.7.91.13",
-        "e.root-servers.net": "192.203.230.10",
-        "f.root-servers.net": "192.5.5.241"
-    }
+        results = []
+        for name, ip in root_servers.items():
+            try:
+                socket.create_connection((ip, 53), timeout=2)
+                results.append(f"{name} ({ip}): Reachable")
+            except Exception:
+                results.append(f"{name} ({ip}): Unreachable")
 
-    results = []
-    for name, ip in root_servers.items():
-        try:
-            socket.create_connection((ip, 53), timeout=2)
-            results.append(f"{name} ({ip}): Reachable")
-        except Exception:
-            results.append(f"{name} ({ip}): Unreachable")
-
-    return "\n".join(results)
+        return "\n".join(results)
 
 
 def check_websites() -> str:
