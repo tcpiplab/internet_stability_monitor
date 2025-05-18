@@ -11,11 +11,13 @@ python-whois~=0.9.5
 langchain~=0.3.13
 langchain-community~=0.3.13
 langchain-core~=0.3.28
-transformers~=4.47.1
+transformers~=4.50.0
 langgraph~=0.2.60
 langchain-openai~=0.2.14
 ipython~=8.12.3
 langchain-ollama
 typing_extensions~=4.12.2
 langsmith~=0.2.4
+typing_extensions~=4.12.2
+ollama~=0.4.8
 typing_extensions~=4.12.2
