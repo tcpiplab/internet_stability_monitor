@@ -186,6 +186,19 @@ def print_assistant(message: str) -> None:
         print(f"{ASSISTANT_COLOR}Chatbot: {Style.RESET_ALL}{message}")
 
 
+def print_planning(message: str) -> None:
+    """Print the assistant's planning and explaining thoughts with Markdown support"""
+    if RICH_AVAILABLE and any(md_marker in message for md_marker in ["```", "*", "_", "##", "`"]):
+        # Print the prefix with colorama
+        print(f"{ASSISTANT_COLOR}Chatbot (planning): {Style.RESET_ALL}", end="")
+        # Use Rich to render the Markdown content
+        md = Markdown(style="dim blue", code_theme="solarized-dark", markup=message)
+        console.print(md)
+    else:
+        # Regular text, use normal print
+        print(f"{ASSISTANT_COLOR}Chatbot (planning): {Style.DIM}{message}{Style.RESET_ALL}")
+
+
 def print_error(message: str) -> None:
     """Print an error message"""
     print(f"{ERROR_COLOR}Error: {message}{Style.RESET_ALL}")
@@ -392,8 +405,10 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
 
                 if tool_name:
 
-                    # Display the assistant's message
-                    print_assistant(content)
+                    # Display the assistant's first message, which always seems to be planning, or
+                    # explaining, but also hallucinating sometimes
+                    # print_assistant(content)
+                    print_planning(content)
 
                     # Check if the tool exists
                     if tool_name in tools:
