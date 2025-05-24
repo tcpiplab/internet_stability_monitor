@@ -26,7 +26,7 @@ Instability v2 is a complete rewrite of the original network diagnostic chatbot,
 
 - Python 3.7 or higher
 - [Ollama](https://ollama.ai/) installed and running locally
-- The `qwen3:8b` model installed in Ollama
+- An Ollama model installed (default: `phi3:14b`, but any compatible model can be used)
 
 ### Setting Up
 
@@ -49,10 +49,17 @@ pip install -r requirements.txt
 ollama serve
 ```
 
-4. Make sure the qwen3:8b model is available:
+4. Make sure the phi3:14b model is available (or any other model you want to use):
+
+```bash
+ollama pull phi3:14b
+```
+
+To use a different model, pull it first and then specify it with the `--model` option:
 
 ```bash
 ollama pull qwen3:8b
+python instability.py chatbot --model qwen3:8b
 ```
 
 ## Usage
@@ -62,6 +69,16 @@ ollama pull qwen3:8b
 ```bash
 python instability.py chatbot
 ```
+
+You can specify a different Ollama model using the `--model` or `-m` option:
+
+```bash
+python instability.py chatbot --model qwen3:8b
+python instability.py chatbot -m llama3.2:1b
+python instability.py chatbot --model mistral:7b
+```
+
+The default model is `phi3:14b` if no model is specified.
 
 ### Running Specific Tools Manually
 
@@ -148,8 +165,9 @@ The tool will automatically be available to both the chatbot and the manual mode
 If you encounter issues connecting to Ollama:
 
 1. Ensure Ollama is running with `ollama serve`
-2. Verify the qwen3:8b model is installed with `ollama list`
+2. Verify your desired model is installed with `ollama list` (default is phi3:14b)
 3. Check for any firewalls blocking localhost connections
+4. If using a custom model, ensure it's correctly spelled and available in Ollama
 
 ### Command History Not Working
 

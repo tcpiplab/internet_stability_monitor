@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 - Run the chatbot: `python instability.py chatbot`
+- Run the chatbot with specific model: `python instability.py chatbot --model MODEL_NAME`
 - Run all checks: `python instability.py manual all`
 - Run specific check: `python instability.py manual [check_name]`
 - Run tests: `python instability.py test`

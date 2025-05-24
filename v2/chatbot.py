@@ -60,7 +60,7 @@ except ImportError:
     sys.exit(1)
 
 # Configuration
-DEFAULT_MODEL = "qwen3:8b"
+DEFAULT_MODEL = "phi3:14b"
 CACHE_FILE = os.path.expanduser("~/.instability_v2_cache.json")
 HISTORY_FILE = os.path.expanduser("~/.instability_v2_history")
 MAX_CONVERSATION_LENGTH = 20  # Maximum number of messages to keep in history
@@ -341,7 +341,7 @@ def start_interactive_session(model_name: str = DEFAULT_MODEL) -> None:
             "content": """You are a network diagnostics specialist that helps troubleshoot connectivity issues.
 You have access to various networking tools that can be called to diagnose problems.
 
-IMPORTANT: For any network-related questions about connectivity, DNS, ping, latency, IP addresses, routing, or network performance, you MUST use the appropriate tools to get real data. Do not guess or provide generic answers without using tools.
+IMPORTANT: For any network-related questions about connectivity, DNS, ping, latency, IP addresses, routing, or network performance, you MUST use the appropriate tools to get real data. Do not guess or provide generic answers without using tools. Do not simulate or hallucinate data or tool results.
 
 When you need specific information, you can call a tool using this format:
 

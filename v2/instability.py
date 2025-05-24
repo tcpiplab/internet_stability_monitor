@@ -7,10 +7,13 @@ for diagnosing and troubleshooting network connectivity issues, even during
 complete network outages.
 
 Usage:
-    python instability.py chatbot       - Run the interactive chatbot
-    python instability.py manual [tool] - Run specific tools manually
-    python instability.py test          - Test the environment setup
-    python instability.py help          - Show help information
+    python instability.py chatbot [--model MODEL] - Run the interactive chatbot
+    python instability.py manual [tool]           - Run specific tools manually
+    python instability.py test                    - Test the environment setup
+    python instability.py help                    - Show help information
+    
+Options:
+    --model, -m MODEL    Specify Ollama model name (default: phi3:14b)
 """
 
 import sys
@@ -22,11 +25,11 @@ init(autoreset=True)
 
 
 # Will be implemented in separate modules
-def start_chatbot_mode():
+def start_chatbot_mode(model_name=None):
     """Start the interactive chatbot"""
     try:
         from chatbot import start_interactive_session
-        start_interactive_session()
+        start_interactive_session(model_name=model_name)
     except ImportError:
         print(
             f"{Fore.RED}Error: Chatbot module not found. Make sure chatbot.py is in the same directory.{Style.RESET_ALL}")
@@ -96,13 +99,13 @@ def run_test_mode():
         print(f"{Fore.GREEN}Ollama is available{Style.RESET_ALL}")
         print(f"Available models: {', '.join([m['name'] for m in models['models']])}")
 
-        # Check for qwen3:8b model
-        has_qwen = any(m['name'] == 'qwen3:8b' for m in models['models'])
-        if has_qwen:
-            print(f"{Fore.GREEN}qwen3:8b model is available{Style.RESET_ALL}")
+        # Check for phi3:14b model
+        has_phi3 = any(m['name'] == 'phi3:14b' for m in models['models'])
+        if has_phi3:
+            print(f"{Fore.GREEN}phi3:14b model is available{Style.RESET_ALL}")
         else:
             print(
-                f"{Fore.YELLOW}qwen3:8b model not found. You can install it with: ollama pull qwen3:8b{Style.RESET_ALL}")
+                f"{Fore.YELLOW}phi3:14b model not found. You can install it with: ollama pull phi3:14b{Style.RESET_ALL}")
     except ImportError:
         print(f"{Fore.RED}Ollama Python package not installed.{Style.RESET_ALL}")
         print(f"Install with: pip install ollama")
@@ -178,15 +181,17 @@ def show_help():
 
 def main():
     """Main entry point for instability.py"""
-    parser = argparse.ArgumentParser(add_help=False, description="Network diagnostic chatbot")
+    parser = argparse.ArgumentParser(description="Network diagnostic chatbot")
     parser.add_argument('mode', nargs='?', choices=['chatbot', 'manual', 'test', 'run-tests', 'help'],
                         default='help', help='Mode of operation')
     parser.add_argument('tool_name', nargs='?', help='Specific tool to run in manual mode')
+    parser.add_argument('--model', '-m', type=str, default='phi3:14b',
+                        help='Ollama model name to use for chatbot (default: phi3:14b)')
     args = parser.parse_args()
 
     # Handle different modes
     if args.mode == 'chatbot':
-        start_chatbot_mode()
+        start_chatbot_mode(model_name=args.model)
     elif args.mode == 'manual':
         run_manual_mode(args.tool_name)
     elif args.mode == 'test':
