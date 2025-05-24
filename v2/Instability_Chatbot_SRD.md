@@ -56,6 +56,7 @@ The Instability Chatbot v2 is a terminal-based network diagnostic tool that prov
 - Interactive conversational interface
 - Tool execution based on user queries
 - Clear display of tool selection reasoning, execution, and results
+- Runtime model selection via `--model` CLI argument
 
 ### 3.2 Manual Tool Execution
 - Direct execution of specific tools via command line
@@ -70,7 +71,7 @@ The Instability Chatbot v2 is a terminal-based network diagnostic tool that prov
 ### 4.1 Ollama Integration
 - Direct use of Ollama Python API
 - Utilization of Ollama's context parameter for conversation tracking
-- Support for different Ollama models (primarily qwen3:8b by default)
+- Support for different Ollama models with runtime selection (default: phi3:14b)
 
 ### 4.2 Tool Execution Framework
 - Simple function-based tool registry
@@ -165,5 +166,5 @@ The Instability Chatbot v2 is a terminal-based network diagnostic tool that prov
 
 ### 9.1 Potential Enhancements
 - Plugin architecture for external tools
-- Configuration options for model selection
 - Option to run groups of tools in sequence, for example, "run all DNS tools"
+- Configuration file for default settings and preferences
