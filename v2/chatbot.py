@@ -340,13 +340,27 @@ def start_interactive_session(model_name: str = DEFAULT_MODEL) -> None:
             "role": "system",
             "content": """You are a network diagnostics specialist that helps troubleshoot connectivity issues.
 You have access to various networking tools that can be called to diagnose problems.
+
+IMPORTANT: For any network-related questions about connectivity, DNS, ping, latency, IP addresses, routing, or network performance, you MUST use the appropriate tools to get real data. Do not guess or provide generic answers without using tools.
+
 When you need specific information, you can call a tool using this format:
 
 TOOL: tool_name
 ARGS: {"arg_name": "value"} (or {} if no arguments needed)
 
+Examples of when you MUST use tools:
+- Questions about ping times or connectivity → use ping_target
+- DNS resolution issues → use check_dns_resolvers
+- DNS root server issues → use check_dns_root_servers
+- IP address questions → use get_external_ip or get_local_ip
+- Website accessibility → use check_websites
+- General connectivity → use check_internet_connection or check_local_network
+- NAT questions → use get_external_ip and also use get_local_ip and then compare the two to determine if NAT is in use
+- Speed or bandwidth questions → use run_speed_test
+- Questions about the local operating system → use get_os_info
+
 Always provide clear explanations of what the tools do and what the results mean.
-If you're unsure about a problem, suggest multiple possible diagnoses and how to confirm them.
+If you're unsure about a problem, suggest multiple possible diagnoses and how to confirm them using tools.
 """
         }
     ]
@@ -456,6 +470,17 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
                         conversation.append({"role": "system", "content": error_msg})
 
                 else:
+
+                    # No tool call - check if this is a network-related question and add warning
+                    network_keywords = ['ping', 'network', 'connectivity', 'internet', 'dns', 'ip', 'connection', 'latency', 'speed', 'bandwidth', 'traceroute', 'route', 'packet', 'loss']
+                    user_message = conversation[-1].get('content', '').lower() if conversation else ''
+                    
+                    is_network_question = any(keyword in user_message for keyword in network_keywords)
+                    
+                    if is_network_question:
+                        warning_msg = "WARNING: Network diagnostic questions should use tools for accurate data. Response may contain inaccurate information."
+                        conversation.append({"role": "system", "content": warning_msg})
+                        print(f"{Fore.YELLOW}⚠️  {warning_msg}{Style.RESET_ALL}")
 
                     # No tool call, just display the response
                     conversation.append({"role": "assistant", "content": content})
