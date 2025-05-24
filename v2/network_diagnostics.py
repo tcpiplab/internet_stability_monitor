@@ -312,9 +312,7 @@ def check_nat_status() -> str:
     """Check if we are running behind NAT by comparing local and external IP addresses.
     
     Returns:
-        "True" if NAT is detected (local IP is private RFC 1918 and differs from external IP)
-        "False" if no NAT detected
-        Error message if unable to determine
+        Detailed analysis including NAT status confirmation and labeled IP addresses
     """
     try:
         # Get local and external IP addresses
@@ -323,13 +321,31 @@ def check_nat_status() -> str:
         
         # Check for errors in IP retrieval
         if "Error" in local_ip or "Could not determine" in external_ip:
-            return f"Unable to determine NAT status: Local IP: {local_ip}, External IP: {external_ip}"
+            return f"Unable to determine NAT status.\nLocal IP: {local_ip}\nExternal IP: {external_ip}"
         
-        # Check if IPs are different and local IP is private
-        if local_ip != external_ip and is_private_ip(local_ip):
-            return "True"
+        # Build detailed response
+        result = []
+        result.append(f"Local IP Address: {local_ip}")
+        result.append(f"External IP Address: {external_ip}")
+        
+        # Determine NAT status
+        is_nat = local_ip != external_ip and is_private_ip(local_ip)
+        
+        if is_nat:
+            result.append("\nNAT Status: You ARE running behind NAT.")
+            result.append(f"Your device has a private IP address ({local_ip}) on the local network,")
+            result.append(f"but appears to the internet with a public IP address ({external_ip}).")
         else:
-            return "False"
+            if local_ip == external_ip:
+                result.append("\nNAT Status: You are NOT running behind NAT.")
+                result.append("Your device has the same IP address locally and externally,")
+                result.append("indicating a direct internet connection.")
+            else:
+                result.append("\nNAT Status: Uncertain - unusual IP configuration detected.")
+                result.append(f"Local IP ({local_ip}) differs from external IP ({external_ip}),")
+                result.append("but local IP is not a standard private address.")
+        
+        return "\n".join(result)
             
     except Exception as e:
         return f"Error checking NAT status: {e}"
