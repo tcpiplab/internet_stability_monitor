@@ -287,6 +287,54 @@ def check_whois_servers() -> str:
     return "\n".join(results)
 
 
+def is_private_ip(ip: str) -> bool:
+    """Check if an IP address is in RFC 1918 private address space"""
+    try:
+        import ipaddress
+        ip_obj = ipaddress.IPv4Address(ip)
+        
+        # RFC 1918 private address ranges:
+        # 10.0.0.0/8 (10.0.0.0 to 10.255.255.255)
+        # 172.16.0.0/12 (172.16.0.0 to 172.31.255.255)  
+        # 192.168.0.0/16 (192.168.0.0 to 192.168.255.255)
+        private_networks = [
+            ipaddress.IPv4Network('10.0.0.0/8'),
+            ipaddress.IPv4Network('172.16.0.0/12'),
+            ipaddress.IPv4Network('192.168.0.0/16')
+        ]
+        
+        return any(ip_obj in network for network in private_networks)
+    except Exception:
+        return False
+
+
+def check_nat_status() -> str:
+    """Check if we are running behind NAT by comparing local and external IP addresses.
+    
+    Returns:
+        "True" if NAT is detected (local IP is private RFC 1918 and differs from external IP)
+        "False" if no NAT detected
+        Error message if unable to determine
+    """
+    try:
+        # Get local and external IP addresses
+        local_ip = get_local_ip()
+        external_ip = get_external_ip()
+        
+        # Check for errors in IP retrieval
+        if "Error" in local_ip or "Could not determine" in external_ip:
+            return f"Unable to determine NAT status: Local IP: {local_ip}, External IP: {external_ip}"
+        
+        # Check if IPs are different and local IP is private
+        if local_ip != external_ip and is_private_ip(local_ip):
+            return "True"
+        else:
+            return "False"
+            
+    except Exception as e:
+        return f"Error checking NAT status: {e}"
+
+
 def run_speed_test() -> str:
     """Use this tool to run a speed test.
     This speed test tool will first check to make sure we are running macOS, also called Darwin.
@@ -458,6 +506,7 @@ def get_available_tools() -> Dict[str, Callable]:
         "check_websites": check_websites,
         "check_local_network": check_local_network,
         "check_whois_servers": check_whois_servers,
+        "check_nat_status": check_nat_status,
         "run_speed_test": run_speed_test
     }
 

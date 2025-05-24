@@ -355,7 +355,7 @@ Examples of when you MUST use tools:
 - IP address questions → use get_external_ip or get_local_ip
 - Website accessibility → use check_websites
 - General connectivity → use check_internet_connection or check_local_network
-- NAT questions → use get_external_ip and also use get_local_ip and then compare the two to determine if NAT is in use
+- NAT questions → use check_nat_status
 - Speed or bandwidth questions → use run_speed_test
 - Questions about the local operating system → use get_os_info
 
