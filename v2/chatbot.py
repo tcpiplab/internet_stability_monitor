@@ -457,6 +457,8 @@ If you're unsure about a problem, suggest multiple possible diagnoses and how to
 
                 else:
 
+                    # TODO - The chatbot seems to hallucinate if it doesn't call a tool. What should we do?
+
                     # No tool call, just display the response
                     conversation.append({"role": "assistant", "content": content})
 
